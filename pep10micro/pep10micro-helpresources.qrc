@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>help-micro/pep9micro.pepmicro</file>
         <file>help-micro/alignedIO-OS.pep</file>
         <file>help-micro/figures-micro/fig-2-03.pepmicro</file>
         <file>help-micro/figures-micro/fig-2-02.pepmicro</file>
@@ -91,7 +90,6 @@
         <file>help-micro/machinelanguage.html</file>
         <file>help-micro/microcode.html</file>
         <file>help-micro/problems.html</file>
-        <file>help-micro/usingpep9cpu.html</file>
         <file>help-micro/writingprograms.html</file>
         <file>help-micro/writingtraphandlers.html</file>
         <file>help-micro/images/assemble.png</file>
@@ -176,5 +174,7 @@
         <file>help-micro/images/stepovericon.png</file>
         <file>help-micro/images/stopdebugging.png</file>
         <file>help-micro/images/viewicon.png</file>
+        <file>help-micro/pep10micro.pepmicro</file>
+        <file>help-micro/usingpep10cpu.html</file>
     </qresource>
 </RCC>

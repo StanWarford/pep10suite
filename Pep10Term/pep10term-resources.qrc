@@ -2,7 +2,6 @@
     <qresource prefix="/">
         <file>images/icon.icns</file>
         <file>images/icon.ico</file>
-        <file>images/Pep9term-icon-about.png</file>
-        <file>images/Pep9term-icon.png</file>
+        <file>images/Pep10term-icon-about.png</file>
     </qresource>
 </RCC>

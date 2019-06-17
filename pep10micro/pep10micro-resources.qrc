@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>images/Pep9micro-icon.png</file>
         <file>help-micro/about.html</file>
         <file>help-micro/figures-asm/fig0435.pepb</file>
         <file>help-micro/figures-asm/fig0437.peph</file>
@@ -22,5 +21,6 @@
         <file>help-micro/figures-asm/fig0435.peph</file>
         <file>help-micro/figures-asm/fig0433.pepo</file>
         <file>help-micro/figures-asm/fig0433.peph</file>
+        <file>images/Pep10micro-icon.png</file>
     </qresource>
 </RCC>

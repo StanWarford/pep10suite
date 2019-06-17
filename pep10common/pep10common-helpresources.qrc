@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>help/pep9reference.html</file>
+        <file>help/pep10reference.html</file>
     </qresource>
 </RCC>
