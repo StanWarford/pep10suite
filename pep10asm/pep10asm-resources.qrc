@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/Pep9-icon-about.png</file>
+        <file>images/Pep9-icon.png</file>
+        <file>images/icon.ico</file>
+        <file>images/icon.icns</file>
+        <file>help-asm/about.html</file>
+        <file>images/codeCPU.png</file>
+        <file>images/codeCPUMem.png</file>
+        <file>images/codeOnly.png</file>
+    </qresource>
+</RCC>
