@@ -1,0 +1,5 @@
+*.pro.user
+*.pro.user.*
+*.autosave
+.DS_Store
+build-*/
