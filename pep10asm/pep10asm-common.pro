@@ -27,6 +27,9 @@ HEADERS += \
     executionstatisticswidget.h \
     interfaceisacpu.h \
     isaasm.h \
+    macro.h \
+    macroregistry.h \
+    macrotokenizer.h \
     memorycellgraphicsitem.h \
     memorytracepane.h \
     ngraph.h \
@@ -55,6 +58,9 @@ SOURCES += \
     executionstatisticswidget.cpp \
     interfaceisacpu.cpp \
     isaasm.cpp \
+    macro.cpp \
+    macroregistry.cpp \
+    macrotokenizer.cpp \
     memorycellgraphicsitem.cpp \
     memorytracepane.cpp \
     pepasmhighlighter.cpp \
