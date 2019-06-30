@@ -21,6 +21,7 @@
 
 #include <QtWidgets/QApplication>
 #include "asmmainwindow.h"
+#include "fakemacrodriver.h"
 #ifdef WIN32
 #include <string.h>
 #include <qvector.h>
@@ -47,6 +48,10 @@ int main(int argc, char *argv[])
     Pep::initMnemonicMaps(true);
     Pep::initAddrModesMap();
     Pep::initDecoderTables();
+
+    // Assemble a fake Macro aware program.
+    FakeMacroDriver driver;
+    driver.run();
 
     qInstallMessageHandler(nullptr);
 

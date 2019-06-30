@@ -25,15 +25,19 @@ HEADERS += \
     asmsourcecodepane.h \
     cpphighlighter.h \
     executionstatisticswidget.h \
+    fakemacrodriver.h \
     interfaceisacpu.h \
     isaasm.h \
     macro.h \
+    macroisaassembler.h \
     macromodules.h \
+    macropreprocessor.h \
     macroregistry.h \
     macrotokenizer.h \
     memorycellgraphicsitem.h \
     memorytracepane.h \
     ngraph.h \
+    ngraph_path.h \
     ngraph_prune.h \
     pepasmhighlighter.h \
     setops.hpp \
@@ -57,10 +61,13 @@ SOURCES += \
     asmsourcecodepane.cpp \
     cpphighlighter.cpp \
     executionstatisticswidget.cpp \
+    fakemacrodriver.cpp \
     interfaceisacpu.cpp \
     isaasm.cpp \
     macro.cpp \
+    macroisaassembler.cpp \
     macromodules.cpp \
+    macropreprocessor.cpp \
     macroregistry.cpp \
     macrotokenizer.cpp \
     memorycellgraphicsitem.cpp \

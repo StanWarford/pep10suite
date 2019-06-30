@@ -60,21 +60,29 @@ bool single_incoming_edge(typename NGraph::tGraph<T>::const_iterator p)
     return (typename NGraph::tGraph<T>::in_neighbors(p).size() == 1);
 }
 
+// Returns the the graph formed by recursively removing all verticies with out degree 0.
+// Only works for directed graphs.
 template <class T>
-NGraph::tGraph<T> prune(const NGraph::tGraph<T>& input)
+NGraph::tGraph<T> reduce(const NGraph::tGraph<T>& input)
 {
     typedef typename set<typename NGraph::tGraph<T>::vertex>::const_iterator vertex_set_iterator;
+    // Make a copy of the input graph so that we may remove verticies from it
     NGraph::tGraph<T> workingCopy = input;
     std::set<typename NGraph::tGraph<T>::vertex> D;     // nodes to delete
 
     size_t previousSize = 0;
     size_t currentSize = workingCopy.num_vertices();
+    // Remove any vertex from the graph with out degree 0.
+    // If after two consectuive loops the graph does not shrink,
+    // then some of the nodes are participating in a cycle OR
+    // the graph is empty.
     while(previousSize != currentSize) {
+        // Clear deletion set each time to reduce redundant deletes.
         D.clear();
+        // The current number of nodes is now the number
+        // the number to "beat".
         previousSize = currentSize;
-        std::stringstream str;
-        str << workingCopy;
-        qDebug() << QString::fromStdString(str.str()).split("\n",QString::SplitBehavior::SkipEmptyParts);
+        // Check each node in the graph to see if it may be deleted.
         for (typename NGraph::tGraph<T>::const_iterator p = workingCopy.begin();
             p != workingCopy.end(); p++) {
             if (leaf_node<T>(p)) {
@@ -82,9 +90,10 @@ NGraph::tGraph<T> prune(const NGraph::tGraph<T>& input)
                 D.insert(NGraph::tGraph<T>::node(p));
             }
         }
+        // Remove all of the nodes marked for deletion.
         for (vertex_set_iterator v = D.begin();
             v != D.end(); v++) {
-            qDebug() << "About to remove vertex: " << *v << "\n";
+            //std::cerr << "About to remove vertex: " << *v << "\n";
             workingCopy.remove_vertex(*v);
         }
         currentSize = workingCopy.num_vertices();
