@@ -29,7 +29,10 @@ HEADERS += \
     isaasm.h \
     memorycellgraphicsitem.h \
     memorytracepane.h \
+    ngraph.h \
+    ngraph_prune.h \
     pepasmhighlighter.h \
+    setops.hpp \
     typetags.h \
     stacktrace.h \
     redefinemnemonicsdialog.h \
