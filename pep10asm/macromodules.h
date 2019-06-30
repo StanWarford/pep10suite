@@ -122,6 +122,10 @@ struct ModuleAssemblyGraph
     // the name is found.
     // If the name is not found, 0xFFFF will be returned instead.
     quint16 getIndexFromName(QString macroName);
+    // Given a module index, from the line of code in module which
+    // references that index. Will not recurse through children.
+    // Returns 0 if index was not referenced in module.
+    quint16 getLineFromIndex(ModulePrototype& module, quint16 index);
     // Allow easy creation of root, since the root module has no dependencies.
     // If the root has already been created, then the function will return nullptr's.
     std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance>> createRoot(QString text, ModuleType type);

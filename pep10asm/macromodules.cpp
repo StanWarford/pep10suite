@@ -11,6 +11,17 @@ quint16 ModuleAssemblyGraph::getIndexFromName(QString macroName)
     return 0xFFFF;
 }
 
+quint16 ModuleAssemblyGraph::getLineFromIndex(ModulePrototype& module, quint16 index)
+{
+    for(auto kvPair : module.lineToInstance) {
+        auto includedModule = std::get<1>(kvPair);
+        if(includedModule->prototype->index == index) {
+            return std::get<0>(kvPair);
+        }
+    }
+    return 0;
+}
+
 std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance> > ModuleAssemblyGraph::createRoot(QString text, ModuleType type)
 {
     // If there's already an element in the graph, the node has been constructed. Abort

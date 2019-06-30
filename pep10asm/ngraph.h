@@ -464,6 +464,7 @@ class tGraph
     */
     std::vector<edge> edge_list() const;
 
+    std::vector<vertex> vertex_list() const;
 /*
     graph unions
 */
@@ -933,6 +934,18 @@ std::vector<typename tGraph<T>::edge> tGraph<T>::edge_list() const
     return E;
 }
 
+template<typename T>
+std::vector<typename tGraph<T>::vertex> tGraph<T>::vertex_list() const
+{
+    std::vector<typename tGraph<T>::vertex> E;
+    E.resize(G_.size());
+    int at = 0;
+    for(auto kvPair : G_) {
+        E[at] = std::get<0>(kvPair);
+        at++;
+    }
+    return E;
+}
 
 
 
