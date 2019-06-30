@@ -28,6 +28,7 @@ HEADERS += \
     interfaceisacpu.h \
     isaasm.h \
     macro.h \
+    macromodules.h \
     macroregistry.h \
     macrotokenizer.h \
     memorycellgraphicsitem.h \
@@ -59,6 +60,7 @@ SOURCES += \
     interfaceisacpu.cpp \
     isaasm.cpp \
     macro.cpp \
+    macromodules.cpp \
     macroregistry.cpp \
     macrotokenizer.cpp \
     memorycellgraphicsitem.cpp \

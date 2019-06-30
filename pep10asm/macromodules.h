@@ -1,0 +1,133 @@
+#ifndef MACROMODULES_H
+#define MACROMODULES_H
+
+#include <QtCore>
+#include "ngraph.h"
+
+// Track the line number an contents of an error message.
+typedef std::tuple<int /*line*/, QString /*errMessage*/> ErrorInfo;
+
+/*
+ * Different file types allow for differnt compiling options,
+ * so a module must track what type of file it is.
+ *
+ * For example, a user program or macro shall not contain a .BURN,
+ * but an operating system requires it.
+ */
+enum ModuleType {
+    MACRO,
+    OPERATING_SYSTEM,
+    USER_PROGRAM,
+};
+
+/*
+ * A module represents a single Pep10 assembler file.
+ *
+ * In Pep9, only one program would ever be evaluated or assembled
+ * at a time. With Pep10's macro facility, a single user program may
+ * include many macros, which in turn include many macros.
+ *
+ * A single translation unit (a file) is a module, and an executable
+ * program is composed of several modules.
+ *
+ * Modules are delineated between prototypes and instances. A Prototype
+ * is the macro as defined by the assembly file on the hard disk, macro
+ * substitutions ($1, $2, etc.) included. An Instance is generated when
+ * a macro is invoked (e.g. %DECO num,d), and tracks the arguments that
+ * must be substitued into the Prototype.
+ *
+ * As the Instance (after substitution occurs) represents a real assembler file,
+ * all assembly are performed on the Instance.
+ *
+ */
+struct ModuleInstance;
+struct ModulePrototype {
+    /*
+     * Information that must be filled in before preprocessing.
+     */
+    // The index in the lookup graph.
+    quint16 index = 0xffff;
+    // Name by which the module can be looked up. For macros,
+    // this is the name as reproted by the MacroRegistry. For user
+    // programs and uperating systems, it may be anything starting and
+    // ending with @@ (@@main@@ is valid, main@@ is not).
+    QString name;
+    // What is the program text (macro substitutions included) of the moudle?
+    QString text;
+    ModuleType moduleType;
+    // Break the program text at newlines (keeping empty lines)
+    // to save from calling text.split("\n") multiple times.
+    QStringList textLines;
+
+    /*
+     * Information filled in by preprocessor.
+     */
+    QList<std::tuple<quint16, ModuleInstance*>> lineToInstance;
+};
+
+struct ModuleInstance {
+    // Errors may be raised on any line at any step.
+    QList<ErrorInfo> errorList;
+
+    /*
+     * Information that must be filled in before preprocessing.
+     */
+    ModulePrototype* prototype;
+
+    /*
+     * Information filled in by preprocessor.
+     */
+    // May be empty if the module is not a macro type.
+    QStringList macroArgs;
+
+    /*
+     * Information filled in during assembly.
+     */
+    bool alreadyAssembled;
+    int codeList;
+    // All module instances share the same symbol table.
+    int* symbolTable;
+
+    /*
+     * Information filled in during linking.
+     */
+    bool alreadyLinked;
+
+    /*
+     * Information filled in during annotation.
+     */
+    int traceInfo;
+    // Information filled in during validation.
+};
+
+/*
+ * The ModuleAssemblyGraph tracks which modules are included
+ * by other modules using a DiGraph.
+ */
+struct ModuleAssemblyGraph
+{
+    // Map which macros use other macros.
+    NGraph::tGraph<quint16> moduleGraph;
+    // Map the ID of a vertex to its prototype.
+    QMap<quint16, QSharedPointer<ModulePrototype>> prototypeMap;
+    // For a given ID, log every separate instance of the prototype.
+    QMap<quint16, QList<QSharedPointer<ModuleInstance>>> instanceMap;
+    // By convention the root module is 0, but it would be best to have
+    // it be an explicit field.
+    quint16 rootModule = defaultRootIndex;
+    static const quint16 defaultRootIndex = 0;
+
+    // Attempt to find a module prototype with the same name as macroName.
+    // It will ignore case, and return a valid index in the module graph if
+    // the name is found.
+    // If the name is not found, 0xFFFF will be returned instead.
+    quint16 getIndexFromName(QString macroName);
+    // Allow easy creation of root, since the root module has no dependencies.
+    // If the root has already been created, then the function will return nullptr's.
+    std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance>> createRoot(QString text, ModuleType type);
+    // Helper functions to build macro modules are not included, since the macro
+    // modules may suffer from complex errors during construction.
+    // Construction of other modules should be handled by preprocessor.
+};
+
+#endif // MACROMODULES_H
