@@ -9,7 +9,8 @@ static const QString noSuchMaro = "ERROR: Referenced macro does not exist.";
 static const QString badArgCount = "ERROR: Macro supplied wrong number of arguments.";
 static const QString noDollarInMacro = "ERROR: Cannot use $ as part of a macro identifier.";
 static const QString invalidArg = "ERROR: Bad argument: %1. Cannot use $ in macro argument.";
-static const QString circularInclude = "ERROR: Circular include detected.";
+static const QString circularInclude = "ERROR: Circular macro inclusion detected.";
+static const QString selfRefence = "ERROR: Macro definition invokes itself.";
 
 MacroPreprocessor::MacroPreprocessor(const MacroRegistry *registry): registry(registry), moduleIndex(0)
 {
@@ -171,8 +172,18 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         //QStringList splitList = trimmedSubstr.split(",", QString::SplitBehavior::SkipEmptyParts);
 
         // Get the number of "things" seperated by commas AND outside of comments.
-        QStringList args = lineText.mid(endMacroName, commentLoc).trimmed().split(",", QString::SplitBehavior::SkipEmptyParts);
-        count = args.size();
+        QString argText = lineText.mid(endMacroName, commentLoc).trimmed();
+        QStringList argList = argText.split(",", QString::SplitBehavior::SkipEmptyParts);
+        if(argText.size() == 0) {
+            // If there is no argument text, we have 0 arguments.
+            count = 0;
+        }
+        else {
+            // Otherwise we have text, so we have at least 1 element,
+            // and one additional argument per comma in the string.
+            count = argText.count(",") + 1;
+        }
+
 
 
         // Check that we supply the right number of args to a macro.
@@ -187,7 +198,7 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         // All these check show we have a syntactically correct
         // macro invocation, so we may create a MacroDefinition.
         extract.macroName = macroName;
-        extract.macroArgs = args;
+        extract.macroArgs = argList;
         extract.lineNumber = lineNumber;
         retVal.moduleDefinitionList.append(extract);
     }
@@ -210,6 +221,14 @@ MacroPreprocessor::LinkResult MacroPreprocessor::addModuleLinksToPrototypes(Modu
             // If the name was not valid, signal linking failure.
             result.semanticsError = true;
             result.error = {macro.lineNumber, std::get<1>(nameValid)};
+            break;
+        }
+        // If the module has the same name as the macro being called, we have an
+        // infinite include loop. While this will be deteced by the cycle checker,
+        // we can give a more precise error message if we check here.
+        else if(macro.macroName.compare(module.name) == 0) {
+            result.semanticsError = true;
+            result.error = {macro.lineNumber, selfRefence};
             break;
         }
         auto argsValid = validateMacroArgs(macro.macroArgs);

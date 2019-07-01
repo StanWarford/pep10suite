@@ -21,11 +21,14 @@ FakeMacroDriver::FakeMacroDriver(): registry(new MacroRegistry()), assembler(new
     registry->registerCoreMacro("L3", "%L3 0\n%L4A\n%L4B\n%L4C\n.END\n", 0);
     registry->registerCoreMacro("L4A", "%L4A 0\n%L4B\n%L4C\n.END\n", 0);
     registry->registerCoreMacro("L4B", "%L4B 0\n%L4C\n%DIVA l,sfx\n.END\n", 0);
-#pragma message("check case ,,")
     // Causes a loop in the bottom of a recursive tree.
     //registry->registerCoreMacro("L4C", "%L4C 0\n%DIVA k,d\n%LOOPA\n.END\n", 0);
-    // Causes a syntax error at the bottom of the tree.
+    //Causes a syntax error at the bottom of the tree: too many args.
     //registry->registerCoreMacro("L4C", "%L4C 0\n%DIVA k,l,d\n.END\n", 0);
+    //Causes a syntax error at the bottom of the tree: too many args.
+    //registry->registerCoreMacro("L4C", "%L4C 0\n%DIVA k,,d\n.END\n", 0);
+    //Causes a syntax error at the bottom of the tree: recursive!.
+    //registry->registerCoreMacro("L4C", "%L4C 0\n%L4C\n.END\n", 0);
     // Works normally.
     registry->registerCoreMacro("L4C", "%L4C 0\n%DIVA k,d\n.END\n", 0);
 

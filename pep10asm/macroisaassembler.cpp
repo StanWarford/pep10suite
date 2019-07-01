@@ -28,6 +28,9 @@ void *MacroISAAssembler::assembleUserProgram(QString input)
                            <<": "
                            << std::get<1>(preprocessResult.error);
     }
+    else {
+        qDebug() << "Preprocessing was successful.";
+    }
     // Handle any preprocessor errors.
     assembleProgram(*rootInstance.get());
     link(*rootInstance.get());
