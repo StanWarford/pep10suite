@@ -81,6 +81,9 @@ public:
     bool isUndefined() const;
     bool isMultiplyDefined() const;
     void setMultiplyDefined();
+    // Allow a symbol's definition state to be managed by a symbol table.
+    void setDefinedState(DefStates state);
+
     SymbolTable::SymbolID getSymbolID() const;
     //Uses the internal data pointer, and returns the value of its getValue() method
     qint32 getValue() const;

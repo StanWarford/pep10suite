@@ -65,6 +65,14 @@ public:
     // and setValue(...) on that symbol.
 	SymbolEntryPtr setValue(SymbolID symbolID, AbstractSymbolValuePtr value);
 	SymbolEntryPtr setValue(const QString & symbolName, AbstractSymbolValuePtr value);
+
+    // Indicate that you are referencing a (supposedly) declared symbol.
+    // If the symbol is not in the symbol table, it will bre created.
+    SymbolEntryPtr reference(const QString & symbolName);
+    // Indicate that you are defining a new symbol. If the symbol
+    // already exists, the symbol will be flagged as multiply defined.
+    SymbolEntryPtr define(const QString & symbolName);
+
     // Check if a symbol exists.
     bool exists(const QString& symbolName) const;
     bool exists(SymbolID symbolID) const;

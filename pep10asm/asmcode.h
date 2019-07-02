@@ -27,7 +27,7 @@
 #include <QSet>
 class AsmArgument; // Forward declaration for attributes of code classes.
 class SymbolEntry;
-
+#pragma message("WARNING, all instruction classes leak contained memory on destruct.")
 /*
  * Abstract Code class that represents a single line of assembly code.
  * It contains methods for generating object code, & pretty-printing source code.
@@ -37,6 +37,7 @@ class SymbolEntry;
 class AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 public:
     AsmCode();
     virtual ~AsmCode() { }
@@ -78,6 +79,7 @@ protected:
 class UnaryInstruction: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     Enu::EMnemonic mnemonic;
     bool breakpoint = false;
@@ -99,6 +101,7 @@ public:
 class NonUnaryInstruction: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     Enu::EMnemonic mnemonic;
     Enu::EAddrMode addressingMode;
@@ -124,6 +127,7 @@ public:
 class DotAddrss: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument = nullptr;
 public:
@@ -140,6 +144,7 @@ public:
 class DotAlign: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument = nullptr;
     AsmArgument *numBytesGenerated = nullptr;
@@ -157,6 +162,7 @@ public:
 class DotAscii: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument = nullptr;
 public:
@@ -172,6 +178,7 @@ public:
 class DotBlock: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument;
 public:
@@ -186,6 +193,7 @@ public:
 class DotBurn: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument = nullptr;
 
@@ -198,6 +206,7 @@ public:
 class DotByte: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument = nullptr;
 
@@ -213,7 +222,7 @@ public:
 class DotEnd: public AsmCode
 {
     friend class IsaAsm;
-
+    friend class MacroAssembler;
 public:
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
@@ -223,6 +232,7 @@ public:
 class DotEquate: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument = nullptr;
 public:
@@ -235,6 +245,7 @@ public:
 class DotWord: public AsmCode
 {
     friend class IsaAsm;
+    friend class MacroAssembler;
 private:
     AsmArgument *argument = nullptr;
 public:
@@ -248,7 +259,7 @@ public:
 class CommentOnly: public AsmCode
 {
     friend class IsaAsm;
-
+    friend class MacroAssembler;
 public:
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
@@ -258,7 +269,7 @@ public:
 class BlankLine: public AsmCode
 {
     friend class IsaAsm;
-
+    friend class MacroAssembler;
 public:
     // AsmCode interface
     virtual QString getAssemblerListing() const override;

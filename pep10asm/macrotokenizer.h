@@ -4,18 +4,22 @@
 #include <QString>
 #include <QtCore>
 #include "enu.h"
+#include <optional>
+#include <QObject>
 
 namespace MacroTokenizerHelper
 {
+    Q_NAMESPACE;
     // Lexical tokens
-    enum ELexicalToken
+    enum class ELexicalToken
     {
         LT_ADDRESSING_MODE, LT_CHAR_CONSTANT, LT_COMMENT, LT_DEC_CONSTANT, LT_DOT_COMMAND,
-        LT_EMPTY, LT_HEX_CONSTANT, LT_IDENTIFIER, LT_STRING_CONSTANT, LT_SYMBOL_DEF
+        LT_EMPTY, LT_HEX_CONSTANT, LT_IDENTIFIER, LT_STRING_CONSTANT, LT_SYMBOL_DEF,
+        LTE_MACRO_INVOKE, LTE_MACRO_SUBSTITUTION, LTE_ERROR
     };
-
+    Q_ENUM_NS(ELexicalToken);
     // Parser state for the assembler FSM
-    enum ParseState
+    enum class ParseState
     {
         PS_ADDRESSING_MODE, PS_CLOSE, PS_COMMENT, PS_DOT_ADDRSS, PS_DOT_ALIGN, PS_DOT_ASCII,
         PS_DOT_BLOCK, PS_DOT_BURN, PS_DOT_BYTE, PS_DOT_END, PS_DOT_EQUATE, PS_DOT_WORD,
@@ -23,14 +27,16 @@ namespace MacroTokenizerHelper
     };
 
     // Regular expressions for lexical analysis
-    extern const QRegularExpression rxAddrMode;
-    extern const QRegularExpression rxCharConst;
-    extern const QRegularExpression rxComment;
-    extern const QRegularExpression rxDecConst;
-    extern const QRegularExpression rxDotCommand;
-    extern const QRegularExpression rxHexConst;
-    extern const QRegularExpression rxIdentifier;
-    extern const QRegularExpression rxStringConst;
+    extern const QRegularExpression addrMode;
+    extern const QRegularExpression charConst;
+    extern const QRegularExpression comment;
+    extern const QRegularExpression decConst;
+    extern const QRegularExpression dotCommand;
+    extern const QRegularExpression hexConst;
+    extern const QRegularExpression identifier;
+    extern const QRegularExpression stringConst;
+    extern const QRegularExpression macroInvocation;
+    extern const QRegularExpression macroSubstitution;
 
     // Regular expressions for trace tag analysis
     extern const QRegularExpression rxFormatTag;
@@ -74,9 +80,43 @@ class MacroTokenizer
 {
 public:
     MacroTokenizer();
-    bool getToken(QString &sourceLine, int &token, QString &tokenString);
+    ~MacroTokenizer();
+    bool getToken(QString &sourceLine, int& offset, MacroTokenizerHelper::ELexicalToken &token, QStringRef &tokenString, QString& errorString);
     // Replace preprocessor tokens ($1 $2 $3 etc) before evaluating through tokenizer.
-    void setMacroArgs(QStringList macroSubstitution);
+    void setMacroSubstitutions(QStringList macroSubstitution);
+private:
+    QStringList macroSubstitutions;
+
+};
+
+class TokenizerBuffer
+{
+    MacroTokenizer* tokenizer;
+    QList<QString> tokenizerInput;
+    QList<QString>::iterator inputIterator;
+    QString errorMessage;
+    QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> matches;
+    QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> backedUpInput;
+
+public:
+    TokenizerBuffer();
+    ~TokenizerBuffer();
+
+    void setMacroSubstitutions(QStringList args);
+    void clearMacroSubstitutions();
+    void setTokenizerInput(QStringList lines);
+    bool inputRemains();
+
+    bool match(MacroTokenizerHelper::ELexicalToken);
+    bool matchOneOf(QList<MacroTokenizerHelper::ELexicalToken>);
+    bool lookahead(MacroTokenizerHelper::ELexicalToken);
+    QPair<MacroTokenizerHelper::ELexicalToken, QStringRef> takeLastMatch();
+    QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> getMatches();
+    // Clear the match list.
+    void clearMatchBuffer();
+private:
+    // Grab the next token and place it in backed up input.
+    void fetchNextLine();
 };
 
 #endif // MACROTOKENIZER_H

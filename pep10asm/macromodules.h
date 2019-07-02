@@ -3,6 +3,8 @@
 
 #include <QtCore>
 #include "ngraph.h"
+#include "symboltable.h"
+#include "asmcode.h"
 
 // Track the line number an contents of an error message.
 typedef std::tuple<int /*line*/, QString /*errMessage*/> ErrorInfo;
@@ -18,6 +20,28 @@ enum ModuleType {
     MACRO,
     OPERATING_SYSTEM,
     USER_PROGRAM,
+};
+
+// Information collected during assembly stage
+// about the number and value of a .BURN directive.
+struct MacroBurnInfo
+{
+    /*
+     * Information filled in during assembly.
+     */
+    // The number of burn statements that occured in the program
+    int burnCount = 0;
+    // If burnCount == 1, stores the argument passed to the .BURN
+    int burnArgument;
+
+    /*
+     * Information filled in during linking.
+     */
+    // What should the first byte of the ROM be?
+    int startROMAddress;
+    // Store the byte offset from the start of the program
+    // to the .BURN directive.
+    int burnAddress;
 };
 
 /*
@@ -65,6 +89,7 @@ struct ModulePrototype {
     QList<std::tuple<quint16, ModuleInstance*>> lineToInstance;
 };
 
+
 struct ModuleInstance {
     // Errors may be raised on any line at any step.
     QList<ErrorInfo> errorList;
@@ -84,9 +109,11 @@ struct ModuleInstance {
      * Information filled in during assembly.
      */
     bool alreadyAssembled;
-    int codeList;
+    QList<AsmCode*> codeList;
+    // Information about the presence & value of a .BURN directive.
+    MacroBurnInfo burnInfo;
     // All module instances share the same symbol table.
-    int* symbolTable;
+    QSharedPointer<SymbolTable> symbolTable;
 
     /*
      * Information filled in during linking.

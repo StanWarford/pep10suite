@@ -90,6 +90,11 @@ void SymbolEntry::setMultiplyDefined()
     definedState = DefStates::MULTIPLE;
 }
 
+void SymbolEntry::setDefinedState(DefStates state)
+{
+    this->definedState = state;
+}
+
 SymbolTable::SymbolID SymbolEntry::getSymbolID() const
 {
 	return symbolID;

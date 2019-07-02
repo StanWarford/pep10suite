@@ -29,11 +29,12 @@ HEADERS += \
     interfaceisacpu.h \
     isaasm.h \
     macro.h \
-    macroisaassembler.h \
+    macroassemblerdriver.h \
     macromodules.h \
     macropreprocessor.h \
     macroregistry.h \
     macrotokenizer.h \
+    macroassembler.h \
     memorycellgraphicsitem.h \
     memorytracepane.h \
     ngraph.h \
@@ -65,11 +66,12 @@ SOURCES += \
     interfaceisacpu.cpp \
     isaasm.cpp \
     macro.cpp \
-    macroisaassembler.cpp \
+    macroassemblerdriver.cpp \
     macromodules.cpp \
     macropreprocessor.cpp \
     macroregistry.cpp \
     macrotokenizer.cpp \
+    macroassembler.cpp \
     memorycellgraphicsitem.cpp \
     memorytracepane.cpp \
     pepasmhighlighter.cpp \

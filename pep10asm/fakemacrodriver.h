@@ -1,7 +1,7 @@
 #ifndef FAKEMACRODRIVER_H
 #define FAKEMACRODRIVER_H
 
-#include "macroisaassembler.h"
+#include "macroassemblerdriver.h"
 #include "macrotokenizer.h"
 #include "macroregistry.h"
 
@@ -19,7 +19,7 @@ public:
     void run();
 private:
     MacroRegistry* registry;
-    MacroISAAssembler* assembler;
+    MacroAssemblerDriver* assembler;
 };
 
 #endif // FAKEMACRODRIVER_H

@@ -1,6 +1,6 @@
 #include "fakemacrodriver.h"
 
-FakeMacroDriver::FakeMacroDriver(): registry(new MacroRegistry()), assembler(new MacroISAAssembler(registry))
+FakeMacroDriver::FakeMacroDriver(): registry(new MacroRegistry()), assembler(new MacroAssemblerDriver(registry))
 {
     registry->registerCoreMacro("asl2", "%asl2 0\nasl\nasl\n.END\n", 0);
     registry->registerCoreMacro("asl3", "%asl3 0\n%asl2\nasl\n.END\n", 0);
@@ -44,7 +44,8 @@ FakeMacroDriver::~FakeMacroDriver()
 void FakeMacroDriver::run()
 {
     QString input =
-    "%asl5\n%DIVA k,d\n%L1A\n.END\n";
+    "ADDA 5,d\n.END\n";
+    //"%asl5\n%DIVA k,d\n%L1A\n.END\n";
     //"%LOOPA\n.END\n";
     assembler->assembleUserProgram(input);
 

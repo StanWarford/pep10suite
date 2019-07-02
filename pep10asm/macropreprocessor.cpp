@@ -126,7 +126,7 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         }
 
         // Check if the % is occuring in a comment. If so, skip to the next line.
-        auto commentMatch = MacroTokenizerHelper::rxComment.match(lineText);
+        auto commentMatch = MacroTokenizerHelper::comment.match(lineText);
         int commentLoc = -1;
         if(commentMatch.hasMatch() && commentMatch.capturedStart() < location) continue;
         // If there was a comment, but it did not overlap with the macro definition,
@@ -147,7 +147,7 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         }
 
         // Find the name associated with the macro.
-        auto macroNameMatch = MacroTokenizerHelper::rxIdentifier.match(lineText, location);
+        auto macroNameMatch = MacroTokenizerHelper::identifier.match(lineText, location);
         // The macro didn't have a valid name, error and return.
         if(!macroNameMatch.hasMatch()) {
             retVal.syntaxError = true;

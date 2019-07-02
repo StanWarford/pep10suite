@@ -86,6 +86,25 @@ SymbolEntryPtr SymbolTable::setValue(const QString & symbolName, AbstractSymbolV
     return setValue(symbolLookup.find(symbolName).value(), value);
 }
 
+SymbolTable::SymbolEntryPtr SymbolTable::reference(const QString &symbolName)
+{
+    auto index = symbolLookup.find(symbolName);
+    if(index == symbolLookup.end()) return insertSymbol(symbolName);
+    return getValue(index.value());
+}
+
+SymbolTable::SymbolEntryPtr SymbolTable::define(const QString &symbolName)
+{
+    auto index = symbolLookup.find(symbolName);
+    SymbolTable::SymbolEntryPtr entry;
+    if(index == symbolLookup.end()) entry = insertSymbol(symbolName);
+    else entry = getValue(index.value());
+    // Defining a symbol "increases" the definition state by one.
+    if(entry->isUndefined()) entry->setDefinedState(DefStates::SINGLE);
+    else if(entry->isDefined()) entry->setDefinedState(DefStates::MULTIPLE);
+    return entry;
+}
+
 bool SymbolTable::exists(const QString& symbolName) const
 {
     return symbolLookup.find(symbolName) != symbolLookup.end();
