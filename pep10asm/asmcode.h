@@ -26,7 +26,9 @@
 #include <QSharedPointer>
 #include <QSet>
 class AsmArgument; // Forward declaration for attributes of code classes.
+class AsmArgumentList; //Forward declare a list of arguments.
 class SymbolEntry;
+struct ModuleInstance;
 #pragma message("WARNING, all instruction classes leak contained memory on destruct.")
 /*
  * Abstract Code class that represents a single line of assembly code.
@@ -276,4 +278,20 @@ public:
     virtual QString getAssemblerSource() const override;
 };
 
+class MacroInvoke: public AsmCode
+{
+    friend class MacroAssembler;
+private:
+    AsmArgumentList *argumentList;
+    QSharedPointer<ModuleInstance> macroInstance;
+public:
+     virtual void appendObjectCode(QList<int> &objectCode) const override;
+
+    // AsmCode interface
+    virtual QString getAssemblerListing() const override;
+    virtual QString getAssemblerSource() const override;
+    virtual quint16 objectCodeLength() const override;
+    bool hasSymbolicOperand() const override;
+    QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
+};
 #endif // CODE_H

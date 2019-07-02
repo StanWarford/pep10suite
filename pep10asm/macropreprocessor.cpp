@@ -156,7 +156,7 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         }
 
         // Check if the macro being request actually exists
-        QString macroName = macroNameMatch.captured();
+        QString macroName = macroNameMatch.captured().trimmed();
         // If it does not, preprocessing can't continue, abort.
         if(!registry->hasMacro(macroName)) {
             // Tried to link to a macro that does not exist.

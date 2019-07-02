@@ -128,3 +128,34 @@ QString UnsignedDecArgument::getArgumentString() const
 {
     return QString("%1").arg(decValue);
 }
+
+AsmArgumentList::AsmArgumentList(QList<AsmArgument *> arguments) : arguments(arguments)
+{
+
+}
+
+AsmArgumentList::~AsmArgumentList()
+{
+    for(auto item : arguments) {
+        delete item;
+    }
+}
+
+int AsmArgumentList::getArgumentValue() const
+{
+    throw std::exception("Don't use argumentList::getArgumentValue.");
+}
+
+QString AsmArgumentList::getArgumentString() const
+{
+    QStringList itemStrings;
+    for(auto item : arguments) {
+        itemStrings << item->getArgumentString();
+    }
+    return itemStrings.join(", ");
+}
+
+const QList<AsmArgument *> AsmArgumentList::getArgList() const
+{
+    return arguments;
+}

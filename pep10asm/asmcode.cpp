@@ -25,6 +25,7 @@
 #include "asmcode.h"
 #include "asmargument.h"
 #include "isaasm.h"
+#include "macromodules.h"
 #include "pep.h"
 #include "symbolvalue.h"
 #include "symbolentry.h"
@@ -725,3 +726,44 @@ quint16 DotWord::objectCodeLength() const
     }
 }
 
+
+void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
+{
+
+}
+
+QString MacroInvoke::getAssemblerListing() const
+{
+    return "";
+}
+
+QString MacroInvoke::getAssemblerSource() const
+{
+    QString symbolStr;
+    if (!symbolEntry.isNull()) {
+        symbolStr = symbolEntry->getName()+":";
+    }
+    QString dotStr = "%"+macroInstance->prototype->name;
+    QString oprndStr = argumentList->getArgumentString();
+    QString lineStr = QString("%1%2%3%4")
+            .arg(symbolStr, -9, QLatin1Char(' '))
+            .arg(dotStr, -8, QLatin1Char(' '))
+            .arg(oprndStr, -12)
+            .arg(comment);
+    return lineStr;
+}
+
+quint16 MacroInvoke::objectCodeLength() const
+{
+    return -1;
+}
+
+bool MacroInvoke::hasSymbolicOperand() const
+{
+    return false;
+}
+
+QSharedPointer<const SymbolEntry> MacroInvoke::getSymbolicOperand() const
+{
+    return nullptr;
+}

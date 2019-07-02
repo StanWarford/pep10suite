@@ -2,6 +2,7 @@
 #define MACROMODULES_H
 
 #include <QtCore>
+#include <optional>
 #include "ngraph.h"
 #include "symboltable.h"
 #include "asmcode.h"
@@ -148,11 +149,13 @@ struct ModuleAssemblyGraph
     // It will ignore case, and return a valid index in the module graph if
     // the name is found.
     // If the name is not found, 0xFFFF will be returned instead.
-    quint16 getIndexFromName(QString macroName);
+    quint16 getIndexFromName(QString macroName) const;
     // Given a module index, from the line of code in module which
     // references that index. Will not recurse through children.
     // Returns 0 if index was not referenced in module.
-    quint16 getLineFromIndex(ModulePrototype& module, quint16 index);
+    quint16 getLineFromIndex(ModulePrototype& module, quint16 index) const;
+    // Check the instance map for a instance with equivilant macro arguments (ignoring case).
+    std::optional<QSharedPointer<ModuleInstance>> getInstanceFromArgs(quint16 index, QStringList args) const;
     // Allow easy creation of root, since the root module has no dependencies.
     // If the root has already been created, then the function will return nullptr's.
     std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance>> createRoot(QString text, ModuleType type);

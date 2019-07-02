@@ -5,7 +5,7 @@
 #include "macroassembler.h"
 
 MacroAssemblerDriver::MacroAssemblerDriver(const  MacroRegistry *registry) :  registry(registry),
-    processor(new MacroPreprocessor(registry)), assembler(new MacroAssembler())
+    processor(new MacroPreprocessor(registry)), assembler(new MacroAssembler(registry))
 {
 
 }

@@ -84,6 +84,7 @@ public:
     bool getToken(QString &sourceLine, int& offset, MacroTokenizerHelper::ELexicalToken &token, QStringRef &tokenString, QString& errorString);
     // Replace preprocessor tokens ($1 $2 $3 etc) before evaluating through tokenizer.
     void setMacroSubstitutions(QStringList macroSubstitution);
+
 private:
     QStringList macroSubstitutions;
 
@@ -92,8 +93,8 @@ private:
 class TokenizerBuffer
 {
     MacroTokenizer* tokenizer;
-    QList<QString> tokenizerInput;
-    QList<QString>::iterator inputIterator;
+    QVector<QString> tokenizerInput;
+    int inputIterator;
     QString errorMessage;
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> matches;
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> backedUpInput;
@@ -117,6 +118,7 @@ public:
 private:
     // Grab the next token and place it in backed up input.
     void fetchNextLine();
+
 };
 
 #endif // MACROTOKENIZER_H

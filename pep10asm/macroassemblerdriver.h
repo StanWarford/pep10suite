@@ -26,7 +26,7 @@ class MacroAssembler;
  * Link:
  *  External symbols (e.g. symbols in the operating system that had a .EXPORT) are pulled into
  *  all modules symbol tables.
- *  Checks for multiply defined / indefined symbols in module table.
+ *  Checks for multiply defined / undefined symbols in module table.
  *  The address of each code line is calculated.
  * Annotate:
  *  In Pep9, the detection of trace tags was "baked in" to the build step.

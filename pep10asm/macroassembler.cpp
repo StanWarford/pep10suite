@@ -11,7 +11,8 @@ static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
      MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT,
      MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT};
 
-MacroAssembler::MacroAssembler(): tokenBuffer(new TokenizerBuffer())
+MacroAssembler::MacroAssembler(const MacroRegistry* registry): tokenBuffer(new TokenizerBuffer()),
+    registry(registry)
 {
 
 }
@@ -46,18 +47,21 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
                 toAssemble.emplace_back(childInstance);
             }
         }
-        auto result = assembleModule(*currentModule);
+        auto result = assembleModule(graph, *currentModule);
         if(!result.success) {
             retVal.success = false;
             #pragma message("Must map map line number from child to root")
             retVal.error = result.errInfo;
             return retVal;
         }
+        else {
+            currentModule->alreadyAssembled = true;
+        }
     }
     return retVal;
 }
 
-MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleInstance &instance)
+MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph &graph, ModuleInstance &instance)
 {
     ModuleResult result;
     quint16 lineNumber = 0;
@@ -67,9 +71,9 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleInstance &inst
 
     QList<AsmCode*> codeList;
     QString errorMessage;
-    bool dotEndDetected;
+    bool dotEndDetected = false;
     while(tokenBuffer->inputRemains()) {
-        auto retVal = assembleLine(instance, errorMessage, dotEndDetected);
+        auto retVal = assembleLine(graph, instance, errorMessage, dotEndDetected);
 
         // If there was an error,
         if(retVal.success == false) {
@@ -79,6 +83,9 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleInstance &inst
             result.errInfo = {lineNumber, errorMessage};
             instance.errorList.append(result.errInfo);
             break;
+        }
+        else {
+            qDebug().noquote() << retVal.codeLine->getAssemblerSource();
         }
         codeList.append(retVal.codeLine);
         ++lineNumber;
@@ -95,7 +102,8 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleInstance &inst
     return result;
 }
 
-MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance, QString& errorMessage, bool &dotEndDetected)
+MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &graph, ModuleInstance &instance,
+                                                        QString& errorMessage, bool &dotEndDetected)
 {
     LineResult retVal;
     std::optional<QStringRef> symbolDeclaration;
@@ -109,6 +117,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LTE_ERROR)) {
         retVal.success = false;
         errorMessage = tokenBuffer->takeLastMatch().second.toString();
+        return retVal;
     }
     // Check the non-code lines: comments and empty lines.
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)) {
@@ -269,14 +278,26 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LTE_MACRO_INVOKE)) {
         // This one kind of breaks the rules...
         #pragma message("Must work on macro invocation assembly")
+        // Must handle all macro arguments.
+        QString macroName = tokenBuffer->takeLastMatch().second.toString();
+        retVal.codeLine = parseMacroInstruction(graph, macroName, symbolPointer, instance, errorMessage);
+        if(!errorMessage.isEmpty()) {
+            retVal.success = false;
+            return retVal;
+        }
     }
 
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)) {
         // Match a comment only line.
         retVal.codeLine->comment = tokenBuffer->takeLastMatch().second.toString();
+        QStringList arguments;
+        while(tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
+
+        }
     }
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
         retVal.success = true;
+        tokenBuffer->takeLastMatch();
         return retVal;
     }
     else {
@@ -338,6 +359,128 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
     }
     nonUnaryInstruction->addressingMode = addrMode;
     return nonUnaryInstruction;
+}
+
+MacroInvoke *MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& graph,const QString &macroName,
+                                                   std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                                   ModuleInstance &instance, QString &errorMessage)
+{
+    if(!registry->hasMacro(macroName)) {
+        errorMessage = ";ERROR: Macro " + macroName + " does not exist.";
+        return nullptr;
+    }
+    auto macro = registry->getMacro(macroName);
+    QList<AsmArgument*> argumentList;
+    while(tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
+        auto [token, tokenString] = tokenBuffer->takeLastMatch();
+        auto argument = macroArgParse(instance, token, tokenString.toString(), errorMessage);
+        if(!errorMessage.isEmpty()) {
+            break;
+        }
+        argumentList.append(argument);
+    }
+    if(!errorMessage.isEmpty()) {
+        for (auto argument : argumentList) {
+            delete argument;
+        }
+        return nullptr;
+    }
+
+    // Validate that passed macro is a real macro
+    quint16 index = graph.getIndexFromName(macroName);
+    if(index == 0xFFFF) {
+        errorMessage = ";ERROR: Module " + macroName + " is not a previously declared macro.";
+        for (auto argument : argumentList) {
+            delete argument;
+        }
+        return nullptr;
+    }
+
+    // Validate that the correct number of macro arguments were passed.
+    if(macro->argCount != argumentList.size()) {
+        errorMessage = ";ERROR: Module " + macroName + " is not a previously declared macro.";
+        for (auto argument : argumentList) {
+            delete argument;
+        }
+        return nullptr;
+    }
+    QStringList argumentString;
+    for(auto argument : argumentList) {
+        argumentString << argument->getArgumentString();
+    }
+    auto modulePrototype = graph.prototypeMap[index];
+    auto moduleInstance = graph.getInstanceFromArgs(index, argumentString);
+    if(!moduleInstance.has_value()) {
+        errorMessage = ";ERROR: Module instance for " + macroName + " could not be found.";
+        for (auto argument : argumentList) {
+            delete argument;
+        }
+        return nullptr;
+    }
+    MacroInvoke *macroInstruction = new MacroInvoke;
+    if(symbol.has_value()) {
+        macroInstruction->symbolEntry = symbol.value();
+    }
+    macroInstruction->argumentList = new AsmArgumentList(argumentList);
+    macroInstruction->macroInstance = moduleInstance.value();
+    return macroInstruction;
+}
+
+AsmArgument *MacroAssembler::macroArgParse(ModuleInstance &instance, MacroTokenizerHelper::ELexicalToken token,
+                                           const QString &argumentString, QString &errorMessage)
+{
+    if (token == MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER) {
+        if (argumentString.length() > 8) {
+            errorMessage = ";ERROR: Symbol " + argumentString + " cannot have more than eight characters.";
+            return nullptr;
+        }
+        return new SymbolRefArgument(instance.symbolTable->reference(argumentString));
+    }
+    else if (token == MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT) {
+        if (MacroTokenizerHelper::byteStringLength(argumentString) > 2) {
+            errorMessage = ";ERROR: String operands must have length at most two.";
+            return nullptr;
+        }
+        return new StringArgument(argumentString);
+    }
+    else if (token == MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT) {
+        QString temp = argumentString;
+        temp.remove(0, 2); // Remove "0x" prefix.
+        bool ok;
+        int value = temp.toInt(&ok, 16);
+        // If the value is in range for a 16 bit int.
+        if (value < 65536) {
+            return new HexArgument(value);
+        }
+        else {
+            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            return nullptr;
+        }
+    }
+    else if (token == MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT) {
+        bool ok;
+        int value = argumentString.toInt(&ok, 10);
+        if ((-32768 <= value) && (value <= 65535)) {
+            if (value < 0) {
+                value += 65536; // Stored as two-byte unsigned.
+                return new DecArgument(value);
+            }
+            else {
+                return new UnsignedDecArgument(value);
+            }
+        }
+        else {
+            errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
+            return nullptr;
+        }
+    }
+    else if (token == MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT) {
+        return new CharArgument(argumentString);
+    }
+    else {
+        errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
+        return nullptr;
+    }
 }
 
 AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)

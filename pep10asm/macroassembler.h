@@ -5,6 +5,7 @@
 #include "asmargument.h"
 #include "macrotokenizer.h"
 #include "asmcode.h"
+#include "macroregistry.h"
 struct AssemblerResult
 {
     bool success;
@@ -15,7 +16,7 @@ class TokenizerBuffer;
 class MacroAssembler
 {
 public:
-    MacroAssembler();
+    MacroAssembler(const MacroRegistry* registry);
     ~MacroAssembler();
 
 
@@ -31,15 +32,17 @@ private:
         bool success = false;
         AsmCode* codeLine = nullptr;
     };
-    ModuleResult assembleModule(ModuleInstance& instance);
+    ModuleResult assembleModule(ModuleAssemblyGraph &graph, ModuleInstance& instance);
     // Pre: errorMessage is an empty string.
-    LineResult assembleLine(ModuleInstance& instance, QString& errorMessage, bool &dotEndDetected);
+    LineResult assembleLine(ModuleAssemblyGraph &graph, ModuleInstance& instance,
+                            QString& errorMessage, bool &dotEndDetected);
     // Check if the name fits our requirements / length.
     bool validateSymbolName(const QStringRef& name, QString& errorMessage);
 
     NonUnaryInstruction* parseNonUnaryInstruction(Enu::EMnemonic mnemonic, std::optional<QSharedPointer<SymbolEntry>> symbol,
                                                   ModuleInstance& instance, QString& errorMessage);
     AsmArgument* parseOperandSpecifier(ModuleInstance &instance, QString& errorMessage);
+
     DotAddrss* parseADDRSS(std::optional<QSharedPointer<SymbolEntry>> symbol,
                            ModuleInstance& instance, QString& errorMessage);
     DotAscii* parseASCII(std::optional<QSharedPointer<SymbolEntry>> symbol,
@@ -61,6 +64,13 @@ private:
     DotWord* parseWORD(std::optional<QSharedPointer<SymbolEntry>> symbol,
                        ModuleInstance& instance, QString& errorMessage);
 
+    MacroInvoke* parseMacroInstruction(const ModuleAssemblyGraph& graph, const QString& macroName,
+                                       std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                       ModuleInstance& instance, QString& errorMessage);
+    AsmArgument* macroArgParse(ModuleInstance &instance,MacroTokenizerHelper::ELexicalToken token,
+                               const QString& argumentString, QString& errorMessage);
+
+    const MacroRegistry* registry;
     TokenizerBuffer* tokenBuffer;
 };
 

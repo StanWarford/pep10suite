@@ -1,6 +1,6 @@
 #include "macromodules.h"
 
-quint16 ModuleAssemblyGraph::getIndexFromName(QString macroName)
+quint16 ModuleAssemblyGraph::getIndexFromName(QString macroName) const
 {
     for(auto module : prototypeMap) {
         // Check if the the current module is the module being looked for
@@ -11,7 +11,7 @@ quint16 ModuleAssemblyGraph::getIndexFromName(QString macroName)
     return 0xFFFF;
 }
 
-quint16 ModuleAssemblyGraph::getLineFromIndex(ModulePrototype& module, quint16 index)
+quint16 ModuleAssemblyGraph::getLineFromIndex(ModulePrototype& module, quint16 index) const
 {
     for(auto kvPair : module.lineToInstance) {
         auto includedModule = std::get<1>(kvPair);
@@ -20,6 +20,21 @@ quint16 ModuleAssemblyGraph::getLineFromIndex(ModulePrototype& module, quint16 i
         }
     }
     return 0;
+}
+
+std::optional<QSharedPointer<ModuleInstance> > ModuleAssemblyGraph::getInstanceFromArgs(quint16 index, QStringList args) const
+{
+    if(!instanceMap.contains(index)) return nullopt;
+
+    for(auto item : instanceMap[index]) {
+        bool equal = true;
+        if(args.size() != item->macroArgs.size()) return nullopt;
+        for(int it = 0; it < args.size(); it++) {
+            equal &= (item->macroArgs[it].compare(args[it], Qt::CaseInsensitive) == 0);
+        }
+        if(equal) return std::optional<QSharedPointer<ModuleInstance>>(item);
+    }
+    return nullopt;
 }
 
 std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance> > ModuleAssemblyGraph::createRoot(QString text, ModuleType type)
