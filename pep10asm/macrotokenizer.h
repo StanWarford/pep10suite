@@ -84,6 +84,7 @@ public:
     bool getToken(QString &sourceLine, int& offset, MacroTokenizerHelper::ELexicalToken &token, QStringRef &tokenString, QString& errorString);
     // Replace preprocessor tokens ($1 $2 $3 etc) before evaluating through tokenizer.
     void setMacroSubstitutions(QStringList macroSubstitution);
+    void performMacroSubstitutions(QString& sourceLine);
 
 private:
     QStringList macroSubstitutions;
@@ -113,6 +114,7 @@ public:
     bool lookahead(MacroTokenizerHelper::ELexicalToken);
     QPair<MacroTokenizerHelper::ELexicalToken, QStringRef> takeLastMatch();
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> getMatches();
+    bool skipNextLine();
     // Clear the match list.
     void clearMatchBuffer();
 private:
