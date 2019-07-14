@@ -100,8 +100,8 @@ PreprocessorResult MacroPreprocessor::preprocess()
 
 MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(ModulePrototype &module)
 {
-    // Macro invocations always start with a %.
-    static QRegularExpression macroInvoke("%");
+    // Macro invocations always start with a @.
+    static QRegularExpression macroInvoke("@");
     ExtractResult retVal;
     MacroDefinition extract;
     quint16 lineNumber = 0;
@@ -116,16 +116,16 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
     for( ; lineIt != module.textLines.end(); lineNumber++, ++lineIt ) {
         // Store the text pointer to by list iterator to reduce dereferencing.
         QString lineText = *lineIt;
-        // Check if the line has any potential macros (%).
+        // Check if the line has any potential macros (@).
         auto hasMacroDirective = macroInvoke.globalMatch(lineText);
-        // If the line has at least one %, get the index of
+        // If the line has at least one @, get the index of
         // it so that we can extract the macro name.
         int location = 0;
         if(hasMacroDirective.hasNext()) {
             location = hasMacroDirective.peekNext().capturedStart();
         }
 
-        // Check if the % is occuring in a comment. If so, skip to the next line.
+        // Check if the @ is occuring in a comment. If so, skip to the next line.
         auto commentMatch = MacroTokenizerHelper::comment.match(lineText);
         int commentLoc = -1;
         if(commentMatch.hasMatch() && commentMatch.capturedStart() < location) continue;
@@ -133,7 +133,7 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         // keep track of its location for help with macro argument parsing.
         else if (commentMatch.hasMatch()) commentLoc = commentMatch.capturedStart();
 
-        // Find the number of % outside of a comment on this line.
+        // Find the number of @ outside of a comment on this line.
         int count = 0;
         for( ; hasMacroDirective.hasNext(); count++) hasMacroDirective.next();
         // Line has no macro definitions, start next line.
@@ -214,7 +214,7 @@ MacroPreprocessor::LinkResult MacroPreprocessor::addModuleLinksToPrototypes(Modu
     for(auto macro : definitions) {
         // Before creating Modules for a macro definition,
         // validate the semantics of the macro name and args.
-        // This will pick up on errors like %deco$1 and
+        // This will pick up on errors like @deco$1 and
         // $myFunc 9,$1,s.
         auto nameValid = validateMacroName(macro.macroName);
         if(!std::get<0>(nameValid)) {
