@@ -47,7 +47,9 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
                 toAssemble.emplace_back(childInstance);
             }
         }
+        qDebug().noquote() << "Assembling module: " << currentModule->prototype->name;
         auto result = assembleModule(graph, *currentModule);
+         qDebug().noquote() << "";
         if(!result.success) {
             retVal.success = false;
             #pragma message("Must map map line number from child to root")
@@ -72,6 +74,11 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
     QList<AsmCode*> codeList;
     QString errorMessage;
     bool dotEndDetected = false;
+    // Macro modules declare the name and argument count on the first line.
+    // The assembler doesn't know how to parse it, so this line should be skipped.
+    if(instance.prototype->moduleType == ModuleType::MACRO) {
+        tokenBuffer->skipNextLine();
+    }
     while(tokenBuffer->inputRemains()) {
         auto retVal = assembleLine(graph, instance, errorMessage, dotEndDetected);
 
@@ -164,7 +171,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         tokenString =  tokenBuffer->takeLastMatch().second;
         // See if the token string is in the mnemonic map, ignoring case.
         auto compare = [tokenString](QString mapKey) {
-            return tokenString.compare(mapKey, Qt::CaseInsensitive) ;
+            return tokenString.compare(mapKey, Qt::CaseInsensitive) == 0;
         };
         auto iterator = std::find_if(Pep::mnemonToEnumMap.keyBegin(), Pep::mnemonToEnumMap.keyEnd(), compare);
 
@@ -200,6 +207,8 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
 
     }
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND)) {
+        tokenString =  tokenBuffer->takeLastMatch().second;
+        tokenString = tokenString.mid(1);
         if (tokenString == "ADDRSS") {
             retVal.codeLine = parseADDRSS(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
@@ -351,7 +360,7 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
     // Otherwise an addressing mode was present.
     else {
         tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE);
-        addrMode = IsaParserHelper::stringToAddrMode(tokenBuffer->takeLastMatch().second.toString());
+        addrMode = stringToAddrMode(tokenBuffer->takeLastMatch().second.toString());
         if ((static_cast<int>(addrMode) & Pep::addrModesMap.value(mnemonic)) == 0) { // Nested parens required.
             errorMessage = ";ERROR: Illegal addressing mode for this instruction.";
             return nullptr;
@@ -544,6 +553,20 @@ AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QSt
         errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
         return nullptr;
     }
+}
+
+Enu::EAddrMode MacroAssembler::stringToAddrMode(QString str) const
+{
+    str = str.trimmed().toUpper();
+    if (str.compare("I", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::I;
+    if (str.compare("D", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::D;
+    if (str.compare("N", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::N;
+    if (str.compare("S", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::S;
+    if (str.compare("SF", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::SF;
+    if (str.compare("X", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::X;
+    if (str.compare("SX", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::SX;
+    if (str.compare("SFX", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::SFX;
+    return Enu::EAddrMode::NONE;
 }
 
 DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry> > symbol,

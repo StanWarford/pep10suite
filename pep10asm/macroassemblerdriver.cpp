@@ -66,7 +66,7 @@ bool MacroAssemblerDriver::assembleProgram()
         retVal = false;
     }
     else {
-        qDebug() << "Preprocessing was successful.";
+        qDebug() << "Assembly was successful.";
         retVal = true;
     }
     return retVal;
