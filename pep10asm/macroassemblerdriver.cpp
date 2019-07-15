@@ -43,7 +43,8 @@ bool MacroAssemblerDriver::preprocess()
     auto preprocessResult = processor->preprocess();
     bool retVal = false;
     if(!preprocessResult.succes) {
-        qDebug().noquote() << std::get<0>(preprocessResult.error)
+        qDebug().noquote() << "[PREERR]"
+                           << std::get<0>(preprocessResult.error)
                            <<": "
                            << std::get<1>(preprocessResult.error);
         retVal = false;
@@ -60,7 +61,8 @@ bool MacroAssemblerDriver::assembleProgram()
     auto assemblyResult = assembler->assemble(graph);
     bool retVal = false;
     if(!assemblyResult.success) {
-        qDebug().noquote() << std::get<0>(assemblyResult.error)
+        qDebug().noquote() << "[ASMERR]"
+                           << std::get<0>(assemblyResult.error)
                            <<": "
                            << std::get<1>(assemblyResult.error);
         retVal = false;
