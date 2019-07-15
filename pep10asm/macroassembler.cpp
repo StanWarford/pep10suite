@@ -65,6 +65,7 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
 MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph &graph, ModuleInstance &instance)
 {
     ModuleResult result;
+    result.success = true;
     quint16 lineNumber = 0;
     // Make sure tokenizer is prepared to handle this modules macro arguments.
     tokenBuffer->setMacroSubstitutions(instance.macroArgs);
@@ -96,6 +97,11 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
         codeList.append(retVal.codeLine);
         ++lineNumber;
         if(dotEndDetected) break;
+    }
+    if(!dotEndDetected) {
+        result.success = false;
+#pragma message("Validate location of END error.")
+        result.errInfo = {instance.prototype->textLines.size(), ";ERROR: Missing .END sentinel."};
     }
     if(result.success) {
         instance.codeList = codeList;
