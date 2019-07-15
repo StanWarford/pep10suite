@@ -13,10 +13,12 @@ quint16 ModuleAssemblyGraph::getIndexFromName(QString macroName) const
 
 quint16 ModuleAssemblyGraph::getLineFromIndex(ModulePrototype& module, quint16 index) const
 {
-    for(auto kvPair : module.lineToInstance) {
-        auto includedModule = std::get<1>(kvPair);
+    for(auto kvPair = module.lineToInstance.keyValueBegin();
+        kvPair != module.lineToInstance.keyValueEnd();
+        ++kvPair) {
+        auto includedModule = (*kvPair).second;
         if(includedModule->prototype->index == index) {
-            return std::get<0>(kvPair);
+            return (*kvPair).first;
         }
     }
     return 0;

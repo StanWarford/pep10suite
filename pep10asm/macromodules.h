@@ -87,7 +87,7 @@ struct ModulePrototype {
     /*
      * Information filled in by preprocessor.
      */
-    QList<std::tuple<quint16, ModuleInstance*>> lineToInstance;
+    QMap<quint16, ModuleInstance*> lineToInstance;
 };
 
 
@@ -139,7 +139,8 @@ struct ModuleAssemblyGraph
     // Map the ID of a vertex to its prototype.
     QMap<quint16, QSharedPointer<ModulePrototype>> prototypeMap;
     // For a given ID, log every separate instance of the prototype.
-    QMap<quint16, QList<QSharedPointer<ModuleInstance>>> instanceMap;
+    typedef QMap<quint16, QList<QSharedPointer<ModuleInstance>>> InstanceMap;
+    InstanceMap instanceMap;
     // By convention the root module is 0, but it would be best to have
     // it be an explicit field.
     quint16 rootModule = defaultRootIndex;

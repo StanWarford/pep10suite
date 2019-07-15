@@ -104,15 +104,18 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
     static QRegularExpression macroInvoke("@");
     ExtractResult retVal;
     MacroDefinition extract;
+    if(module.moduleType == ModuleType::MACRO) {
+        //++lineIt;
+        //++lineNumber;
+        // Remove the first line of text from the module.
+        module.textLines.pop_front();
+        module.text = module.text.mid(module.text.indexOf("\n") + 1);
+    }
     quint16 lineNumber = 0;
     auto lineIt = module.textLines.begin();
-    // Macro files satrt with the name of the macro and number of arguments
+    // Macro files start with the name of the macro and number of arguments
     // on the first line. Since this line does not reference an external macro
     // we may skip over it.
-    if(module.moduleType == ModuleType::MACRO) {
-        ++lineIt;
-        ++lineNumber;
-    }
     for( ; lineIt != module.textLines.end(); lineNumber++, ++lineIt ) {
         // Store the text pointer to by list iterator to reduce dereferencing.
         QString lineText = *lineIt;
@@ -244,7 +247,7 @@ MacroPreprocessor::LinkResult MacroPreprocessor::addModuleLinksToPrototypes(Modu
         target->moduleGraph.insert_edge(module.index, includedModule);
 
         auto instance = maybeCreateInstance(includedModule, macro.macroArgs);
-        module.lineToInstance.append({macro.lineNumber, instance.get()});
+        module.lineToInstance.insert(macro.lineNumber, instance.get());
     }
     return result;
 }
@@ -268,9 +271,9 @@ std::tuple<bool, std::list<quint16> > MacroPreprocessor::checkForCycles()
         // Must crawl tree to figure out which lines in the root instance
         // need error messages appended.
         std::list<quint16> pathToCycle;
-        for(auto item : target->prototypeMap[target->rootModule]->lineToInstance) {
-            if( outGraph.find(std::get<1>(item)->prototype->index) != outGraph.end()) {
-                pathToCycle = path<quint16>(outGraph, target->rootModule, std::get<1>(item)->prototype->index);
+        for(auto module : target->prototypeMap[target->rootModule]->lineToInstance) {
+            if( outGraph.find(module->prototype->index) != outGraph.end()) {
+                pathToCycle = path<quint16>(outGraph, target->rootModule, module->prototype->index);
                 break;
             }
         }

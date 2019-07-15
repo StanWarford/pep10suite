@@ -41,8 +41,7 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
         if(currentModule->alreadyAssembled == true) continue;
 
         currentModule->symbolTable = symbolTable;
-        for(auto childModule : currentModule->prototype->lineToInstance) {
-            auto childInstance = std::get<1>(childModule);
+        for(auto childInstance : currentModule->prototype->lineToInstance) {
             if(childInstance->alreadyAssembled == false) {
                 toAssemble.emplace_back(childInstance);
             }
@@ -76,9 +75,9 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
     bool dotEndDetected = false;
     // Macro modules declare the name and argument count on the first line.
     // The assembler doesn't know how to parse it, so this line should be skipped.
-    if(instance.prototype->moduleType == ModuleType::MACRO) {
-        tokenBuffer->skipNextLine();
-    }
+    //if(instance.prototype->moduleType == ModuleType::MACRO) {
+        //tokenBuffer->skipNextLine();
+    //}
     while(tokenBuffer->inputRemains()) {
         auto retVal = assembleLine(graph, instance, errorMessage, dotEndDetected);
 
