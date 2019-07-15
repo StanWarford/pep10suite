@@ -142,7 +142,7 @@ QStringList AsmSourceCodePane::getAssemblerListingList()
 {
     assemblerListingList.clear();
     for (int i = 0; i < currentProgram->numberOfLines(); i++) {
-        currentProgram->getCodeAtIndex(i)->appendSourceLine(assemblerListingList);
+        assemblerListingList << currentProgram->getCodeAtIndex(i)->getAssemblerListing();
     }
     return assemblerListingList;
 }

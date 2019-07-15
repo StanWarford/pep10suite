@@ -139,31 +139,6 @@ void DotWord::appendObjectCode(QList<int> &objectCode) const
     objectCode.append(value % 256);
 }
 
-void UnaryInstruction::appendSourceLine(QStringList &assemblerListingList) const
-{
-    assemblerListingList.append(getAssemblerListing());
-}
-
-void NonUnaryInstruction::appendSourceLine(QStringList &assemblerListingList) const
-{
-    assemblerListingList.append(getAssemblerListing());
-}
-
-void DotAlign::appendSourceLine(QStringList &assemblerListingList) const
-{
-    assemblerListingList.append(getAssemblerListing().split("\n"));
-}
-
-void DotAscii::appendSourceLine(QStringList &assemblerListingList) const
-{
-    assemblerListingList.append(getAssemblerListing().split("\n"));
-}
-
-void DotBlock::appendSourceLine(QStringList &assemblerListingList) const
-{
-    assemblerListingList.append(getAssemblerListing().split("\n"));
-}
-
 bool UnaryInstruction::hasBreakpoint() const
 {
     return breakpoint;
@@ -734,7 +709,13 @@ void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
 
 QString MacroInvoke::getAssemblerListing() const
 {
-    return "";
+    QStringList list;
+    for(auto code : this->macroInstance->codeList) {
+        // Don't generate listing for anything after and including .END
+        if(dynamic_cast<DotEnd*>(code) != nullptr) break;
+        list << code->getAssemblerListing();
+    }
+    return list.join("\n");
 }
 
 QString MacroInvoke::getAssemblerSource() const

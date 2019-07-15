@@ -56,7 +56,6 @@ public:
     QString getComment() const;
 
     virtual void appendObjectCode(QList<int> &) const { return; }
-    virtual void appendSourceLine(QStringList &assemblerListingList) const{ assemblerListingList.append(getAssemblerListing()); }
     void adjustMemAddress(int addressDelta);
     //virtual bool processFormatTraceTags(int &, QString &, SymbolListings &) { return true; }
     //virtual bool processSymbolTraceTags(int &, QString &, SymbolListings &) { return true; }
@@ -87,7 +86,6 @@ private:
     bool breakpoint = false;
 public:
     virtual void appendObjectCode(QList<int> &objectCode) const override;
-    virtual void appendSourceLine(QStringList &assemblerListingList) const override;
 //    NO LONGER WITH PEP/9. FOR RET1, RET2, ..., RET7
 //    bool processSymbolTraceTags(int &sourceLine, QString &errorString);
 
@@ -112,7 +110,6 @@ private:
 public:
     // ~NonUnaryInstruction() { delete argument; }
     virtual void appendObjectCode(QList<int> &objectCode) const override;
-    virtual void appendSourceLine(QStringList &assemblerListingList) const override;
 
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
@@ -152,7 +149,6 @@ private:
     AsmArgument *numBytesGenerated = nullptr;
 public:
     virtual void appendObjectCode(QList<int> &objectCode) const override;
-    virtual void appendSourceLine(QStringList &assemblerListingList) const override;
 
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
@@ -169,7 +165,6 @@ private:
     AsmArgument *argument = nullptr;
 public:
     virtual void appendObjectCode(QList<int> &objectCode) const override;
-    virtual void appendSourceLine(QStringList &assemblerListingList) const override;
 
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
@@ -185,7 +180,6 @@ private:
     AsmArgument *argument;
 public:
     virtual void appendObjectCode(QList<int> &objectCode) const override;
-    virtual void appendSourceLine(QStringList &assemblerListingList) const override;
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
     virtual QString getAssemblerSource() const override;
