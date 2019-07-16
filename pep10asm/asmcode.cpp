@@ -738,7 +738,11 @@ QString MacroInvoke::getAssemblerSource() const
 
 quint16 MacroInvoke::objectCodeLength() const
 {
-    return -1;
+    quint16 total = 0;
+    for(auto line :this->macroInstance->codeList) {
+        total += line->objectCodeLength();
+    }
+    return total;
 }
 
 bool MacroInvoke::hasSymbolicOperand() const
