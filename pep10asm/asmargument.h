@@ -110,17 +110,4 @@ public:
     QSharedPointer<SymbolEntry> getSymbolValue();
 
 };
-
-class AsmArgumentList: public AsmArgument
-{
-private:
-    QList<AsmArgument*> arguments;
-public:
-    explicit AsmArgumentList(QList<AsmArgument*> arguments);
-    virtual ~AsmArgumentList() override;
-    // Will through an exception, this argument has no numeric value
-    virtual int getArgumentValue() const override;
-    virtual QString getArgumentString() const override;
-    const QList<AsmArgument*> getArgList() const;
-};
 #endif // ARGUMENT_H

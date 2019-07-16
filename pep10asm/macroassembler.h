@@ -68,8 +68,6 @@ private:
     MacroInvoke* parseMacroInstruction(const ModuleAssemblyGraph& graph, const QString& macroName,
                                        std::optional<QSharedPointer<SymbolEntry>> symbol,
                                        ModuleInstance& instance, QString& errorMessage);
-    AsmArgument* macroArgParse(ModuleInstance &instance,MacroTokenizerHelper::ELexicalToken token,
-                               const QString& argumentString, QString& errorMessage);
 
     const MacroRegistry* registry;
     TokenizerBuffer* tokenBuffer;
