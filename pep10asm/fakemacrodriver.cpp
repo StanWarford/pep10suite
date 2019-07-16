@@ -45,7 +45,7 @@ void FakeMacroDriver::run()
 {
     QString input =
     //"ADDA 5,d\n.END\n";
-    "@asla5\n@DIVA k,d\n@L1A\n.END\n";
+    "@asla5\nl:@DIVA k,d\nk:@L1A\n.END\n";
     //"@DIVA k,sfx\n.END\n";
     //"@LOOPA\n.END\n";
     assembler->assembleUserProgram(input);

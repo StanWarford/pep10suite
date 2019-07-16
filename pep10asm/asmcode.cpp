@@ -1153,7 +1153,7 @@ QString MacroInvoke::getAssemblerSource() const
     if (!symbolEntry.isNull()) {
         symbolStr = symbolEntry->getName()+":";
     }
-    QString dotStr = "%"+macroInstance->prototype->name;
+    QString dotStr = "@"+macroInstance->prototype->name;
     QString oprndStr = argumentList.join(',');
     // Split generation at dotStr, as it may contain a valid replace sequence (e.g. %L1).
     QString lineStr = QString("%1%2")

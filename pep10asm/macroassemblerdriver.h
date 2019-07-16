@@ -12,6 +12,7 @@
 class MacroTokenizer;
 class MacroRegistry;
 class MacroAssembler;
+class MacroLinker;
 /*
  * The MacroAssemblerDriver coordinates the various phases of assembly in the macro assembler.
  * They are as follows
@@ -94,7 +95,7 @@ private:
     // Generate the code line objects, detect symbols, but do not assign addresses or sizes.
     bool assembleProgram();
     // Calculate real address of each code line,
-    void link(ModuleInstance& module);
+    bool link();
     // Annotate functions that modify the stack.
     void annotate(ModuleInstance& module);
     // Perform any last-minute sanity checks before returning AssemblyProgram.
@@ -104,6 +105,7 @@ private:
     const MacroRegistry *registry;
     MacroPreprocessor *processor;
     MacroAssembler *assembler;
+    MacroLinker *linker;
     ModuleAssemblyGraph graph;
 
 };

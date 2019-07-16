@@ -30,6 +30,7 @@ HEADERS += \
     isaasm.h \
     macro.h \
     macroassemblerdriver.h \
+    macrolinker.h \
     macromodules.h \
     macropreprocessor.h \
     macroregistry.h \
@@ -67,6 +68,7 @@ SOURCES += \
     isaasm.cpp \
     macro.cpp \
     macroassemblerdriver.cpp \
+    macrolinker.cpp \
     macromodules.cpp \
     macropreprocessor.cpp \
     macroregistry.cpp \

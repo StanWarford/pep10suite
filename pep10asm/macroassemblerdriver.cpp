@@ -3,9 +3,10 @@
 #include "macroregistry.h"
 #include "macrotokenizer.h"
 #include "macroassembler.h"
+#include "macrolinker.h"
 
 MacroAssemblerDriver::MacroAssemblerDriver(const  MacroRegistry *registry) :  registry(registry),
-    processor(new MacroPreprocessor(registry)), assembler(new MacroAssembler(registry))
+    processor(new MacroPreprocessor(registry)), assembler(new MacroAssembler(registry)), linker(new MacroLinker)
 {
 
 }
@@ -13,7 +14,8 @@ MacroAssemblerDriver::MacroAssemblerDriver(const  MacroRegistry *registry) :  re
 MacroAssemblerDriver::~MacroAssemblerDriver()
 {
     delete processor;
-    //delete assembler;
+    delete assembler;
+    delete linker;
     // We do not own the registry, so do not delete it.
     registry = nullptr;
 }
@@ -31,7 +33,26 @@ void *MacroAssemblerDriver::assembleUserProgram(QString input)
         // Cleanup any allocated memory
         return nullptr;
     }
-    link(*rootInstance.get());
+    if(!link()) {
+        // Cleanup any allocated memory
+        return nullptr;
+    }
+    else {
+        auto rootModule = graph.instanceMap[graph.rootModule].first();
+        QStringList source;
+        QStringList listing;
+        for(auto codeLine : rootModule->codeList)
+        {
+            source << codeLine->getAssemblerSource();
+            listing << codeLine->getAssemblerListing();
+        }
+        qDebug().noquote() << "Source program:";
+        qDebug().noquote() << source.join("\n") << "\n\n";
+        qDebug().noquote() << "Programing listing:";
+        qDebug().noquote() << listing.join("\n");
+    }
+
+
     annotate(*rootInstance.get());
     validate(*rootInstance.get());
     return nullptr;
@@ -74,9 +95,25 @@ bool MacroAssemblerDriver::assembleProgram()
     return retVal;
 }
 
-void MacroAssemblerDriver::link(ModuleInstance &module)
+bool MacroAssemblerDriver::link()
 {
+    auto linkerResult = linker->link(graph);
+    bool retVal = false;
+    if(!linkerResult.success) {
+        for(auto error : linkerResult.errorList) {
+            qDebug().noquote() << "[LNKERR]"
+                               << std::get<0>(error)
+                               <<": "
+                               << std::get<1>(error);
+            retVal = false;
+        }
 
+    }
+    else {
+        qDebug() << "Linking was successful.";
+        retVal = true;
+    }
+    return retVal;
 }
 
 void MacroAssemblerDriver::annotate(ModuleInstance &module)
