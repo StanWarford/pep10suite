@@ -419,6 +419,12 @@ void UnaryInstruction::setMnemonic(Enu::EMnemonic mnemonic)
     this->mnemonic = mnemonic;
 }
 
+bool UnaryInstruction::tracksTraceTags() const
+{
+    // With the inclusion of MOVASP, this will become conditional.
+    return false;
+}
+
 bool NonUnaryInstruction::hasBreakpoint() const
 {
     return breakpoint;
@@ -447,6 +453,24 @@ QSharedPointer<AsmArgument>NonUnaryInstruction::getArgument() const
 void NonUnaryInstruction::setArgument(QSharedPointer<AsmArgument> argument)
 {
     this->argument = argument;
+}
+
+bool NonUnaryInstruction::tracksTraceTags() const
+{
+    switch(mnemonic){
+    case Enu::EMnemonic::ADDSP:
+        return true;
+    case Enu::EMnemonic::SUBSP:
+        return true;
+    case Enu::EMnemonic::CALL:
+        if(hasSymbolicOperand()
+           && getSymbolicOperand()->getName().compare("malloc", Qt::CaseInsensitive) == 0) {
+            return true;
+        }
+        return false;
+    default:
+        return false;
+    }
 }
 
 Enu::EMnemonic NonUnaryInstruction::getMnemonic() const
@@ -880,6 +904,11 @@ void DotEquate::setArgument(QSharedPointer<AsmArgument>argument)
     this->argument = argument;
 }
 
+bool DotEquate::tracksTraceTags() const
+{
+    return true;
+}
+
 QString DotWord::getAssemblerListing() const
 {
     QString memStr = QString("%1").arg(memAddress, 4, 16, QLatin1Char('0')).toUpper();
@@ -1035,6 +1064,11 @@ void DotBlock::setArgument(QSharedPointer<AsmArgument> argument)
     this->argument = argument;
 }
 
+bool DotBlock::tracksTraceTags() const
+{
+    return true;
+}
+
 quint16 DotByte::objectCodeLength() const
 {
     if(emitObjectCode) {
@@ -1055,6 +1089,11 @@ void DotByte::setArgument(QSharedPointer<AsmArgument>argument)
     this->argument = argument;
 }
 
+bool DotByte::tracksTraceTags() const
+{
+    return true;
+}
+
 quint16 DotWord::objectCodeLength() const
 {
     if(emitObjectCode) {
@@ -1073,6 +1112,11 @@ QSharedPointer<AsmArgument> DotWord::getArgument() const
 void DotWord::setArgument(QSharedPointer<AsmArgument> argument)
 {
     this->argument = argument;
+}
+
+bool DotWord::tracksTraceTags() const
+{
+    return true;
 }
 
 void MacroInvoke::appendObjectCode(QList<int> &objectCode) const

@@ -63,6 +63,9 @@ public:
     QString getComment() const;
     void setComment(QString);
 
+    // Can this line have trace tags?
+    virtual bool tracksTraceTags() const {return false;}
+
     virtual void appendObjectCode(QList<int> &) const { return; }
 
     virtual int getMemoryAddress() const;
@@ -129,6 +132,8 @@ public:
     Enu::EMnemonic getMnemonic() const;
     void setMnemonic(Enu::EMnemonic);
 
+    bool tracksTraceTags() const override;
+
     friend void swap(UnaryInstruction& first, UnaryInstruction& second)
     {
         using std::swap;
@@ -173,6 +178,8 @@ public:
     QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
+
+    bool tracksTraceTags() const override;
 
     friend void swap(NonUnaryInstruction& first, NonUnaryInstruction& second)
     {
@@ -300,6 +307,8 @@ public:
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
 
+    bool tracksTraceTags() const override;
+
     friend void swap(DotBlock& first, DotBlock& second)
     {
         using std::swap;
@@ -358,6 +367,8 @@ public:
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
 
+    bool tracksTraceTags() const override;
+
     friend void swap(DotByte& first, DotByte& second)
     {
         using std::swap;
@@ -405,6 +416,8 @@ public:
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
 
+    bool tracksTraceTags() const override;
+
     friend void swap(DotEquate& first, DotEquate& second)
     {
         using std::swap;
@@ -434,6 +447,8 @@ public:
 
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
+
+    bool tracksTraceTags() const override;
 
     friend void swap(DotWord& first, DotWord& second)
     {
