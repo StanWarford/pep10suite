@@ -92,6 +92,12 @@ struct ModulePrototype {
 
 
 struct ModuleInstance {
+    ModuleInstance() = default;
+    // Perform a deep copy instead of default shallow copy.
+    ModuleInstance(const ModuleInstance& other);
+    ~ModuleInstance();
+    ModuleInstance& operator=(ModuleInstance rhs);
+
     // Errors may be raised on any line at any step.
     QList<ErrorInfo> errorList;
 
@@ -126,6 +132,21 @@ struct ModuleInstance {
      */
     int traceInfo;
     // Information filled in during validation.
+
+    // Necessary for reducing code duplication on copy assignment.
+    friend void swap(ModuleInstance& first, ModuleInstance&second)
+    {
+        using std::swap;
+        swap(first.burnInfo, second.burnInfo);
+        swap(first.codeList, second.codeList);
+        swap(first.errorList, second.errorList);
+        swap(first.macroArgs, second.macroArgs);
+        swap(first.prototype, second.prototype);
+        swap(first.traceInfo, second.traceInfo);
+        swap(first.symbolTable, second.symbolTable);
+        swap(first.alreadyLinked, second.alreadyLinked);
+        swap(first.alreadyAssembled, second.alreadyAssembled);
+    }
 };
 
 /*

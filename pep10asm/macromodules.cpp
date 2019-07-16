@@ -60,3 +60,30 @@ std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance> > Mod
     instanceMap.insert(rootPrototype->index, {rootInstance});
     return {rootPrototype, rootInstance};
 }
+
+ModuleInstance::ModuleInstance(const ModuleInstance &other)
+{
+    this->burnInfo = other.burnInfo;
+    // Must duplicate entire code list
+    for(auto line : other.codeList) {
+        this->codeList.append(line->cloneAsmCode());
+    }
+    this->errorList = other.errorList;
+    this->macroArgs = other.macroArgs;
+    this->prototype = other.prototype;
+    this->traceInfo = other.traceInfo;
+    this->symbolTable = other.symbolTable;
+    this->alreadyLinked = other.alreadyLinked;
+    this->alreadyAssembled = other.alreadyAssembled;
+}
+
+ModuleInstance::~ModuleInstance()
+{
+
+}
+
+ModuleInstance &ModuleInstance::operator=(ModuleInstance rhs)
+{
+    swap(*this, rhs);
+    return *this;
+}
