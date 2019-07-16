@@ -428,20 +428,20 @@ void NonUnaryInstruction::setBreakpoint(bool b)
 
 bool NonUnaryInstruction::hasSymbolicOperand() const
 {
-    return dynamic_cast<SymbolRefArgument*>(argument) != nullptr;
+    return dynamic_cast<SymbolRefArgument*>(argument.get()) != nullptr;
 }
 
 QSharedPointer<const SymbolEntry> NonUnaryInstruction::getSymbolicOperand() const
 {
-    return dynamic_cast<SymbolRefArgument*>(argument)->getSymbolValue();
+    return dynamic_cast<SymbolRefArgument*>(argument.get())->getSymbolValue();
 }
 
-AsmArgument *NonUnaryInstruction::getArgument() const
+QSharedPointer<AsmArgument>NonUnaryInstruction::getArgument() const
 {
     return argument;
 }
 
-void NonUnaryInstruction::setArgument(AsmArgument * argument)
+void NonUnaryInstruction::setArgument(QSharedPointer<AsmArgument> argument)
 {
     this->argument = argument;
 }
@@ -771,12 +771,12 @@ QString DotBurn::getAssemblerSource() const
     return lineStr;
 }
 
-AsmArgument *DotBurn::getArgument() const
+QSharedPointer<AsmArgument>DotBurn::getArgument() const
 {
     return this->argument;
 }
 
-void DotBurn::setArgument(AsmArgument *argument)
+void DotBurn::setArgument(QSharedPointer<AsmArgument>argument)
 {
     this->argument = argument;
 }
@@ -867,12 +867,12 @@ QString DotEquate::getAssemblerSource() const
     return lineStr;
 }
 
-AsmArgument *DotEquate::getArgument() const
+QSharedPointer<AsmArgument>DotEquate::getArgument() const
 {
     return this->argument;
 }
 
-void DotEquate::setArgument(AsmArgument *argument)
+void DotEquate::setArgument(QSharedPointer<AsmArgument>argument)
 {
     this->argument = argument;
 }
@@ -957,15 +957,15 @@ bool DotAddrss::hasSymbolicOperand() const
 QSharedPointer<const SymbolEntry> DotAddrss::getSymbolicOperand() const
 {
     // The value of a .addrss instruction is always the value of another symbol.
-    return static_cast<SymbolRefArgument*>(argument)->getSymbolValue();
+    return static_cast<SymbolRefArgument*>(argument.get())->getSymbolValue();
 }
 
-AsmArgument *DotAddrss::getArgument() const
+QSharedPointer<AsmArgument>DotAddrss::getArgument() const
 {
     return this->argument;
 }
 
-void DotAddrss::setArgument(AsmArgument *argument)
+void DotAddrss::setArgument(QSharedPointer<AsmArgument>argument)
 {
     this->argument = argument;
 }
@@ -980,12 +980,12 @@ quint16 DotAlign::objectCodeLength() const
     }
 }
 
-AsmArgument *DotAlign::getArgument() const
+QSharedPointer<AsmArgument>DotAlign::getArgument() const
 {
     return this->argument;
 }
 
-void DotAlign::setArgument(AsmArgument *argument)
+void DotAlign::setArgument(QSharedPointer<AsmArgument>argument)
 {
     this->argument = argument;
 }
@@ -1002,12 +1002,12 @@ quint16 DotAscii::objectCodeLength() const
     return static_cast<quint16>(num.length());
 }
 
-AsmArgument *DotAscii::getArgument() const
+QSharedPointer<AsmArgument>DotAscii::getArgument() const
 {
     return this->argument;
 }
 
-void DotAscii::setArgument(AsmArgument * argument)
+void DotAscii::setArgument(QSharedPointer<AsmArgument> argument)
 {
     this->argument = argument;
 }
@@ -1022,12 +1022,12 @@ quint16 DotBlock::objectCodeLength() const
     }
 }
 
-AsmArgument *DotBlock::getArgument() const
+QSharedPointer<AsmArgument>DotBlock::getArgument() const
 {
     return this->argument;
 }
 
-void DotBlock::setArgument(AsmArgument* argument)
+void DotBlock::setArgument(QSharedPointer<AsmArgument> argument)
 {
     this->argument = argument;
 }
@@ -1042,12 +1042,12 @@ quint16 DotByte::objectCodeLength() const
     }
 }
 
-AsmArgument *DotByte::getArgument() const
+QSharedPointer<AsmArgument>DotByte::getArgument() const
 {
     return this->argument;
 }
 
-void DotByte::setArgument(AsmArgument *argument)
+void DotByte::setArgument(QSharedPointer<AsmArgument>argument)
 {
     this->argument = argument;
 }
@@ -1062,12 +1062,12 @@ quint16 DotWord::objectCodeLength() const
     }
 }
 
-AsmArgument *DotWord::getArgument() const
+QSharedPointer<AsmArgument> DotWord::getArgument() const
 {
     return this->argument;
 }
 
-void DotWord::setArgument(AsmArgument *argument)
+void DotWord::setArgument(QSharedPointer<AsmArgument> argument)
 {
     this->argument = argument;
 }

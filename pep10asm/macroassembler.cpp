@@ -418,7 +418,7 @@ MacroInvoke *MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& gr
     return macroInstruction;
 }
 
-AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<AsmArgument> MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)
 {
     if(!tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
         errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
@@ -433,14 +433,14 @@ AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QSt
             errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
             return nullptr;
         }
-        return new SymbolRefArgument(instance.symbolTable->reference(tokenString));
+        return QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString));
     }
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT) {
         if (MacroTokenizerHelper::byteStringLength(tokenString) > 2) {
             errorMessage = ";ERROR: String operands must have length at most two.";
             return nullptr;
         }
-        return new StringArgument(tokenString);
+        return QSharedPointer<StringArgument>::create(tokenString);
     }
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT) {
         tokenString.remove(0, 2); // Remove "0x" prefix.
@@ -448,7 +448,7 @@ AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QSt
         int value = tokenString.toInt(&ok, 16);
         // If the value is in range for a 16 bit int.
         if (value < 65536) {
-            return new HexArgument(value);
+            return QSharedPointer<HexArgument>::create(value);
         }
         else {
             errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
@@ -461,10 +461,10 @@ AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QSt
         if ((-32768 <= value) && (value <= 65535)) {
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
-                return new DecArgument(value);
+                return QSharedPointer<DecArgument>::create(value);
             }
             else {
-                return new UnsignedDecArgument(value);
+                return QSharedPointer<UnsignedDecArgument>::create(value);
             }
         }
         else {
@@ -473,7 +473,7 @@ AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QSt
         }
     }
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT) {
-        return new CharArgument(tokenString);
+        return QSharedPointer<CharArgument>::create(tokenString);
     }
     else {
         errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
@@ -509,7 +509,7 @@ DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry>
         if(symbol.has_value()) {
             dotAddrss->setSymbolEntry(symbol.value());
         }
-        dotAddrss->setArgument(new SymbolRefArgument(instance.symbolTable->reference(tokenString)));
+        dotAddrss->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
         return dotAddrss;
     }
     else {
@@ -527,7 +527,7 @@ DotAscii *MacroAssembler::parseASCII(std::optional<QSharedPointer<SymbolEntry> >
         if(symbol.has_value()) {
             dotAscii->setSymbolEntry(symbol.value());
         }
-        dotAscii->setArgument(new StringArgument(tokenString));
+        dotAscii->setArgument(QSharedPointer<StringArgument>::create(tokenString));
         return dotAscii;
     }
     else {
@@ -547,7 +547,7 @@ DotAlign *MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> >
         }
         int value = tokenString.toInt(&ok, 10);
         if (value == 2 || value == 4 || value == 8) {
-            dotAlign->setArgument(new UnsignedDecArgument(value));
+            dotAlign->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             // Num bytes generated is now deduced by the linker.
             //int numBytes = (value - byteCount % value) % value;
 #pragma message("Fix byte count calc.")
@@ -580,10 +580,10 @@ DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> >
             }
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
-                dotBlock->setArgument(new DecArgument(value));
+                dotBlock->setArgument(QSharedPointer<DecArgument>::create(value));
             }
             else {
-                dotBlock->setArgument(new UnsignedDecArgument(value));
+                dotBlock->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             }
             return dotBlock;
         }
@@ -602,7 +602,7 @@ DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> >
             if(symbol.has_value()) {
                 dotBlock->setSymbolEntry(symbol.value());
             }
-            dotBlock->setArgument(new HexArgument(value));
+            dotBlock->setArgument(QSharedPointer<HexArgument>::create(value));
             return dotBlock;
         }
         else {
@@ -628,7 +628,7 @@ DotBurn *MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > s
             if(symbol.has_value()) {
                 dotBurn->setSymbolEntry(symbol.value());
             }
-            dotBurn->setArgument(new HexArgument(value));
+            dotBurn->setArgument(QSharedPointer<HexArgument>::create(value));
             instance.burnInfo.burnCount++;
             instance.burnInfo.burnArgument = value;
             return dotBurn;
@@ -659,7 +659,7 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         DotByte *dotByte = new DotByte;
-        dotByte->setArgument(new CharArgument(tokenString));
+        dotByte->setArgument(QSharedPointer<CharArgument>::create(tokenString));
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
@@ -668,7 +668,7 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
             if (value < 0) {
                 value += 256; // value stored as one-byte unsigned.
             }
-            dotByte->setArgument(new DecArgument(value));
+            dotByte->setArgument(QSharedPointer<DecArgument>::create(value));
         }
         else {
             errorMessage = ";ERROR: Decimal constant is out of byte range (-128..255).";
@@ -682,7 +682,7 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
         int value = tokenString.toInt(&ok, 16);
         if (value < 256) {
             DotByte *dotByte = new DotByte;
-            dotByte->setArgument(new HexArgument(value));
+            dotByte->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
             errorMessage = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
@@ -697,7 +697,7 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
             delete dotByte;
             return nullptr;
         }
-        dotByte->setArgument(new StringArgument(tokenString));
+        dotByte->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
         errorMessage = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
@@ -745,10 +745,10 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
 
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
-                dotEquate->setArgument(new DecArgument(value));
+                dotEquate->setArgument(QSharedPointer<DecArgument>::create(value));
             }
             else {
-                dotEquate->setArgument(new UnsignedDecArgument(value));
+                dotEquate->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             }
             dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
         }
@@ -763,7 +763,7 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
         if (value < 65536) {
-            dotEquate->setArgument(new HexArgument(value));
+            dotEquate->setArgument(QSharedPointer<HexArgument>::create(value));
             dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
         }
         else {
@@ -779,12 +779,12 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
             delete dotEquate;
             return nullptr;
         }
-        dotEquate->setArgument(new StringArgument(tokenString));
+        dotEquate->setArgument(QSharedPointer<StringArgument>::create(tokenString));
         dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::string2ArgumentToInt(tokenString)));
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        dotEquate->setArgument(new CharArgument(tokenString));
+        dotEquate->setArgument(QSharedPointer<CharArgument>::create(tokenString));
         dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::charStringToInt(tokenString)));
     }
     else {
@@ -824,7 +824,7 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        dotWord->setArgument(new CharArgument(tokenString));
+        dotWord->setArgument(QSharedPointer<CharArgument>::create(tokenString));
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
@@ -832,10 +832,10 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
         if ((-32768 <= value) && (value < 65536)) {
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
-                dotWord->setArgument(new DecArgument(value));
+                dotWord->setArgument(QSharedPointer<DecArgument>::create(value));
             }
             else {
-                dotWord->setArgument(new UnsignedDecArgument(value));
+                dotWord->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             }
         }
         else {
@@ -849,7 +849,7 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
         if (value < 65536) {
-            dotWord->setArgument(new HexArgument(value));
+            dotWord->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
             errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
@@ -864,7 +864,7 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
             delete dotWord;
             return nullptr;
         }
-        dotWord->setArgument(new StringArgument(tokenString));
+        dotWord->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
         errorMessage = ";ERROR: .WORD requires a char, dec, hex, or string constant argument.";

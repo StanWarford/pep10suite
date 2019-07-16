@@ -288,10 +288,8 @@ bool IsaAsm::assembleOperatingSystem(const QString &progText, bool forceBurnAt0x
             int endAddr = startAddr + asAlign->numBytesGenerated->getArgumentValue();
             // Based on the ending byte, calculate where the first byte needs to be for proper alignment.
             int blockStart = endAddr - endAddr % asAlign->argument->getArgumentValue();
-            // We can't change an AsmArgument in place, so we must construct a new one.
-            delete asAlign->numBytesGenerated;
             // The align must still reach down to endAddr, but now must span up to blockStart.
-            asAlign->numBytesGenerated = new UnsignedDecArgument(blockStart - endAddr);
+            asAlign->numBytesGenerated = QSharedPointer<UnsignedDecArgument>::create(blockStart - endAddr);
             // Other instructions will be shifter by the change in starting address.
             rollingOffset += blockStart - startAddr;
             asAlign->memAddress = blockStart;
@@ -855,7 +853,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                     return false;
                 }
                 if(!symTable->exists(tokenString)) symTable->insertSymbol(tokenString);
-                nonUnaryInstruction->argument = new SymbolRefArgument(symTable->getValue(tokenString));
+                nonUnaryInstruction->argument = QSharedPointer<SymbolRefArgument>::create(symTable->getValue(tokenString));
                 state = IsaParserHelper::PS_ADDRESSING_MODE;
             }
             else if (token == IsaParserHelper::LT_STRING_CONSTANT) {
@@ -863,7 +861,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                     errorString = ";ERROR: String operands must have length at most two.";
                     return false;
                 }
-                nonUnaryInstruction->argument = new StringArgument(tokenString);
+                nonUnaryInstruction->argument = QSharedPointer<StringArgument>::create(tokenString);
                 state = IsaParserHelper::PS_ADDRESSING_MODE;
             }
             else if (token == IsaParserHelper::LT_HEX_CONSTANT) {
@@ -871,7 +869,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 bool ok;
                 int value = tokenString.toInt(&ok, 16);
                 if (value < 65536) {
-                    nonUnaryInstruction->argument = new HexArgument(value);
+                    nonUnaryInstruction->argument = QSharedPointer<HexArgument>::create(value);
                     state = IsaParserHelper::PS_ADDRESSING_MODE;
                 }
                 else {
@@ -885,10 +883,10 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 if ((-32768 <= value) && (value <= 65535)) {
                     if (value < 0) {
                         value += 65536; // Stored as two-byte unsigned.
-                        nonUnaryInstruction->argument = new DecArgument(value);
+                        nonUnaryInstruction->argument = QSharedPointer<DecArgument>::create(value);
                     }
                     else {
-                        nonUnaryInstruction->argument = new UnsignedDecArgument(value);
+                        nonUnaryInstruction->argument = QSharedPointer<UnsignedDecArgument>::create(value);
                     }
                     state = IsaParserHelper::PS_ADDRESSING_MODE;
                 }
@@ -898,7 +896,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 }
             }
             else if (token == IsaParserHelper::LT_CHAR_CONSTANT) {
-                nonUnaryInstruction->argument = new CharArgument(tokenString);
+                nonUnaryInstruction->argument = QSharedPointer<CharArgument>::create(tokenString);
                 state = IsaParserHelper::PS_ADDRESSING_MODE;
             }
             else {
@@ -946,7 +944,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                     return false;
                 }
                 if(!symTable->exists(tokenString)) symTable->insertSymbol(tokenString);
-                dotAddrss->argument = new SymbolRefArgument(symTable->getValue(tokenString));
+                dotAddrss->argument = QSharedPointer<SymbolRefArgument>::create(symTable->getValue(tokenString));
                 byteCount += 2;
                 state = IsaParserHelper::PS_CLOSE;
             }
@@ -962,8 +960,8 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 int value = tokenString.toInt(&ok, 10);
                 if (value == 2 || value == 4 || value == 8) {
                     int numBytes = (value - byteCount % value) % value;
-                    dotAlign->argument = new UnsignedDecArgument(value);
-                    dotAlign->numBytesGenerated = new UnsignedDecArgument(numBytes);
+                    dotAlign->argument = QSharedPointer<UnsignedDecArgument>::create(value);
+                    dotAlign->numBytesGenerated = QSharedPointer<UnsignedDecArgument>::create(numBytes);
                     byteCount += numBytes;
                     state = IsaParserHelper::PS_CLOSE;
                 }
@@ -980,7 +978,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
 
         case IsaParserHelper::PS_DOT_ASCII:
             if (token == IsaParserHelper::LT_STRING_CONSTANT) {
-                dotAscii->argument = new StringArgument(tokenString);
+                dotAscii->argument = QSharedPointer<StringArgument>::create(tokenString);
                 byteCount += IsaParserHelper::byteStringLength(tokenString);
                 state = IsaParserHelper::PS_CLOSE;
             }
@@ -997,10 +995,10 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 if ((0 <= value) && (value <= 65535)) {
                     if (value < 0) {
                         value += 65536; // Stored as two-byte unsigned.
-                        dotBlock->argument = new DecArgument(value);
+                        dotBlock->argument = QSharedPointer<DecArgument>::create(value);
                     }
                     else {
-                        dotBlock->argument = new UnsignedDecArgument(value);
+                        dotBlock->argument = QSharedPointer<UnsignedDecArgument>::create(value);
                     }
                     byteCount += value;
                     state = IsaParserHelper::PS_CLOSE;
@@ -1015,7 +1013,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 bool ok;
                 int value = tokenString.toInt(&ok, 16);
                 if (value < 65536) {
-                    dotBlock->argument = new HexArgument(value);
+                    dotBlock->argument = QSharedPointer<HexArgument>::create(value);
                     byteCount += value;
                     state = IsaParserHelper::PS_CLOSE;
                 }
@@ -1036,7 +1034,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 bool ok;
                 int value = tokenString.toInt(&ok, 16);
                 if (value < 65536) {
-                    dotBurn->argument = new HexArgument(value);
+                    dotBurn->argument = QSharedPointer<HexArgument>::create(value);
                     info.burnCount++;
                     info.burnValue = value;
                     info.burnAddress = byteCount;
@@ -1057,7 +1055,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
 
         case IsaParserHelper::PS_DOT_BYTE:
             if (token == IsaParserHelper::LT_CHAR_CONSTANT) {
-                dotByte->argument = new CharArgument(tokenString);
+                dotByte->argument = QSharedPointer<CharArgument>::create(tokenString);
                 byteCount += 1;
                 state = IsaParserHelper::PS_CLOSE;
             }
@@ -1068,7 +1066,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                     if (value < 0) {
                         value += 256; // value stored as one-byte unsigned.
                     }
-                    dotByte->argument = new DecArgument(value);
+                    dotByte->argument = QSharedPointer<DecArgument>::create(value);
                     byteCount += 1;
                     state = IsaParserHelper::PS_CLOSE;
                 }
@@ -1082,7 +1080,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 bool ok;
                 int value = tokenString.toInt(&ok, 16);
                 if (value < 256) {
-                    dotByte->argument = new HexArgument(value);
+                    dotByte->argument = QSharedPointer<HexArgument>::create(value);
                     byteCount += 1;
                     state = IsaParserHelper::PS_CLOSE;
                 }
@@ -1096,7 +1094,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                     errorString = ";ERROR: .BYTE string operands must have length one.";
                     return false;
                 }
-                dotByte->argument = new StringArgument(tokenString);
+                dotByte->argument = QSharedPointer<StringArgument>::create(tokenString);
                 byteCount += 1;
                 state = IsaParserHelper::PS_CLOSE;
             }
@@ -1137,10 +1135,10 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
 
                     if (value < 0) {
                         value += 65536; // Stored as two-byte unsigned.
-                        dotEquate->argument = new DecArgument(value);
+                        dotEquate->argument = QSharedPointer<DecArgument>::create(value);
                     }
                     else {
-                        dotEquate->argument = new UnsignedDecArgument(value);
+                        dotEquate->argument = QSharedPointer<UnsignedDecArgument>::create(value);
                     }
                     dotEquate->symbolEntry->setValue( QSharedPointer<SymbolValueNumeric>::create(value));
                     state = IsaParserHelper::PS_CLOSE;
@@ -1155,7 +1153,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 bool ok;
                 int value = tokenString.toInt(&ok, 16);
                 if (value < 65536) {
-                    dotEquate->argument = new HexArgument(value);
+                    dotEquate->argument = QSharedPointer<HexArgument>::create(value);
                     dotEquate->symbolEntry->setValue( QSharedPointer<SymbolValueNumeric>::create(value));
                     state = IsaParserHelper::PS_CLOSE;
                 }
@@ -1169,12 +1167,12 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                     errorString = ";ERROR: .EQUATE string operand must have length at most two.";
                     return false;
                 }
-                dotEquate->argument = new StringArgument(tokenString);
+                dotEquate->argument = QSharedPointer<StringArgument>::create(tokenString);
                 dotEquate->symbolEntry->setValue( QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::string2ArgumentToInt(tokenString)));
                 state = IsaParserHelper::PS_CLOSE;
             }
             else if (token == IsaParserHelper::LT_CHAR_CONSTANT) {
-                dotEquate->argument = new CharArgument(tokenString);
+                dotEquate->argument = QSharedPointer<CharArgument>::create(tokenString);
                 dotEquate->symbolEntry->setValue( QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::charStringToInt(tokenString)));
                 state = IsaParserHelper::PS_CLOSE;
             }
@@ -1186,7 +1184,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
 
         case IsaParserHelper::PS_DOT_WORD:
             if (token == IsaParserHelper::LT_CHAR_CONSTANT) {
-                dotWord->argument = new CharArgument(tokenString);
+                dotWord->argument = QSharedPointer<CharArgument>::create(tokenString);
                 byteCount += 2;
                 state = IsaParserHelper::PS_CLOSE;
             }
@@ -1197,10 +1195,10 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
 
                     if (value < 0) {
                         value += 65536; // Stored as two-byte unsigned.
-                        dotWord->argument = new DecArgument(value);
+                        dotWord->argument = QSharedPointer<DecArgument>::create(value);
                     }
                     else {
-                        dotWord->argument = new UnsignedDecArgument(value);
+                        dotWord->argument = QSharedPointer<UnsignedDecArgument>::create(value);
                     }
                     byteCount += 2;
                     state = IsaParserHelper::PS_CLOSE;
@@ -1215,7 +1213,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                 bool ok;
                 int value = tokenString.toInt(&ok, 16);
                 if (value < 65536) {
-                    dotWord->argument = new HexArgument(value);
+                    dotWord->argument = QSharedPointer<HexArgument>::create(value);
                     byteCount += 2;
                     state = IsaParserHelper::PS_CLOSE;
                 }
@@ -1229,7 +1227,7 @@ bool IsaAsm::processSourceLine(SymbolTable* symTable, BURNInfo& info, StaticTrac
                     errorString = ";ERROR: .WORD string operands must have length at most two.";
                     return false;
                 }
-                dotWord->argument = new StringArgument(tokenString);
+                dotWord->argument = QSharedPointer<StringArgument>::create(tokenString);
                 byteCount += 2;
                 state = IsaParserHelper::PS_CLOSE;
             }

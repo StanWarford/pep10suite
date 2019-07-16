@@ -41,7 +41,7 @@ private:
 
     NonUnaryInstruction* parseNonUnaryInstruction(Enu::EMnemonic mnemonic, std::optional<QSharedPointer<SymbolEntry>> symbol,
                                                   ModuleInstance& instance, QString& errorMessage);
-    AsmArgument* parseOperandSpecifier(ModuleInstance &instance, QString& errorMessage);
+    QSharedPointer<AsmArgument> parseOperandSpecifier(ModuleInstance &instance, QString& errorMessage);
     Enu::EAddrMode stringToAddrMode(QString str) const;
 
     DotAddrss* parseADDRSS(std::optional<QSharedPointer<SymbolEntry>> symbol,

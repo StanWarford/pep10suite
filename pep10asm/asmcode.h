@@ -144,7 +144,7 @@ class NonUnaryInstruction: public AsmCode
 private:
     Enu::EMnemonic mnemonic;
     Enu::EAddrMode addressingMode;
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
     bool breakpoint = false;
 public:
     NonUnaryInstruction() = default;
@@ -171,8 +171,8 @@ public:
 
     bool hasSymbolicOperand() const override;
     QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(NonUnaryInstruction& first, NonUnaryInstruction& second)
     {
@@ -189,7 +189,7 @@ class DotAddrss: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotAddrss() = default;
     virtual ~DotAddrss() override = default;
@@ -205,8 +205,8 @@ public:
 
     bool hasSymbolicOperand() const override;
     QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(DotAddrss& first, DotAddrss& second)
     {
@@ -220,8 +220,8 @@ class DotAlign: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
-    AsmArgument *numBytesGenerated = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
+    QSharedPointer<AsmArgument> numBytesGenerated = nullptr;
 public:
     DotAlign() = default;
     virtual ~DotAlign() override = default;
@@ -235,8 +235,8 @@ public:
     virtual QString getAssemblerSource() const override;
     virtual quint16 objectCodeLength() const override;
 
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     quint16 getNumBytesGenerated() const;
 
@@ -254,7 +254,7 @@ class DotAscii: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotAscii() = default;
     virtual ~DotAscii() override = default;
@@ -268,8 +268,8 @@ public:
     virtual QString getAssemblerSource() const override;
     virtual quint16 objectCodeLength() const override;
 
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(DotAscii& first, DotAscii& second)
     {
@@ -283,7 +283,7 @@ class DotBlock: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotBlock() = default;
     virtual ~DotBlock() override = default;
@@ -297,8 +297,8 @@ public:
     virtual QString getAssemblerSource() const override;
     virtual quint16 objectCodeLength() const override;
 
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(DotBlock& first, DotBlock& second)
     {
@@ -312,7 +312,7 @@ class DotBurn: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
 
 public:
     DotBurn() = default;
@@ -325,8 +325,8 @@ public:
     virtual QString getAssemblerListing() const override;
     virtual QString getAssemblerSource() const override;
 
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(DotBurn& first, DotBurn& second)
     {
@@ -340,7 +340,7 @@ class DotByte: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
 
 public:
     DotByte() = default;
@@ -355,8 +355,8 @@ public:
     virtual QString getAssemblerSource() const override;
     virtual quint16 objectCodeLength() const override;
 
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(DotByte& first, DotByte& second)
     {
@@ -390,7 +390,7 @@ class DotEquate: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotEquate() = default;
     virtual ~DotEquate() override = default;
@@ -402,8 +402,8 @@ public:
     virtual QString getAssemblerListing() const override;
     virtual QString getAssemblerSource() const override;
 
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(DotEquate& first, DotEquate& second)
     {
@@ -417,7 +417,7 @@ class DotWord: public AsmCode
 {
     friend class IsaAsm;
 private:
-    AsmArgument *argument = nullptr;
+    QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotWord() = default;
     virtual ~DotWord() override = default;
@@ -432,8 +432,8 @@ public:
     virtual QString getAssemblerSource() const override;
     virtual quint16 objectCodeLength() const override;
 
-    AsmArgument* getArgument() const;
-    void setArgument(AsmArgument*);
+    QSharedPointer<AsmArgument> getArgument() const;
+    void setArgument(QSharedPointer<AsmArgument>);
 
     friend void swap(DotWord& first, DotWord& second)
     {
