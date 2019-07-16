@@ -290,8 +290,6 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
 
     }
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LTE_MACRO_INVOKE)) {
-        // This one kind of breaks the rules...
-        #pragma message("Must work on macro invocation assembly")
         // Must handle all macro arguments.
         QString macroName = tokenBuffer->takeLastMatch().second.toString();
         retVal.codeLine = parseMacroInstruction(graph, macroName, symbolPointer, instance, errorMessage);
@@ -302,12 +300,8 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
     }
 
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)) {
-        // Match a comment only line.
+        // Match a comment at the end of a line.
         retVal.codeLine->setComment(tokenBuffer->takeLastMatch().second.toString());
-        QStringList arguments;
-        while(tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
-
-        }
     }
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
         retVal.success = true;
@@ -366,8 +360,11 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
     else {
         tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE);
         addrMode = stringToAddrMode(tokenBuffer->takeLastMatch().second.toString());
-        if ((static_cast<int>(addrMode) & Pep::addrModesMap.value(mnemonic)) == 0) { // Nested parens required.
+        // Nested parens required.
+        if ((static_cast<int>(addrMode) & Pep::addrModesMap.value(mnemonic)) == 0) {
             errorMessage = ";ERROR: Illegal addressing mode for this instruction.";
+            // No need to delete argument, this will be deleted by nonUnaryInstruction.
+            delete nonUnaryInstruction;
             return nullptr;
         }
     }
@@ -568,7 +565,6 @@ DotAlign *MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> >
 
 DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
 {
-
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         bool ok;
