@@ -32,6 +32,7 @@ void MacroPreprocessor::setTarget(ModuleAssemblyGraph *target)
 PreprocessorResult MacroPreprocessor::preprocess()
 {
     PreprocessorResult result;
+    result.succes = true;
     moduleIndex = target->moduleGraph.num_vertices();
     for(quint16 graphIndex = target->rootModule; graphIndex < moduleIndex; graphIndex++) {
         ModulePrototype& module = *target->prototypeMap[graphIndex];
