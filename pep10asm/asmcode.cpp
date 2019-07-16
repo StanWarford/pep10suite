@@ -60,6 +60,7 @@ NonUnaryInstruction::NonUnaryInstruction(const NonUnaryInstruction &other) : Asm
     this->argument = other.argument;
     this->breakpoint = other.breakpoint;
 }
+
 DotAddrss::DotAddrss(const DotAddrss &other) : AsmCode(other)
 {
     this->argument = other.argument;
@@ -85,10 +86,12 @@ DotBurn::DotBurn(const DotBurn &other) : AsmCode(other)
 {
     this->argument = other.argument;
 }
+
 DotByte::DotByte(const DotByte &other) : AsmCode(other)
 {
     this->argument = other.argument;
 }
+
 DotEnd::DotEnd(const DotEnd &other) : AsmCode(other)
 {
 
@@ -103,10 +106,12 @@ DotWord::DotWord(const DotWord &other) : AsmCode(other)
 {
     this->argument = other.argument;
 }
+
 CommentOnly::CommentOnly(const CommentOnly &other)  : AsmCode(other)
 {
 
 }
+
 BlankLine::BlankLine(const BlankLine &other)  : AsmCode(other)
 {
 
@@ -249,8 +254,6 @@ void AsmCode::adjustMemAddress(int addressDelta)
     // be relocated.
     if(memAddress >=0) memAddress += addressDelta;
 }
-
-
 
 AsmCode *UnaryInstruction::cloneAsmCode() const
 {
@@ -1080,11 +1083,23 @@ void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
 QString MacroInvoke::getAssemblerListing() const
 {
     QStringList list;
+    QString name = macroInstance->prototype->name;
+    QString symbolStr;
+    if (!symbolEntry.isNull()) {
+        symbolStr = symbolEntry->getName()+": ";
+    }
+    QString lineStr = QString("             ;start macro %1@%2 %3")
+            .arg(symbolStr,0, QLatin1Char(' '))
+            .arg(name, -8, QLatin1Char(' '))
+            .arg(argumentList.join(","));
+            //.arg(comment);
+    list.append(lineStr);
     for(auto code : this->macroInstance->codeList) {
         // Don't generate listing for anything after and including .END
         if(dynamic_cast<DotEnd*>(code) != nullptr) break;
         list << code->getAssemblerListing();
     }
+    list.append(QString("             ;end macro   @%1 %2").arg(name).arg(argumentList.join(",")));
     return list.join("\n");
 }
 
