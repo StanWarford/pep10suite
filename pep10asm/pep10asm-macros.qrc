@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>help-asm/macros/builtin/CHARO.pepm</file>
+        <file>help-asm/macros/builtin/CHARI.pepm</file>
+        <file>help-asm/macros/builtin/MALLOC.pepm</file>
+        <file>help-asm/macros/builtin/XNORA.pepm</file>
+        <file>help-asm/macros/builtin/XNORX.pepm</file>
+    </qresource>
+</RCC>

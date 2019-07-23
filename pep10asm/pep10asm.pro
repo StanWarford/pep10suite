@@ -44,7 +44,8 @@ SOURCES += \
 RESOURCES += \
     ../pep10asm/pep10asm-helpresources.qrc \
     ../pep10asm/pep10asm-resources.qrc \
-    ../pep10common/pep10common-resources.qrc
+    ../pep10common/pep10common-resources.qrc \
+    pep10asm-macros.qrc
 
 INCLUDEPATH += $$PWD/../pep10common
 
