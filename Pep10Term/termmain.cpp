@@ -30,13 +30,14 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include "boundexecisacpu.h"
+#include "macroregistry.h"
 const QString asmInputFileText = "Input Pep/9 source program for assembler";
 const QString asmOutputFileText = "Output object code generated from source.";
 const QString objInputFileText = "Input Pep/9 object code program for simulator";
 const QString charinFileText = "File which will be buffered behind the charIn";
 const QString charoutFileText = "File which charOut will be written to.";
 const QString maxStepText = "The maximum number of steps executed before aborting. Defaults to %1";
-
+const QString listMacroText = "View the listing of a macro.";
 int main(int argc, char *argv[])
 {
     // Initialize global state maps.
@@ -50,8 +51,8 @@ int main(int argc, char *argv[])
 
     QCoreApplication::setOrganizationName("Pepperdine Computer Science Lab");
     QCoreApplication::setOrganizationDomain("cslab.pepperdine.edu");
-    QCoreApplication::setApplicationName("Pep9Term");
-    QCoreApplication::setApplicationVersion("9.2");
+    QCoreApplication::setApplicationName("Pep10Term");
+    QCoreApplication::setApplicationVersion("10.0");
 
     // Create a parser
     QCommandLineParser parser;
@@ -59,14 +60,15 @@ int main(int argc, char *argv[])
     // Placeholder for one of the execution modes. Ideally, the parser would
     // have different options and positional arguments depending on the value of
     // the leading positional argument. However, the parser lacks this functionality.
-    parser.addPositionalArgument("mode", "The mode Pep/ to be executed: Options are \"asm\" and \"run\".  \
+    parser.addPositionalArgument("mode", "The mode Pep/ to be executed: Options are \"asm\", \"run\"\
+, \"macros\", and \"listing\". \
 Run pep9term 'mode' --help for more options.");
     parser.addOption(QCommandLineOption("about",
                                         "Display information about Qt & developers."));
     parser.parse(QCoreApplication::arguments());
 
     // Fetch the positional argument list, the first of which is the "mode"
-    // Pep9term is to be run in.
+    // Pep10term is to be run in.
     const QStringList args = parser.positionalArguments();
     const QString command = args.isEmpty() ? QString() : args.first();
     // Reconstruct the parser options based on the application's mode.
@@ -79,14 +81,14 @@ Run pep9term 'mode' --help for more options.");
     }
     else if (command == "asm") {
         parser.clearPositionalArguments();
-        parser.addPositionalArgument("asm", "Assemble a Pep/9 source code program", "pep9term asm -i source.pep -o assembled.pepo");
+        parser.addPositionalArgument("asm", "Assemble a Pep/10 source code program", "pep10term asm -s source.pep -o assembled.pepo");
         parser.addOption(QCommandLineOption("s", asmInputFileText, "source_file"));
         parser.addOption(QCommandLineOption("o", asmOutputFileText, "object_file"));
     }
     else if (command == "run") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("run", "Run an object code program.",
-                                     "pep9term run -s asm.pepo -i charIn.txt, -o charOut.txt");
+                                     "pep10term run -s asm.pepo -i charIn.txt, -o charOut.txt");
         parser.addOption(QCommandLineOption("s", objInputFileText, "object_source_file"));
         // Batch input that will be loaded into charIn.
         parser.addOption(QCommandLineOption("i", charinFileText, "char_input"));
@@ -96,6 +98,14 @@ Run pep9term 'mode' --help for more options.");
         parser.addOption(QCommandLineOption("m",
                                             maxStepText.arg(BoundExecIsaCpu::getDefaultMaxSteps()),
                                             "max_Steps"));
+    }
+    else if (command == "macros") {
+        parser.clearPositionalArguments();
+        parser.addPositionalArgument("macros", "View all macros available to the Pep/10 assembler.");
+    } else if (command == "listing") {
+        parser.clearPositionalArguments();
+        parser.addPositionalArgument("listing", "View the listing of a macro.");
+        parser.addOption(QCommandLineOption("n", listMacroText, "name"));
     }
     // Otherwise it's an invalid mode, return an error and have the help
     // documentation appear
@@ -108,8 +118,9 @@ Run pep9term 'mode' --help for more options.");
     parser.process(a);
 
     // Task that will be
-    QRunnable *run;
-
+    QRunnable *run = nullptr;
+    QThreadPool pool;
+    MacroRegistry registry("");
     // Assembly the default operating system from this thread, so that
     // no worker threads have to check for the presence of an operating system.
     buildDefaultOperatingSystem(*AsmProgramManager::getInstance());
@@ -178,6 +189,36 @@ Run pep9term 'mode' --help for more options.");
         run = helper;
 
     }
+    else if(command == "macros") {
+        QStringList macroNames;
+        macroNames << "Builtins:";
+        for(auto builtin : registry.getCoreMacros()) {
+            macroNames << QString("\t%1").arg(builtin->macroName);
+        }
+        macroNames << "Syscalls:";
+        for(auto syscall : registry.getSytemCalls()) {
+            macroNames << QString("\t%1").arg(syscall->macroName);
+        }
+        macroNames << "User Defined Macros:";
+        for(auto udm : registry.getCustomMacros()) {
+            macroNames << QString("\t%1").arg(udm->macroName);
+        }
+        qDebug().noquote().nospace() << "Available Macros\n" << macroNames.join("\n");
+        return 0;
+    }
+    else if(command == "listing") {
+        if (!parser.isSet("n")) {
+            qDebug() << "Macro name is required.";
+            parser.showHelp(-1);
+        }
+        QString macroName = parser.value("n");
+        if(!registry.hasMacro(macroName)) {
+            qDebug() << "No such macro.";
+            return 0;
+        }
+        qDebug().noquote() << registry.getMacro(macroName)->macroText;
+        return 0;
+    }
     else {
         parser.showHelp(0);
     }
@@ -189,7 +230,8 @@ Run pep9term 'mode' --help for more options.");
      * the task to be scheduled via the main event loop.
      *
      */
-    QThreadPool pool;
-    pool.start(run);
+    if(run != nullptr) {
+        pool.start(run);
+    }
     return a.exec();
 }
