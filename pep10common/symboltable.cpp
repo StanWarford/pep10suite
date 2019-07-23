@@ -112,7 +112,7 @@ void SymbolTable::declareExternal(const QString &symbolName)
     externalSymbols.push_back(reference(symbolName));
 }
 
-QList<SymbolTable::SymbolEntryPtr> SymbolTable::getExternalSymbols()
+const QList<QSharedPointer<SymbolEntry>> SymbolTable::getExternalSymbols() const
 {
 
     return this->externalSymbols;

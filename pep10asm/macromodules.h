@@ -116,7 +116,7 @@ struct ModuleInstance {
      * Information filled in during assembly.
      */
     bool alreadyAssembled;
-    QList<AsmCode*> codeList;
+    QList<QSharedPointer<AsmCode>> codeList;
     // Information about the presence & value of a .BURN directive.
     MacroBurnInfo burnInfo;
     // All module instances share the same symbol table.
@@ -166,9 +166,6 @@ struct ModuleAssemblyGraph
     // it be an explicit field.
     quint16 rootModule = defaultRootIndex;
     static const quint16 defaultRootIndex = 0;
-    // If the root module is a user program, then this contains
-    // the operating system to link against.
-    std::optional<QSharedPointer<ModuleInstance>> operatingSystem;
 
     // Attempt to find a module prototype with the same name as macroName.
     // It will ignore case, and return a valid index in the module graph if

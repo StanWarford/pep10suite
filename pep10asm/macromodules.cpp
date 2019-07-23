@@ -66,7 +66,7 @@ ModuleInstance::ModuleInstance(const ModuleInstance &other)
     this->burnInfo = other.burnInfo;
     // Must duplicate entire code list
     for(auto line : other.codeList) {
-        this->codeList.append(line->cloneAsmCode());
+        this->codeList.append(QSharedPointer<AsmCode>(line->cloneAsmCode()));
     }
     this->errorList = other.errorList;
     this->macroArgs = other.macroArgs;

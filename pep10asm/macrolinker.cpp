@@ -32,9 +32,9 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
     // Pull in any symbols declared in operating system if we are not assembling an operating system.
     if(rootModuleInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
         auto exportsResults = pullInExports(graph);
-        /*if(!exportsResults.success) {
+        if(!exportsResults.success) {
             return exportsResults;
-        }*/
+        }
     }
 
     // Linking converts a many-to-one mapping of module instances to macro invocations
@@ -62,14 +62,23 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
     return result;
 }
 
+void MacroLinker::setOSSymbolTable(QSharedPointer<const SymbolTable> OSSymbolTable)
+{
+    osSymbolTable = OSSymbolTable;
+}
+
+void MacroLinker::clearOSSymbolTable()
+{
+    osSymbolTable.reset();
+}
+
 LinkResult MacroLinker::pullInExports(ModuleAssemblyGraph &graph)
 {
 
-    if(!graph.operatingSystem.has_value()) {
+    if(!osSymbolTable.has_value()) {
         return {false, {{0, noOperatingSystem}} };
     }
-    auto os = optional_helper(graph.operatingSystem);
-    auto symList = os->symbolTable->getExternalSymbols();
+    auto symList = optional_helper(osSymbolTable)->getExternalSymbols();
     auto rootInstance = graph.instanceMap[graph.rootModule].first();
     for(auto symbol : symList) {
         if(rootInstance->symbolTable->exists(symbol->getName())) {
@@ -102,8 +111,8 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
                 retVal.errorList.append({lineNum, multidefinedSymbol.arg(symbolName)});
                 continue;
             }
-            else if(dynamic_cast<DotEquate*>(line) != nullptr
-                    || dynamic_cast<DotAddrss*>(line) != nullptr)
+            else if(dynamic_cast<DotEquate*>(line.get()) != nullptr
+                    || dynamic_cast<DotAddrss*>(line.get()) != nullptr)
             {
                 // The value of a .EQUATE and .ADDRSS is handled in the assembler,
                 // as it is not tied the address of a the current line of code.
@@ -126,13 +135,13 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
         }
 
         // Handle macro invocations in a depth-first manner.
-        if(dynamic_cast<MacroInvoke*>(line) != nullptr) {
+        if(dynamic_cast<MacroInvoke*>(line.get()) != nullptr) {
             // While a macro line does not have a logical address,
             // storing the current address may help diagnose problems
             // in future steps of the macro assembler.
             line->setMemoryAddress(nextAddress);
             // We don't increment the address, this will be done by children of module.
-            auto macroLine = static_cast<MacroInvoke*>(line);
+            auto macroLine = static_cast<MacroInvoke*>(line.get());
             // Copy and swap the moduleInstance. Now we can adjust the code list for the
             // child module without affecting every instance of the macro in the application.
             auto copiedInstance = QSharedPointer<ModuleInstance>::create(*macroLine->getMacroInstance());

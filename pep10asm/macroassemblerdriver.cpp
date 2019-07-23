@@ -20,9 +20,10 @@ MacroAssemblerDriver::~MacroAssemblerDriver()
     registry = nullptr;
 }
 
-void *MacroAssemblerDriver::assembleUserProgram(QString input)
+QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleUserProgram(QString input,
+                                                                     QSharedPointer<const SymbolTable> osSymbol)
 {
-    auto [rootPrototype, rootInstance] = graph.createRoot(input, ModuleType::USER_PROGRAM);
+    auto [rootPrototype, startRootInstance] = graph.createRoot(input, ModuleType::USER_PROGRAM);
 
     if(!preprocess()) {
         // Cleanup any allocated memory
@@ -33,6 +34,47 @@ void *MacroAssemblerDriver::assembleUserProgram(QString input)
         // Cleanup any allocated memory
         return nullptr;
     }
+    this->linker->setOSSymbolTable(osSymbol);
+    if(!link()) {
+        // Cleanup any allocated memory
+        return nullptr;
+    }
+    else {
+        QStringList source;
+        QStringList listing;
+        for(auto codeLine : graph.instanceMap[graph.rootModule].first()->codeList) {
+            source << codeLine->getAssemblerSource();
+            listing << codeLine->getAssemblerListing();
+        }
+        qDebug().noquote() << "Source program:";
+        qDebug().noquote() << source.join("\n") << "\n\n";
+        qDebug().noquote() << "Programing listing:";
+        qDebug().noquote() << listing.join("\n");
+    }
+    auto rootInstance = graph.instanceMap[graph.rootModule].first();
+
+
+    annotate(*rootInstance.get());
+    validate(*rootInstance.get());
+
+    return QSharedPointer<AsmProgram>::create(rootInstance->codeList, rootInstance->symbolTable,
+                                              nullptr);
+}
+
+QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleOperatingSystem(QString input)
+{
+    auto [rootPrototype, rootInstance] = graph.createRoot(input, ModuleType::OPERATING_SYSTEM);
+
+    if(!preprocess()) {
+        // Cleanup any allocated memory
+        return nullptr;
+    }
+    // Handle any preprocessor errors.
+    if(!assembleProgram()) {
+        // Cleanup any allocated memory
+        return nullptr;
+    }
+    this->linker->clearOSSymbolTable();
     if(!link()) {
         // Cleanup any allocated memory
         return nullptr;

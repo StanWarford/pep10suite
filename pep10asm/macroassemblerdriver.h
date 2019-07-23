@@ -5,9 +5,11 @@
 #include <QtCore>
 #include <QObject>
 
+#include "asmprogram.h"
 #include "ngraph.h"
 #include "macromodules.h"
 #include "macropreprocessor.h"
+#include "symboltable.h"
 
 class MacroTokenizer;
 class MacroRegistry;
@@ -76,8 +78,8 @@ class MacroAssemblerDriver
 public:
     MacroAssemblerDriver(const MacroRegistry* registry);
     ~MacroAssemblerDriver();
-    void* assembleUserProgram(QString input);
-    void* assembleOperatingSystem(QString input);
+    QSharedPointer<AsmProgram> assembleUserProgram(QString input, QSharedPointer<const SymbolTable> osSymbol);
+    QSharedPointer<AsmProgram> assembleOperatingSystem(QString input);
     bool validateMacro(QString input);
 
 private:

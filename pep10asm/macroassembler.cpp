@@ -63,7 +63,8 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
     return retVal;
 }
 
-MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph &graph, ModuleInstance &instance)
+MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph &graph,
+                                                            ModuleInstance &instance)
 {
     ModuleResult result;
     result.success = true;
@@ -72,7 +73,7 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
     tokenBuffer->setMacroSubstitutions(instance.macroArgs);
     tokenBuffer->setTokenizerInput(instance.prototype->textLines);
 
-    QList<AsmCode*> codeList;
+    QList<QSharedPointer<AsmCode>> codeList;
     QString errorMessage;
     bool dotEndDetected = false;
     // Macro modules declare the name and argument count on the first line.
@@ -107,15 +108,11 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
     if(result.success) {
         instance.codeList = codeList;
     }
-    else {
-        for(auto line : codeList) {
-            delete line;
-        }
-    }
     return result;
 }
 
-MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &graph, ModuleInstance &instance,
+MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &graph,
+                                                        ModuleInstance &instance,
                                                         QString& errorMessage, bool &dotEndDetected)
 {
     LineResult retVal;
@@ -140,7 +137,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
             return retVal;
         }
         // Match a comment only line.
-        auto commentLine = new CommentOnly;
+        auto commentLine =  QSharedPointer<CommentOnly>::create();
         commentLine->setComment(tokenBuffer->takeLastMatch().second.toString());
         retVal.success = true;
         retVal.codeLine = commentLine;
@@ -149,7 +146,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
         // Match an empty line.
         retVal.success = true;
-        retVal.codeLine = new BlankLine;
+        retVal.codeLine =  QSharedPointer<BlankLine>::create();
         return retVal;
     }
     // Check for the presence of an (optional) symbol.
@@ -192,7 +189,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
 
         // Process a unary instruction
         if(Pep::isUnaryMap.value(mnemonic)) {
-            auto unaryInstruction = new UnaryInstruction();
+            auto unaryInstruction =  QSharedPointer<UnaryInstruction>::create();
             unaryInstruction->setMnemonic(mnemonic);
             if(symbolPointer.has_value()) {
                 unaryInstruction->setSymbolEntry(optional_helper(symbolPointer));
@@ -328,12 +325,13 @@ bool MacroAssembler::validateSymbolName(const QStringRef &name, QString &errorMe
     return true;
 }
 
-NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mnemonic,
-                                                              std::optional<QSharedPointer<SymbolEntry>> symbol,
-                                                              ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<NonUnaryInstruction>
+        MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mnemonic,
+                                                 std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                                 ModuleInstance &instance,QString &errorMessage)
 {
     Enu::EAddrMode addrMode;
-    auto nonUnaryInstruction = new NonUnaryInstruction();
+    auto nonUnaryInstruction = QSharedPointer<NonUnaryInstruction>::create();
     nonUnaryInstruction->setMnemonic(mnemonic);
     if(symbol.has_value()) {
         nonUnaryInstruction->setSymbolEntry(optional_helper(symbol));
@@ -341,12 +339,6 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
 
     auto argument = parseOperandSpecifier(instance, errorMessage);
 
-    // If there was an error parsing the operand, it is already captured in the appropriate argument.
-    // we must only clean up memory that we allocated.
-    if(!errorMessage.isEmpty()) {
-        delete nonUnaryInstruction;
-        return nullptr;
-    }
     nonUnaryInstruction->setArgument(argument);
 
     // If the next token is not an addressing mode, then we need to check if this
@@ -354,7 +346,6 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
     if(!tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE)) {
         if (Pep::addrModeRequiredMap.value(mnemonic)) {
             errorMessage = ";ERROR: Addressing mode required for this instruction.";
-            delete nonUnaryInstruction;
             // No need to delete argument, this will be deleted by nonUnaryInstruction.
             return nullptr;
         }
@@ -369,7 +360,6 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
         if ((static_cast<int>(addrMode) & Pep::addrModesMap.value(mnemonic)) == 0) {
             errorMessage = ";ERROR: Illegal addressing mode for this instruction.";
             // No need to delete argument, this will be deleted by nonUnaryInstruction.
-            delete nonUnaryInstruction;
             return nullptr;
         }
     }
@@ -377,9 +367,11 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
     return nonUnaryInstruction;
 }
 
-MacroInvoke *MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& graph,const QString &macroName,
-                                                   std::optional<QSharedPointer<SymbolEntry> > symbol,
-                                                   ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<MacroInvoke>
+        MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& graph,
+                                              const QString &macroName,
+                                              std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                              ModuleInstance &instance, QString &errorMessage)
 {
     if(!registry->hasMacro(macroName)) {
         errorMessage = ";ERROR: Macro " + macroName + " does not exist.";
@@ -411,7 +403,7 @@ MacroInvoke *MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& gr
         errorMessage = ";ERROR: Module instance for " + macroName + " could not be found.";
         return nullptr;
     }
-    MacroInvoke *macroInstruction = new MacroInvoke;
+    QSharedPointer<MacroInvoke> macroInstruction = QSharedPointer<MacroInvoke>::create();
     if(symbol.has_value()) {
         macroInstruction->setSymbolEntry(optional_helper(symbol));
     }
@@ -420,7 +412,8 @@ MacroInvoke *MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& gr
     return macroInstruction;
 }
 
-QSharedPointer<AsmArgument> MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<AsmArgument>
+        MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)
 {
     if(!tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
         errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
@@ -497,8 +490,9 @@ Enu::EAddrMode MacroAssembler::stringToAddrMode(QString str) const
     return Enu::EAddrMode::NONE;
 }
 
-DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry> > symbol,
-                                       ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<DotAddrss>
+        MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                    ModuleInstance &instance, QString &errorMessage)
 {
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
@@ -506,7 +500,7 @@ DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry>
             errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
             return nullptr;
         }
-        DotAddrss *dotAddrss = new DotAddrss;
+        QSharedPointer<DotAddrss> dotAddrss = QSharedPointer<DotAddrss>::create();
         if(symbol.has_value()) {
             dotAddrss->setSymbolEntry(optional_helper(symbol));
         }
@@ -519,12 +513,14 @@ DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry>
     }
 }
 
-DotAscii *MacroAssembler::parseASCII(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotAscii>
+        MacroAssembler::parseASCII(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                   ModuleInstance&, QString &errorMessage)
 {
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        DotAscii *dotAscii = new DotAscii;
+        QSharedPointer<DotAscii> dotAscii = QSharedPointer<DotAscii>::create();
         if(symbol.has_value()) {
             dotAscii->setSymbolEntry(optional_helper(symbol));
         }
@@ -537,12 +533,14 @@ DotAscii *MacroAssembler::parseASCII(std::optional<QSharedPointer<SymbolEntry> >
     }
 }
 
-DotAlign *MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotAlign>
+        MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                   ModuleInstance&, QString &errorMessage)
 {
     bool ok;
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        DotAlign *dotAlign = new DotAlign;
+        QSharedPointer<DotAlign> dotAlign = QSharedPointer<DotAlign>::create();
         if(symbol.has_value()) {
             dotAlign->setSymbolEntry(optional_helper(symbol));
         }
@@ -557,7 +555,6 @@ DotAlign *MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> >
         }
         else {
             errorMessage = ";ERROR: Decimal constant is out of range (2, 4, 8).";
-            delete dotAlign;
             return nullptr;
         }
     }
@@ -567,14 +564,16 @@ DotAlign *MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> >
     }
 }
 
-DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotBlock>
+        MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                   ModuleInstance&, QString &errorMessage)
 {
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         bool ok;
         int value = tokenString.toInt(&ok, 10);
         if ((0 <= value) && (value <= 65535)) {
-            DotBlock *dotBlock = new DotBlock;
+            QSharedPointer<DotBlock> dotBlock = QSharedPointer<DotBlock>::create();
             if(symbol.has_value()) {
                 dotBlock->setSymbolEntry(optional_helper(symbol));
             }
@@ -598,7 +597,7 @@ DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> >
         bool ok;
         int value = tokenString.toInt(&ok, 16);
         if (value < 65536) {
-            DotBlock *dotBlock = new DotBlock;
+            QSharedPointer<DotBlock> dotBlock = QSharedPointer<DotBlock>::create();
             if(symbol.has_value()) {
                 dotBlock->setSymbolEntry(optional_helper(symbol));
             }
@@ -616,7 +615,9 @@ DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> >
     }
 }
 
-DotBurn *MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<DotBurn>
+        MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                  ModuleInstance &instance, QString &errorMessage)
 {
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
@@ -624,7 +625,7 @@ DotBurn *MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > s
         bool ok;
         int value = tokenString.toInt(&ok, 16);
         if (value < 65536) {
-            DotBurn *dotBurn = new DotBurn;
+            QSharedPointer<DotBurn> dotBurn = QSharedPointer<DotBurn>::create();
             if(symbol.has_value()) {
                 dotBurn->setSymbolEntry(optional_helper(symbol));
             }
@@ -644,14 +645,12 @@ DotBurn *MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > s
     }
 }
 
-DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotByte>
+        MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                  ModuleInstance&, QString &errorMessage)
 {
     bool ok;
-    // This block of code was repeated in every if() statement,
-    // While this might lead to some unecessary deletes, the
-    // number of errors that occur on a .BYTE directive should be
-    // minimal.
-    DotByte *dotByte = new DotByte;
+    QSharedPointer<DotByte> dotByte = QSharedPointer<DotByte>::create();
     if(symbol.has_value()) {
         dotByte->setSymbolEntry(optional_helper(symbol));
     }
@@ -672,7 +671,6 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
         }
         else {
             errorMessage = ";ERROR: Decimal constant is out of byte range (-128..255).";
-            delete dotByte;
             return nullptr;
         }
     }
@@ -686,7 +684,6 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
         }
         else {
             errorMessage = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
-            delete dotByte;
             return nullptr;
         }
     }
@@ -694,20 +691,20 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 1) {
             errorMessage = ";ERROR: .BYTE string operands must have length one.";
-            delete dotByte;
             return nullptr;
         }
         dotByte->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
         errorMessage = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
-        delete dotByte;
         return nullptr;
     }
     return dotByte;
 }
 
-DotEnd *MacroAssembler::parseEND(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotEnd>
+        MacroAssembler::parseEND(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                 ModuleInstance&, QString &errorMessage)
 {
     if(symbol.has_value()) {
         errorMessage = ";ERROR: .END directive may not define a symbol.";
@@ -719,10 +716,12 @@ DotEnd *MacroAssembler::parseEND(std::optional<QSharedPointer<SymbolEntry> > sym
         return nullptr;
     }
 
-    return new DotEnd;
+    return QSharedPointer<DotEnd>::create();
 }
 
-DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotEquate>
+        MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                    ModuleInstance&, QString &errorMessage)
 {
     if (!symbol.has_value()) {
         errorMessage = ";ERROR: .EQUATE must have a symbol definition.";
@@ -730,11 +729,7 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
     }
 
     bool ok;
-    // This block of code was repeated in every if() statement,
-    // While this might lead to some unecessary deletes, the
-    // number of errors that occur on a .EQUATE directive should be
-    // minimal.
-    DotEquate *dotEquate = new DotEquate;
+    QSharedPointer<DotEquate> dotEquate = QSharedPointer<DotEquate>::create();
     if(symbol.has_value()) {
         dotEquate->setSymbolEntry(optional_helper(symbol));
     }
@@ -754,7 +749,6 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
         }
         else {
             errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
-            delete dotEquate;
             return nullptr;
         }
     }
@@ -768,7 +762,6 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
         }
         else {
             errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
-            delete dotEquate;
             return nullptr;
         }
     }
@@ -776,7 +769,6 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 2) {
             errorMessage = ";ERROR: .EQUATE string operand must have length at most two.";
-            delete dotEquate;
             return nullptr;
         }
         dotEquate->setArgument(QSharedPointer<StringArgument>::create(tokenString));
@@ -789,13 +781,13 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
     }
     else {
         errorMessage = ";ERROR: .EQUATE requires a dec, hex, or string constant argument.";
-        delete dotEquate;
         return nullptr;
     }
     return dotEquate;
 }
 
-DotExport* MacroAssembler::parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
+QSharedPointer<DotExport>
+        MacroAssembler::parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                  ModuleInstance &instance, QString &errorMessage)
 {
     if (symbol.has_value()) {
@@ -809,7 +801,7 @@ DotExport* MacroAssembler::parseEXPORT(std::optional<QSharedPointer<SymbolEntry>
             errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
             return nullptr;
         }
-        DotExport *dotExport = new DotExport;
+        QSharedPointer<DotExport> dotExport = QSharedPointer<DotExport>::create();
         dotExport->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
         // Export declares a symbol from the operating system to be visible in user code.
         instance.symbolTable->declareExternal(tokenString);
@@ -831,14 +823,12 @@ bool MacroAssembler::parseUSYCALL()
     return false;
 }
 
-DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotWord>
+        MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                  ModuleInstance&, QString &errorMessage)
 {
     bool ok;
-    // This block of code was repeated in every if() statement,
-    // While this might lead to some unecessary deletes, the
-    // number of errors that occur on a .WORD directive should be
-    // minimal.
-    DotWord *dotWord = new DotWord;
+    QSharedPointer<DotWord> dotWord = QSharedPointer<DotWord>::create();
     if(symbol.has_value()) {
         dotWord->setSymbolEntry(optional_helper(symbol));
     }
@@ -861,7 +851,6 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
         }
         else {
             errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
-            delete dotWord;
             return nullptr;
         }
     }
@@ -874,7 +863,6 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
         }
         else {
             errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
-            delete dotWord;
             return nullptr;
         }
     }
@@ -882,14 +870,12 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 2) {
             errorMessage = ";ERROR: .WORD string operands must have length at most two.";
-            delete dotWord;
             return nullptr;
         }
         dotWord->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
         errorMessage = ";ERROR: .WORD requires a char, dec, hex, or string constant argument.";
-        delete dotWord;
         return nullptr;
     }
     return dotWord;

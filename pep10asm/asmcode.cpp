@@ -1140,7 +1140,7 @@ QString MacroInvoke::getAssemblerListing() const
     list.append(lineStr);
     for(auto code : this->macroInstance->codeList) {
         // Don't generate listing for anything after and including .END
-        if(dynamic_cast<DotEnd*>(code) != nullptr) break;
+        if(dynamic_cast<DotEnd*>(code.get()) != nullptr) break;
         list << code->getAssemblerListing();
     }
     list.append(QString("             ;end macro   @%1 %2").arg(name).arg(argumentList.join(", ")));

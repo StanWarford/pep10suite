@@ -30,7 +30,7 @@ private:
     struct LineResult
     {
         bool success = false;
-        AsmCode* codeLine = nullptr;
+        QSharedPointer<AsmCode> codeLine = nullptr;
     };
     ModuleResult assembleModule(ModuleAssemblyGraph &graph, ModuleInstance& instance);
     // Pre: errorMessage is an empty string.
@@ -39,36 +39,49 @@ private:
     // Check if the name fits our requirements / length.
     bool validateSymbolName(const QStringRef& name, QString& errorMessage);
 
-    NonUnaryInstruction* parseNonUnaryInstruction(Enu::EMnemonic mnemonic, std::optional<QSharedPointer<SymbolEntry>> symbol,
-                                                  ModuleInstance& instance, QString& errorMessage);
+    QSharedPointer<NonUnaryInstruction> parseNonUnaryInstruction(Enu::EMnemonic mnemonic,
+                                                                 std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                                                 ModuleInstance& instance,
+                                                                 QString& errorMessage);
     QSharedPointer<AsmArgument> parseOperandSpecifier(ModuleInstance &instance, QString& errorMessage);
     Enu::EAddrMode stringToAddrMode(QString str) const;
 
-    DotAddrss* parseADDRSS(std::optional<QSharedPointer<SymbolEntry>> symbol,
-                           ModuleInstance& instance, QString& errorMessage);
-    DotAscii* parseASCII(std::optional<QSharedPointer<SymbolEntry>> symbol,
-                         ModuleInstance& instance, QString& errorMessage);
-    DotAlign* parseALIGN(std::optional<QSharedPointer<SymbolEntry>> symbol,
-                         ModuleInstance& instance, QString& errorMessage);
-    DotBlock* parseBLOCK(std::optional<QSharedPointer<SymbolEntry>> symbol,
-                         ModuleInstance& instance, QString& errorMessage);
-    DotBurn* parseBURN(std::optional<QSharedPointer<SymbolEntry>> symbol,
-                       ModuleInstance& instance, QString& errorMessage);
-    DotByte* parseBYTE(std::optional<QSharedPointer<SymbolEntry>> symbol,
-                       ModuleInstance& instance, QString& errorMessage);
-    DotEnd* parseEND(std::optional<QSharedPointer<SymbolEntry>> symbol,
-                     ModuleInstance& instance, QString& errorMessage);
-    DotEquate* parseEQUATE(std::optional<QSharedPointer<SymbolEntry>> symbol, ModuleInstance& instance, QString& errorMessage);
-    DotExport* parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
-                     ModuleInstance &instance, QString &errorMessage);
+    QSharedPointer<DotAddrss> parseADDRSS(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                          ModuleInstance& instance,
+                                          QString& errorMessage);
+    QSharedPointer<DotAscii> parseASCII(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                        ModuleInstance& instance,
+                                        QString& errorMessage);
+    QSharedPointer<DotAlign> parseALIGN(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                        ModuleInstance& instance,
+                                        QString& errorMessage);
+    QSharedPointer<DotBlock> parseBLOCK(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                        ModuleInstance& instance,
+                                        QString& errorMessage);
+    QSharedPointer<DotBurn> parseBURN(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                      ModuleInstance& instance,
+                                      QString& errorMessage);
+    QSharedPointer<DotByte> parseBYTE(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                      ModuleInstance& instance,
+                                      QString& errorMessage);
+    QSharedPointer<DotEnd> parseEND(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                    ModuleInstance& instance,
+                                    QString& errorMessage);
+    QSharedPointer<DotEquate> parseEQUATE(std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                          ModuleInstance& instance,
+                                          QString& errorMessage);
+    QSharedPointer<DotExport> parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                          ModuleInstance &instance,
+                                          QString &errorMessage);
     bool parseSYCALL();
     bool parseUSYCALL();
-    DotWord* parseWORD(std::optional<QSharedPointer<SymbolEntry>> symbol,
+    QSharedPointer<DotWord> parseWORD(std::optional<QSharedPointer<SymbolEntry>> symbol,
                        ModuleInstance& instance, QString& errorMessage);
 
-    MacroInvoke* parseMacroInstruction(const ModuleAssemblyGraph& graph, const QString& macroName,
-                                       std::optional<QSharedPointer<SymbolEntry>> symbol,
-                                       ModuleInstance& instance, QString& errorMessage);
+    QSharedPointer<MacroInvoke> parseMacroInstruction(const ModuleAssemblyGraph& graph,
+                                                      const QString& macroName,
+                                                      std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                                      ModuleInstance& instance, QString& errorMessage);
 
     const MacroRegistry* registry;
     TokenizerBuffer* tokenBuffer;

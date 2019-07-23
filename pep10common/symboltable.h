@@ -76,7 +76,7 @@ public:
     // Declare a symbol as external, allowing it to be used in other translation units.
     void declareExternal(const QString & symbolName);
     // Return the list of symbols that may be linked externally.
-    QList<SymbolEntryPtr> getExternalSymbols();
+    const QList<QSharedPointer<SymbolEntry>> getExternalSymbols() const;
 
     // Check if a symbol exists.
     bool exists(const QString& symbolName) const;

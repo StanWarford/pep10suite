@@ -44,6 +44,9 @@ void FakeMacroDriver::run()
     "@asla5\nl:@DIVA k,d\nk:@L1A\n.END\n";
     //"@DIVA k,sfx\n.END\n";
     //"@LOOPA\n.END\n";
-    assembler->assembleUserProgram(input);
+    QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
+    //auto osResult = assembler->assembleOperatingSystem(osText);
+    auto sym =  QSharedPointer<SymbolTable>::create();
+    auto useResult = assembler->assembleUserProgram(input, sym);
 
 }

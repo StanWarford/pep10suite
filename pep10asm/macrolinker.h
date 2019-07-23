@@ -20,6 +20,9 @@ public:
     // If the result is successful, then every line of code in every module instance
     // has had its symbols checked and is prepared for code generation.
     LinkResult link(ModuleAssemblyGraph& graph);
+
+    void setOSSymbolTable(QSharedPointer<const SymbolTable> OSSymbolTable);
+    void clearOSSymbolTable();
 private:
     // Pull in modules from operating system.
     LinkResult pullInExports(ModuleAssemblyGraph &graph);
@@ -33,6 +36,7 @@ private:
     bool shiftForBURN(ModuleAssemblyGraph& graph);
 
     quint32 nextAddress;
+    std::optional<QSharedPointer<const SymbolTable>> osSymbolTable;
 
 };
 
