@@ -39,5 +39,6 @@
         <file>help-asm/macros/builtin/RORX/RORX3.pepm</file>
         <file>help-asm/macros/builtin/RORX/RORX4.pepm</file>
         <file>help-asm/macros/builtin/RORX/RORX5.pepm</file>
+        <file>help-asm/figures/pep10os.pep</file>
     </qresource>
 </RCC>
