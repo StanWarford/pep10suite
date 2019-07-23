@@ -5,5 +5,45 @@
         <file>help-asm/macros/builtin/MALLOC.pepm</file>
         <file>help-asm/macros/builtin/XNORA.pepm</file>
         <file>help-asm/macros/builtin/XNORX.pepm</file>
+        <!--> ASLA helpers </!-->
+        <file>help-asm/macros/builtin/ASLA/ASLA2.pepm</file>
+        <file>help-asm/macros/builtin/ASLA/ASLA3.pepm</file>
+        <file>help-asm/macros/builtin/ASLA/ASLA4.pepm</file>
+        <file>help-asm/macros/builtin/ASLA/ASLA5.pepm</file>
+        <!--> ASLX helpers </!-->
+        <file>help-asm/macros/builtin/ASLX/ASLX2.pepm</file>
+        <file>help-asm/macros/builtin/ASLX/ASLX3.pepm</file>
+        <file>help-asm/macros/builtin/ASLX/ASLX4.pepm</file>
+        <file>help-asm/macros/builtin/ASLX/ASLX5.pepm</file>
+        <!--> ASRA helpers </!-->
+        <file>help-asm/macros/builtin/ASRA/ASRA2.pepm</file>
+        <file>help-asm/macros/builtin/ASRA/ASRA3.pepm</file>
+        <file>help-asm/macros/builtin/ASRA/ASRA4.pepm</file>
+        <file>help-asm/macros/builtin/ASRA/ASRA5.pepm</file>
+        <!--> ASRX helpers </!-->
+        <file>help-asm/macros/builtin/ASRX/ASRX2.pepm</file>
+        <file>help-asm/macros/builtin/ASRX/ASRX3.pepm</file>
+        <file>help-asm/macros/builtin/ASRX/ASRX4.pepm</file>
+        <file>help-asm/macros/builtin/ASRX/ASRX5.pepm</file>
+        <!--> ROLA helpers </!-->
+        <file>help-asm/macros/builtin/ROLA/ROLA2.pepm</file>
+        <file>help-asm/macros/builtin/ROLA/ROLA3.pepm</file>
+        <file>help-asm/macros/builtin/ROLA/ROLA4.pepm</file>
+        <file>help-asm/macros/builtin/ROLA/ROLA5.pepm</file>
+        <!--> ROLX helpers </!-->
+        <file>help-asm/macros/builtin/ROLX/ROLX2.pepm</file>
+        <file>help-asm/macros/builtin/ROLX/ROLX3.pepm</file>
+        <file>help-asm/macros/builtin/ROLX/ROLX4.pepm</file>
+        <file>help-asm/macros/builtin/ROLX/ROLX5.pepm</file>
+        <!--> RORA helpers </!-->
+        <file>help-asm/macros/builtin/RORA/RORA2.pepm</file>
+        <file>help-asm/macros/builtin/RORA/RORA3.pepm</file>
+        <file>help-asm/macros/builtin/RORA/RORA4.pepm</file>
+        <file>help-asm/macros/builtin/RORA/RORA5.pepm</file>
+        <!--> RORX helpers </!-->
+        <file>help-asm/macros/builtin/RORX/RORX2.pepm</file>
+        <file>help-asm/macros/builtin/RORX/RORX3.pepm</file>
+        <file>help-asm/macros/builtin/RORX/RORX4.pepm</file>
+        <file>help-asm/macros/builtin/RORX/RORX5.pepm</file>
     </qresource>
 </RCC>
