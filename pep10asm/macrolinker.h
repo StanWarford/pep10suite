@@ -22,7 +22,7 @@ public:
     LinkResult link(ModuleAssemblyGraph& graph);
 private:
     // Pull in modules from operating system.
-    LinkResult pullInExports();
+    LinkResult pullInExports(ModuleAssemblyGraph &graph);
     // Iteratre through the code in instance and assign address & symbol values.
     // When a macro is hit, the macro is copied and emplace in newMap, the module's
     // prototype's line-to-instance mapping is updated, and the macro line's instance is updated.

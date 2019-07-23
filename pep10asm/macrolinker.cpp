@@ -2,11 +2,13 @@
 #include "ngraph_prune.h"
 #include "symbolentry.h"
 #include "symbolvalue.h"
+#include "optional_helper.h"
 static QString multidefinedSymbol = ";ERROR: Symbol \"%1\" was previously defined.";
 static QString undefinedSymbol = ";ERROR: Symbol \"%1\" is undefined.";
 static QString noBURN = ";ERROR: Only operating systems may contain a .BURN.";
 static QString oneBURN = ";ERROR: Operating systems must contain exactly 1 .BURN.";
 static QString BURNat0xFFFF = ";ERROR: .BURN must have an argument of 0xFFFF.";
+static QString noOperatingSystem = ";ERROR: Attempted to pull in symbols for operating system, but not OS was defined.";
 
 MacroLinker::MacroLinker(): nextAddress()
 {
@@ -29,7 +31,10 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
     auto rootModuleInstance = graph.instanceMap[graph.rootModule].first();
     // Pull in any symbols declared in operating system if we are not assembling an operating system.
     if(rootModuleInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
-        pullInExports();
+        auto exportsResults = pullInExports(graph);
+        /*if(!exportsResults.success) {
+            return exportsResults;
+        }*/
     }
 
     // Linking converts a many-to-one mapping of module instances to macro invocations
@@ -57,10 +62,22 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
     return result;
 }
 
-LinkResult MacroLinker::pullInExports()
+LinkResult MacroLinker::pullInExports(ModuleAssemblyGraph &graph)
 {
-    // Pull in externally declared symbols.
-    #pragma message("Figure out how exports work")
+
+    if(!graph.operatingSystem.has_value()) {
+        return {false, {{0, noOperatingSystem}} };
+    }
+    auto os = optional_helper(graph.operatingSystem);
+    auto symList = os->symbolTable->getExternalSymbols();
+    auto rootInstance = graph.instanceMap[graph.rootModule].first();
+    for(auto symbol : symList) {
+        if(rootInstance->symbolTable->exists(symbol->getName())) {
+            rootInstance->symbolTable->define(symbol->getName());
+            auto value = QSharedPointer<SymbolValueExternal>::create(symbol);
+            rootInstance->symbolTable->setValue(symbol->getName(), value);
+        }
+    }
     return {true, {}};
 }
 

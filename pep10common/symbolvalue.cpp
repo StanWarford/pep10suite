@@ -118,7 +118,7 @@ quint16 SymbolValueLocation::getBase() const
     return base;
 }
 
-SymbolValueExternal::SymbolValueExternal(QSharedPointer<SymbolEntry> symbol): symbol(symbol)
+SymbolValueExternal::SymbolValueExternal(QSharedPointer<const SymbolEntry> symbol): symbol(symbol)
 {
 
 }
@@ -145,7 +145,7 @@ bool SymbolValueExternal::canRelocate() const
     return false;
 }
 
-QSharedPointer<SymbolEntry> SymbolValueExternal::getSymbolValue()
+QSharedPointer<const SymbolEntry> SymbolValueExternal::getSymbolValue()
 {
     return symbol;
 }

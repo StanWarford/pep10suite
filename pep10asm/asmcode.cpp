@@ -1193,3 +1193,67 @@ void MacroInvoke::setMacroInstance(QSharedPointer<ModuleInstance> macroInstance)
 {
     this->macroInstance = macroInstance;
 }
+
+DotExport::DotExport(const DotExport &other) : AsmCode(other)
+{
+    this->argument = other.argument;
+}
+
+DotExport &DotExport::operator=(DotExport other)
+{
+    swap(*this, other);
+    return *this;
+}
+
+AsmCode *DotExport::cloneAsmCode() const
+{
+    return new DotExport(*this);
+}
+
+void DotExport::appendObjectCode(QList<int> &) const
+{
+    return;
+}
+
+QString DotExport::getAssemblerListing() const
+{
+    return "             " + getAssemblerSource();
+}
+
+QString DotExport::getAssemblerSource() const
+{
+    QString symbolStr = "";
+    QString dotStr = ".EXPORT";
+    QString oprndStr = argument->getArgumentString();
+    QString lineStr = QString("%1%2%3%4")
+            .arg("", -9, QLatin1Char(' '))
+            .arg(dotStr, -8, QLatin1Char(' '))
+            .arg(oprndStr, -12)
+            .arg(comment);
+    return lineStr;
+}
+
+quint16 DotExport::objectCodeLength() const
+{
+    return 0;
+}
+
+bool DotExport::hasSymbolicOperand() const
+{
+    return true;
+}
+
+QSharedPointer<const SymbolEntry> DotExport::getSymbolicOperand() const
+{
+    return argument->getSymbolValue();
+}
+
+QSharedPointer<SymbolRefArgument> DotExport::getArgument() const
+{
+    return argument;
+}
+
+void DotExport::setArgument(QSharedPointer<SymbolRefArgument> argument)
+{
+    this->argument = argument;
+}

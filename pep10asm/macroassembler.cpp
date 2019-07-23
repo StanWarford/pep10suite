@@ -273,7 +273,11 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
             }
         }
         else if (tokenString == "EXPORT") {
-            if(!parseEXPORT()){}
+            retVal.codeLine = parseEXPORT(symbolPointer, instance, errorMessage);
+            if(!errorMessage.isEmpty()) {
+                retVal.success = false;
+                return retVal;
+            }
         }
         else if (tokenString == "SYCALL") {
             if(!parseSYCALL()){}
@@ -496,7 +500,6 @@ Enu::EAddrMode MacroAssembler::stringToAddrMode(QString str) const
 DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                        ModuleInstance &instance, QString &errorMessage)
 {
-
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (tokenString.length() > 8) {
@@ -792,9 +795,30 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
     return dotEquate;
 }
 
-bool MacroAssembler::parseEXPORT()
+DotExport* MacroAssembler::parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                 ModuleInstance &instance, QString &errorMessage)
 {
-    return false;
+    if (symbol.has_value()) {
+        errorMessage = ";ERROR: .EXPORT must not have a symbol definition.";
+        return nullptr;
+    }
+
+    if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
+        QString tokenString = tokenBuffer->takeLastMatch().second.toString();
+        if (tokenString.length() > 8) {
+            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            return nullptr;
+        }
+        DotExport *dotExport = new DotExport;
+        dotExport->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
+        // Export declares a symbol from the operating system to be visible in user code.
+        instance.symbolTable->declareExternal(tokenString);
+        return dotExport;
+    }
+    else {
+        errorMessage = ";ERROR: .EXPORT requires a symbol argument.";
+        return nullptr;
+    }
 }
 
 bool MacroAssembler::parseSYCALL()

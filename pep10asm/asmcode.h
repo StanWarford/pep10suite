@@ -26,6 +26,7 @@
 #include <QSharedPointer>
 #include <QSet>
 class AsmArgument; // Forward declaration for attributes of code classes.
+class SymbolRefArgument; // Forward declare identifier argument.
 class AsmArgumentList; //Forward declare a list of arguments.
 class SymbolEntry;
 struct ModuleInstance;
@@ -419,6 +420,35 @@ public:
     bool tracksTraceTags() const override;
 
     friend void swap(DotEquate& first, DotEquate& second)
+    {
+        using std::swap;
+        swap(static_cast<AsmCode&>(first), static_cast<AsmCode&>(second));
+        swap(first.argument, second.argument);
+    }
+};
+
+class DotExport: public AsmCode
+{
+    QSharedPointer<SymbolRefArgument> argument = nullptr;
+public:
+    DotExport() = default;
+    virtual ~DotExport() override = default;
+    DotExport(const DotExport& other);
+    DotExport& operator=(DotExport other);
+    AsmCode *cloneAsmCode() const override;
+    virtual void appendObjectCode(QList<int> &objectCode) const override;
+
+    // AsmCode interface
+    virtual QString getAssemblerListing() const override;
+    virtual QString getAssemblerSource() const override;
+    virtual quint16 objectCodeLength() const override;
+
+    bool hasSymbolicOperand() const override;
+    QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
+    QSharedPointer<SymbolRefArgument> getArgument() const;
+    void setArgument(QSharedPointer<SymbolRefArgument>);
+
+    friend void swap(DotExport& first, DotExport& second)
     {
         using std::swap;
         swap(static_cast<AsmCode&>(first), static_cast<AsmCode&>(second));

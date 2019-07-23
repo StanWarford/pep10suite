@@ -105,6 +105,13 @@ SymbolTable::SymbolEntryPtr SymbolTable::define(const QString &symbolName)
     return entry;
 }
 
+void SymbolTable::declareExternal(const QString &symbolName)
+{
+    // an EXPORT statement does not declare a symbol,
+    // so therefore we are referencing one that already exists.
+    externalSymbols.push_back(reference(symbolName));
+}
+
 QList<SymbolTable::SymbolEntryPtr> SymbolTable::getExternalSymbols()
 {
 

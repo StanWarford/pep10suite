@@ -59,7 +59,8 @@ private:
     DotEnd* parseEND(std::optional<QSharedPointer<SymbolEntry>> symbol,
                      ModuleInstance& instance, QString& errorMessage);
     DotEquate* parseEQUATE(std::optional<QSharedPointer<SymbolEntry>> symbol, ModuleInstance& instance, QString& errorMessage);
-    bool parseEXPORT();
+    DotExport* parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                     ModuleInstance &instance, QString &errorMessage);
     bool parseSYCALL();
     bool parseUSYCALL();
     DotWord* parseWORD(std::optional<QSharedPointer<SymbolEntry>> symbol,
