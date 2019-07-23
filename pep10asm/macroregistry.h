@@ -5,6 +5,7 @@
 #include <QSharedPointer>
 #include <QString>
 #include <tuple>
+#include <QFile>
 #include "macro.h"
 
 /*
@@ -23,12 +24,17 @@ public:
     QSharedPointer<const Macro> getMacro(QString macroName) const;
 
     // Register a macro to the specified level with a given argument count.
-    bool registerCoreMacro(QString macroName, QString macroText, quint8 argCount);
-    bool registerSystemCall(QString macroName, QString macroText, quint8 argCount);
-    bool registerCustomMacro(QString macroName, QString macroText, quint8 argCount);
+    bool registerSystemCall(QString macroName, QString macroText);
+    bool registerCustomMacro(QString macroName, QString macroText);
+    //Given the text of a macro, get the macro's name & argument count.
+    static std::tuple<bool, QString, quint16> macroDefinition(QString macroText);
 private:
     QMap<QString, QSharedPointer<Macro>> macroList;
-    bool registerMacro(QString macroName, QString macroText, quint8 argCount, MacroType type);
+    // Helper function that discovers all builtin macros.
+    bool registerCoreMacros(QDir dir);
+    bool registerMacro(QString macroName, QString macroText, MacroType type);
+    // Core macros are auto-deteced, not added by users.
+    bool registerCoreMacro(QString macroName, QString macroText);
 
 };
 
