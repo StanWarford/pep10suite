@@ -107,6 +107,18 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
     for(int lineNum = 0 ; lineNum < instance.codeList.size(); lineNum++) {
         auto line = instance.codeList[lineNum];
 
+        // Now that we are assigning addresses, we can properly deduce the number
+        // of padding bytes that need to be generated.
+        if(auto asAlign = dynamic_cast<DotAlign*>(line.get()); asAlign != nullptr) {
+            int alignment = asAlign->getArgument()->getArgumentValue();
+            int padding =  (alignment - nextAddress % alignment) % alignment;
+            asAlign->setNumBytesGenerated(padding);
+        }
+        // Must detect object code "address" of .BURN to prevent code generation above
+        // the .BURN statement.
+        else if(auto asBurn = dynamic_cast<DotBurn*>(line.get()); asBurn != nullptr) {
+            instance.burnInfo.burnAddress = nextAddress;
+        }
         // Check for symbol declarations.
         if(line->hasSymbolEntry()) {
             auto symbolPtr = line->getSymbolEntry();
