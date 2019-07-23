@@ -23,6 +23,8 @@ MacroAssemblerDriver::~MacroAssemblerDriver()
 QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleUserProgram(QString input,
                                                                      QSharedPointer<const SymbolTable> osSymbol)
 {
+    // Create a clean assembly graph to prevent accidental re-compiling of old code.
+    this->graph = ModuleAssemblyGraph();
     auto [rootPrototype, startRootInstance] = graph.createRoot(input, ModuleType::USER_PROGRAM);
 
     if(!preprocess()) {
@@ -63,6 +65,8 @@ QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleUserProgram(QString inp
 
 QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleOperatingSystem(QString input)
 {
+    // Create a clean assembly graph to prevent accidental re-compiling of old code.
+    this->graph = ModuleAssemblyGraph();
     auto [rootPrototype, rootInstance] = graph.createRoot(input, ModuleType::OPERATING_SYSTEM);
 
     if(!preprocess()) {
@@ -97,7 +101,8 @@ QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleOperatingSystem(QString
 
     annotate(*rootInstance.get());
     validate(*rootInstance.get());
-    return nullptr;
+    return QSharedPointer<AsmProgram>::create(rootInstance->codeList, rootInstance->symbolTable,
+                                              nullptr);
 }
 
 bool MacroAssemblerDriver::preprocess()
