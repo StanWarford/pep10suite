@@ -213,30 +213,32 @@ void MacroLinker::relocateCode(ModuleInstance &instance, quint16 addressDelta)
 
 bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
 {
-   /* auto rootModule = graph.instanceMap[graph.rootModule].first();
-    bool success;
+    auto rootInstance = graph.instanceMap[graph.rootModule].first();
+    bool success = true;
     QString errorString;
-    if (rootModule->burnInfo.burnCount != 1) {
-        rootModule->errorList.append({0, oneBURN});
+    if (rootInstance->burnInfo.burnCount != 1) {
+        rootInstance->errorList.append({0, oneBURN});
         success = false;
     }
-    else if(forceBurnAt0xFFFF && rootModule->burnInfo.burnArgument != 0xFFFF) {
+    else if(forceBurn0xFFFF && rootInstance->burnInfo.burnArgument != 0xFFFF) {
         success = false;
 #pragma message("TODO: Insert error on correct line")
-        rootModule->errorList.append({0, BURNat0xFFFF});
+        rootInstance->errorList.append({0, BURNat0xFFFF});
     }
     if(!success) return false;
-    for(int it = 0; it < programList.size(); it++) {
-        if(programList[it]->getMemoryAddress() < info.burnAddress) {
-            programList[it]->setEmitObjectCode(false);
+    auto &codeList = rootInstance->codeList;
+    auto &burnInfo = rootInstance->burnInfo;
+    for(int it = 0; it < codeList.size(); it++) {
+        if(codeList[it]->getMemoryAddress() < burnInfo.burnAddress) {
+            codeList[it]->setEmitObjectCode(false);
         }
-    }*/
+    }
 
     // Adjust for .BURN.
-    /*quint16 addressDelta = static_cast<quint16>(info.burnValue - byteCount + 1);
-    info.startROMAddress = info.burnValue - (byteCount - info.burnAddress) +1;
-    relocateCode(programList, addressDelta);
-    symTable->setOffset(addressDelta);*/
+    quint16 addressDelta = static_cast<quint16>(burnInfo.burnArgument - nextAddress + 1);
+    burnInfo.startROMAddress = burnInfo.burnArgument - (nextAddress - burnInfo.burnAddress) +1;
+    relocateCode(*rootInstance.get(), addressDelta);
+    rootInstance->symbolTable->setOffset(addressDelta);
 
     /*
      * Adjust for .ALIGNs before .BURN
@@ -252,9 +254,9 @@ bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
      *
      */
     // Find the .BURN directive
-    /*int indexOfBurn = 0;
-    for(int it = 0; it < programList.size(); it++) {
-        if(dynamic_cast<DotBurn*>(programList[it].get()) != nullptr) {
+    int indexOfBurn = 0;
+    for(int it = 0; it < codeList.size(); it++) {
+        if(dynamic_cast<DotBurn*>(codeList[it].get()) != nullptr) {
             indexOfBurn = it;
             break;
         }
@@ -267,34 +269,34 @@ bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
     for(int it = indexOfBurn; it > 0; it--) {
         // Every line of assembly code before a .BURN must be moved upward by the size of all preceding .ALIGN
         // directives, starting from the .BURN and moving upward.
-        programList[it]->adjustMemAddress(rollingOffset);
+        codeList[it]->adjustMemAddress(rollingOffset);
         // Symbols that represent memory locations must also be adjusted.
-        if(programList[it]->hasSymbolEntry()) {
-            auto sym = symTable->getValue(programList[it]->getSymbolEntry()->getSymbolID());
+        if(codeList[it]->hasSymbolEntry()) {
+            auto sym = rootInstance->symbolTable->getValue(codeList[it]->getSymbolEntry()->getSymbolID());
             // Don't allow symbols with an .EQUATE, .ADDRSS to be re-adjusted.
             if(sym->getRawValue()->canRelocate()) {
-                sym->setValue(QSharedPointer<SymbolValueLocation>::create(programList[it]->getMemoryAddress()));
+                sym->setValue(QSharedPointer<SymbolValueLocation>::create(codeList[it]->getMemoryAddress()));
             }
         }
 
         // If the instruction is a .ALIGN, then we must re-calculate the rolling offset.
-        if(dynamic_cast<DotAlign*>(programList[it].get()) != nullptr) {
+        if(dynamic_cast<DotAlign*>(codeList[it].get()) != nullptr) {
             // The instruction is known to be an ALIGN directive, so just cast it.
-            DotAlign* asAlign = static_cast<DotAlign*>(programList[it].get());
+            DotAlign* asAlign = static_cast<DotAlign*>(codeList[it].get());
             // The address of the .ALIGN.
-            int startAddr = asAlign->memAddress;
+            int startAddr = asAlign->getMemoryAddress();
             // The address of the last byte of the .ALIGN.
-            int endAddr = startAddr + asAlign->numBytesGenerated->getArgumentValue();
+            int endAddr = startAddr + asAlign->getNumBytesGenerated();
             // Based on the ending byte, calculate where the first byte needs to be for proper alignment.
-            int blockStart = endAddr - endAddr % asAlign->argument->getArgumentValue();
+            int blockStart = endAddr - endAddr % asAlign->getArgument()->getArgumentValue();
             // We can't change an AsmArgument in place, so we must construct a new one.
-            delete asAlign->numBytesGenerated;
+            //delete asAlign->numBytesGenerated;
             // The align must still reach down to endAddr, but now must span up to blockStart.
-            asAlign->numBytesGenerated = new UnsignedDecArgument(blockStart - endAddr);
+            asAlign->setNumBytesGenerated(blockStart - endAddr);
             // Other instructions will be shifter by the change in starting address.
             rollingOffset += blockStart - startAddr;
-            asAlign->memAddress = blockStart;
+            asAlign->setMemoryAddress(blockStart);
         }
-    }*/
+    }
     return true;
 }

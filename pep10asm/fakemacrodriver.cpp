@@ -41,12 +41,11 @@ void FakeMacroDriver::run()
 {
     QString input =
     //"ADDA 5,d\n.END\n";
-    "@asla5\nl:@DIVA k,d\nk:@L1A\n.END\n";
+    "@asla5\nldwa charIn,d\nl:@DIVA k,d\nk:@L1A\n.END\n";
     //"@DIVA k,sfx\n.END\n";
     //"@LOOPA\n.END\n";
     QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
-    //auto osResult = assembler->assembleOperatingSystem(osText);
-    auto sym =  QSharedPointer<SymbolTable>::create();
-    auto useResult = assembler->assembleUserProgram(input, sym);
+    auto osResult = assembler->assembleOperatingSystem(osText);
+    auto useResult = assembler->assembleUserProgram(input, osResult->getSymbolTable());
 
 }
