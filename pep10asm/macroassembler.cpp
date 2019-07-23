@@ -212,49 +212,49 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND)) {
         tokenString =  tokenBuffer->takeLastMatch().second;
         tokenString = tokenString.mid(1);
-        if (tokenString == "ADDRSS") {
+        if (QString("ADDRSS").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseADDRSS(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "ALIGN") {
+        else if (QString("ALIGN").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseALIGN(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "ASCII") {
+        else if (QString("ASCII").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseASCII(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "BLOCK") {
+        else if (QString("BLOCK").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseBLOCK(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "BURN") {
+        else if (QString("BURN").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseBURN(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "BYTE") {
+        else if (QString("BYTE").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseBYTE(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "END") {
+        else if (QString("END").compare(tokenString, Qt::CaseInsensitive) == 0) {
             dotEndDetected = true;
             retVal.codeLine = parseEND(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
@@ -262,32 +262,37 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
                 return retVal;
             }
         }
-        else if (tokenString == "EQUATE") {
+        else if (QString("EQUATE").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseEQUATE(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "EXPORT") {
+        else if (QString("EXPORT").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseEXPORT(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
         }
-        else if (tokenString == "SYCALL") {
+        else if (QString("SYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(!parseSYCALL()){}
         }
-        else if (tokenString == "USYCALL") {
+        else if (QString("USYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(!parseUSYCALL()){}
         }
-        else if (tokenString == "WORD") {
+        else if (QString("WORD").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseWORD(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
             }
+        }
+        else {
+            retVal.success = false;
+            errorMessage = ";ERROR: Invalid dot command";
+            return retVal;
         }
 
     }
