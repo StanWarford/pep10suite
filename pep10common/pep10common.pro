@@ -34,6 +34,7 @@ HEADERS += \
     mainmemory.h \
     memorychips.h \
     memorydumppane.h \
+    optional_helper.h \
     outputpane.h \
     pep.h \
     symbolentry.h \

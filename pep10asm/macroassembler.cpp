@@ -4,6 +4,7 @@
 #include "pep.h"
 #include "asmcode.h"
 #include "symboltable.h"
+#include "optional_helper.h"
 static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
     {MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER,
      MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT,
@@ -163,7 +164,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         }
         // Remove the : from the symbol name.
         symbolDeclaration = tokenBuffer->takeLastMatch().second.chopped(1);
-        if(!validateSymbolName(symbolDeclaration.value(), errorMessage)) {
+        if(!validateSymbolName(optional_helper(symbolDeclaration), errorMessage)) {
             retVal.success = false;
             return retVal;
         }
@@ -194,7 +195,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
             auto unaryInstruction = new UnaryInstruction();
             unaryInstruction->setMnemonic(mnemonic);
             if(symbolPointer.has_value()) {
-                unaryInstruction->setSymbolEntry(symbolPointer.value());
+                unaryInstruction->setSymbolEntry(optional_helper(symbolPointer));
             }
             retVal.codeLine = unaryInstruction;
         }
@@ -331,7 +332,7 @@ NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mne
     auto nonUnaryInstruction = new NonUnaryInstruction();
     nonUnaryInstruction->setMnemonic(mnemonic);
     if(symbol.has_value()) {
-        nonUnaryInstruction->setSymbolEntry(symbol.value());
+        nonUnaryInstruction->setSymbolEntry(optional_helper(symbol));
     }
 
     auto argument = parseOperandSpecifier(instance, errorMessage);
@@ -408,10 +409,10 @@ MacroInvoke *MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& gr
     }
     MacroInvoke *macroInstruction = new MacroInvoke;
     if(symbol.has_value()) {
-        macroInstruction->setSymbolEntry(symbol.value());
+        macroInstruction->setSymbolEntry(optional_helper(symbol));
     }
     macroInstruction->setArgumentList(argumentList);
-    macroInstruction->setMacroInstance(moduleInstance.value());
+    macroInstruction->setMacroInstance(optional_helper(moduleInstance));
     return macroInstruction;
 }
 
@@ -504,7 +505,7 @@ DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry>
         }
         DotAddrss *dotAddrss = new DotAddrss;
         if(symbol.has_value()) {
-            dotAddrss->setSymbolEntry(symbol.value());
+            dotAddrss->setSymbolEntry(optional_helper(symbol));
         }
         dotAddrss->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
         return dotAddrss;
@@ -522,7 +523,7 @@ DotAscii *MacroAssembler::parseASCII(std::optional<QSharedPointer<SymbolEntry> >
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         DotAscii *dotAscii = new DotAscii;
         if(symbol.has_value()) {
-            dotAscii->setSymbolEntry(symbol.value());
+            dotAscii->setSymbolEntry(optional_helper(symbol));
         }
         dotAscii->setArgument(QSharedPointer<StringArgument>::create(tokenString));
         return dotAscii;
@@ -540,7 +541,7 @@ DotAlign *MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> >
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         DotAlign *dotAlign = new DotAlign;
         if(symbol.has_value()) {
-            dotAlign->setSymbolEntry(symbol.value());
+            dotAlign->setSymbolEntry(optional_helper(symbol));
         }
         int value = tokenString.toInt(&ok, 10);
         if (value == 2 || value == 4 || value == 8) {
@@ -572,7 +573,7 @@ DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> >
         if ((0 <= value) && (value <= 65535)) {
             DotBlock *dotBlock = new DotBlock;
             if(symbol.has_value()) {
-                dotBlock->setSymbolEntry(symbol.value());
+                dotBlock->setSymbolEntry(optional_helper(symbol));
             }
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
@@ -596,7 +597,7 @@ DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> >
         if (value < 65536) {
             DotBlock *dotBlock = new DotBlock;
             if(symbol.has_value()) {
-                dotBlock->setSymbolEntry(symbol.value());
+                dotBlock->setSymbolEntry(optional_helper(symbol));
             }
             dotBlock->setArgument(QSharedPointer<HexArgument>::create(value));
             return dotBlock;
@@ -622,7 +623,7 @@ DotBurn *MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > s
         if (value < 65536) {
             DotBurn *dotBurn = new DotBurn;
             if(symbol.has_value()) {
-                dotBurn->setSymbolEntry(symbol.value());
+                dotBurn->setSymbolEntry(optional_helper(symbol));
             }
             dotBurn->setArgument(QSharedPointer<HexArgument>::create(value));
             instance.burnInfo.burnCount++;
@@ -649,7 +650,7 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
     // minimal.
     DotByte *dotByte = new DotByte;
     if(symbol.has_value()) {
-        dotByte->setSymbolEntry(symbol.value());
+        dotByte->setSymbolEntry(optional_helper(symbol));
     }
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
@@ -732,7 +733,7 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
     // minimal.
     DotEquate *dotEquate = new DotEquate;
     if(symbol.has_value()) {
-        dotEquate->setSymbolEntry(symbol.value());
+        dotEquate->setSymbolEntry(optional_helper(symbol));
     }
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
@@ -815,7 +816,7 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
     // minimal.
     DotWord *dotWord = new DotWord;
     if(symbol.has_value()) {
-        dotWord->setSymbolEntry(symbol.value());
+        dotWord->setSymbolEntry(optional_helper(symbol));
     }
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
