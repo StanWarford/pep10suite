@@ -1127,7 +1127,7 @@ void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
 QString MacroInvoke::getAssemblerListing() const
 {
     QStringList list;
-    QString name = macroInstance->prototype->name;
+    QString name = macroInstance->prototype->name.toUpper();
     QString symbolStr;
     if (!symbolEntry.isNull()) {
         symbolStr = symbolEntry->getName()+": ";
@@ -1143,7 +1143,7 @@ QString MacroInvoke::getAssemblerListing() const
         if(dynamic_cast<DotEnd*>(code) != nullptr) break;
         list << code->getAssemblerListing();
     }
-    list.append(QString("             ;end macro   @%1 %2").arg(name).arg(argumentList.join(",")));
+    list.append(QString("             ;end macro   @%1 %2").arg(name).arg(argumentList.join(", ")));
     return list.join("\n");
 }
 
@@ -1153,7 +1153,7 @@ QString MacroInvoke::getAssemblerSource() const
     if (!symbolEntry.isNull()) {
         symbolStr = symbolEntry->getName()+":";
     }
-    QString dotStr = "@"+macroInstance->prototype->name;
+    QString dotStr = "@"+macroInstance->prototype->name.toUpper();
     QString oprndStr = argumentList.join(',');
     // Split generation at dotStr, as it may contain a valid replace sequence (e.g. %L1).
     QString lineStr = QString("%1%2")
