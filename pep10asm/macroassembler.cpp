@@ -100,7 +100,9 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
         ++lineNumber;
         if(dotEndDetected) break;
     }
-    if(!dotEndDetected) {
+    // Only emit error about dotEnd when the program assembled successfully.
+    // Otherwise, error messages might be surpressed by dotEnd error.
+    if(!dotEndDetected && result.success) {
         result.success = false;
 #pragma message("Validate location of END error.")
         result.errInfo = {instance.prototype->textLines.size(), ";ERROR: Missing .END sentinel."};
