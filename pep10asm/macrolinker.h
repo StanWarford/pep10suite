@@ -22,6 +22,7 @@ public:
     LinkResult link(ModuleAssemblyGraph& graph);
 
     void setOSSymbolTable(QSharedPointer<const SymbolTable> OSSymbolTable);
+    void setForceBurnAt0xFFFF(bool forceBurn0xFFFF);
     void clearOSSymbolTable();
 private:
     // Pull in modules from operating system.
@@ -32,10 +33,14 @@ private:
     // This copy is performed so that multiple macro invocations (with different addresses)
     // may share the same (unadjusted) code list.
     LinkResult linkModule(ModuleAssemblyGraph::InstanceMap& newMap, ModuleInstance& instance);
+    // Pre: codeList contains a valid program
+    // Post: The address of every line of code in codeList is increase by addressDelta
+    void relocateCode(QList<QSharedPointer<AsmCode>>& codeList, quint16 addressDelta);
     // Adjust the addresses of all code lines to allow for burning in of operating system.
     bool shiftForBURN(ModuleAssemblyGraph& graph);
 
     quint32 nextAddress;
+    bool forceBurn0xFFFF;
     std::optional<QSharedPointer<const SymbolTable>> osSymbolTable;
 
 };

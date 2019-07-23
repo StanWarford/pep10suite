@@ -3,6 +3,7 @@
 #include "symbolentry.h"
 #include "symbolvalue.h"
 #include "optional_helper.h"
+#include "asmargument.h"
 static QString multidefinedSymbol = ";ERROR: Symbol \"%1\" was previously defined.";
 static QString undefinedSymbol = ";ERROR: Symbol \"%1\" is undefined.";
 static QString noBURN = ";ERROR: Only operating systems may contain a .BURN.";
@@ -10,7 +11,7 @@ static QString oneBURN = ";ERROR: Operating systems must contain exactly 1 .BURN
 static QString BURNat0xFFFF = ";ERROR: .BURN must have an argument of 0xFFFF.";
 static QString noOperatingSystem = ";ERROR: Attempted to pull in symbols for operating system, but not OS was defined.";
 
-MacroLinker::MacroLinker(): nextAddress()
+MacroLinker::MacroLinker(): nextAddress(0), forceBurn0xFFFF(false)
 {
 
 }
@@ -65,6 +66,11 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
 void MacroLinker::setOSSymbolTable(QSharedPointer<const SymbolTable> OSSymbolTable)
 {
     osSymbolTable = OSSymbolTable;
+}
+
+void MacroLinker::setForceBurnAt0xFFFF(bool forceBurn0xFFFF)
+{
+    this->forceBurn0xFFFF = forceBurn0xFFFF;
 }
 
 void MacroLinker::clearOSSymbolTable()
@@ -186,6 +192,12 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
     return retVal;
 }
 
+void MacroLinker::relocateCode(QList<QSharedPointer<AsmCode> > &codeList, quint16 addressDelta)
+{
+    for (int i = 0; i < codeList.length(); i++) {
+        codeList[i]->adjustMemAddress(addressDelta);
+    }
+}
 bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
 {
    /* auto rootModule = graph.instanceMap[graph.rootModule].first();
