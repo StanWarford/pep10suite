@@ -12,13 +12,20 @@ MacroRegistry::~MacroRegistry()
 
 bool MacroRegistry::hasMacro(QString macroName) const
 {
-    auto item = macroList.find(macroName);
-    return item != macroList.end();
+    auto equalIg = [&macroName](const QSharedPointer<Macro>& other){
+        return other->macroName.compare(macroName, Qt::CaseInsensitive) == 0;
+    };
+    auto item = std::find_if(macroList.cbegin(), macroList.cend(), equalIg);
+    return item != macroList.cend();
 }
 
 QSharedPointer<const Macro> MacroRegistry::getMacro(QString macroName) const
 {
-    if(auto item = macroList.find(macroName); item != macroList.end()) {
+    auto equalIg = [&macroName](const QSharedPointer<Macro>& other){
+        return other->macroName.compare(macroName, Qt::CaseInsensitive) == 0;
+    };
+    auto item = std::find_if(macroList.cbegin(), macroList.cend(), equalIg);
+    if(item != macroList.end()) {
         return item.value();
     }
     return nullptr;
