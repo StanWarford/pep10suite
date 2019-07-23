@@ -1027,6 +1027,11 @@ quint16 DotAlign::getNumBytesGenerated() const
     return numBytesGenerated->getArgumentValue();
 }
 
+void DotAlign::setNumBytesGenerated(quint16 numBytes)
+{
+    numBytesGenerated = QSharedPointer<DecArgument>::create(numBytes);
+}
+
 quint16 DotAscii::objectCodeLength() const
 {
     QList<int> num;
@@ -1121,7 +1126,19 @@ bool DotWord::tracksTraceTags() const
 
 void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
 {
+    for(auto code : this->macroInstance->codeList) {
+        // Don't generate listing for anything after and including .END
+        if(dynamic_cast<DotEnd*>(code.get()) != nullptr) break;
+        code->appendObjectCode(objectCode);
+    }
+}
 
+void MacroInvoke::adjustMemAddress(int addressDelta)
+{
+    for(auto code : this->macroInstance->codeList) {
+        // Don't generate listing for anything after and including .END
+        code->adjustMemAddress(addressDelta);
+    }
 }
 
 QString MacroInvoke::getAssemblerListing() const

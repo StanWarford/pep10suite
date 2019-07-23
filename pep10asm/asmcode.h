@@ -71,7 +71,7 @@ public:
 
     virtual int getMemoryAddress() const;
     void setMemoryAddress(quint16 address);
-    void adjustMemAddress(int addressDelta);
+    virtual void adjustMemAddress(int addressDelta);
 
 
     // Get the assembler listing, which is memaddress + object code + sourceLine.
@@ -247,6 +247,7 @@ public:
     void setArgument(QSharedPointer<AsmArgument>);
 
     quint16 getNumBytesGenerated() const;
+    void setNumBytesGenerated(quint16);
 
     friend void swap(DotAlign& first, DotAlign& second)
     {
@@ -541,7 +542,8 @@ public:
     MacroInvoke(const MacroInvoke& other);
     MacroInvoke& operator=(MacroInvoke other);
     AsmCode *cloneAsmCode() const override;
-     virtual void appendObjectCode(QList<int> &objectCode) const override;
+    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void adjustMemAddress(int addressDelta) override;
 
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
