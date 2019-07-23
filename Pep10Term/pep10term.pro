@@ -56,6 +56,7 @@ HEADERS += \
     boundexecisacpu.h
 
 RESOURCES += \
+    ../pep10asm/pep10asm-macros.qrc \
     ../pep10common/pep10common-helpresources.qrc\
     ../pep10asm/pep10asm-resources.qrc \
     ../pep10asm/pep10asm-helpresources.qrc \
