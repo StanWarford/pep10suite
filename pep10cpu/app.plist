@@ -24,13 +24,13 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>Pep9CPU</string>
+	<string>Pep10CPU</string>
 	<key>CFBundleGetInfoString</key>
 	<string>47</string>
 	<key>CFBundleIconFile</key>
 	<string>icon.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>edu.cslab.pep9cpu</string>
+	<string>edu.cslab.pep10cpu</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleVersion</key>

@@ -60,13 +60,13 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>Pep9Micro</string>
+	<string>Pep10Micro</string>
 	<key>CFBundleGetInfoString</key>
 	<string>47</string>
 	<key>CFBundleIconFile</key>
 	<string>icon.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>edu.cslab.pep9micro</string>
+	<string>edu.cslab.pep10micro</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleVersion</key>

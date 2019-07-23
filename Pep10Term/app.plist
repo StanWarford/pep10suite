@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>Pep9Term</string>
+	<string>Pep10Term</string>
 	<key>CFBundleGetInfoString</key>
 	<string>47</string>
 	<key>CFBundleIconFile</key>
 	<string>icon.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>edu.cslab.pep9term</string>
+	<string>edu.cslab.pep10term</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleVersion</key>
