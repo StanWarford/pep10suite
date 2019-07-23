@@ -192,12 +192,13 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
     return retVal;
 }
 
-void MacroLinker::relocateCode(QList<QSharedPointer<AsmCode> > &codeList, quint16 addressDelta)
+void MacroLinker::relocateCode(ModuleInstance &instance, quint16 addressDelta)
 {
-    for (int i = 0; i < codeList.length(); i++) {
-        codeList[i]->adjustMemAddress(addressDelta);
+    for (int i = 0; i < instance.codeList.length(); i++) {
+        instance.codeList[i]->adjustMemAddress(addressDelta);
     }
 }
+
 bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
 {
    /* auto rootModule = graph.instanceMap[graph.rootModule].first();

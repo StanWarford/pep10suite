@@ -33,9 +33,9 @@ private:
     // This copy is performed so that multiple macro invocations (with different addresses)
     // may share the same (unadjusted) code list.
     LinkResult linkModule(ModuleAssemblyGraph::InstanceMap& newMap, ModuleInstance& instance);
-    // Pre: codeList contains a valid program
-    // Post: The address of every line of code in codeList is increase by addressDelta
-    void relocateCode(QList<QSharedPointer<AsmCode>>& codeList, quint16 addressDelta);
+    // Pre: instance contains a valid program code listing.
+    // Post: The address of every line of code in codeList is increased by addressDelta
+    void relocateCode(ModuleInstance& instance, quint16 addressDelta);
     // Adjust the addresses of all code lines to allow for burning in of operating system.
     bool shiftForBURN(ModuleAssemblyGraph& graph);
 
