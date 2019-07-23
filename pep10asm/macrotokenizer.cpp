@@ -14,7 +14,7 @@ const QRegularExpression MacroTokenizerHelper::addrMode = init("(i|d|x|n|s(?![fx
 const QRegularExpression MacroTokenizerHelper::charConst("((\')(?![\'])(([^\'\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
 const QRegularExpression MacroTokenizerHelper::decConst = init("[+|-]{0,1}[0-9]+\\s*");
-const QRegularExpression MacroTokenizerHelper::dotCommand = init("\\.[a-zA-Z]{1}(\\w)*\\s*");
+const QRegularExpression MacroTokenizerHelper::dotCommand = init("\\.[a-zA-Z]\\w*\\s*");
 const QRegularExpression MacroTokenizerHelper::hexConst = init("0[xX][0-9a-fA-F]+\\s*");
 const QRegularExpression MacroTokenizerHelper::identifier = init("[A-Z|a-z|_]\\w*(:){0,1}\\s*");
 const QRegularExpression MacroTokenizerHelper::stringConst("((\")((([^\"\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\"))");
@@ -34,7 +34,7 @@ const QString noEquate(";WARNING: Looked for existing symbol not defined in .EQU
 const QString noSymbol(";WARNING: Trace tag with no symbol declaration");
 const QString illegalAddrMode(";WARNING: Stack trace not possible unless immediate addressing is specified.");
 
-bool MacroTokenizerHelper::startsWithHexPrefix(QString str)
+bool MacroTokenizerHelper::startsWithHexPrefix(QStringRef str)
 {
     if (str.length() < 2) return false;
     if (str[0] != '0') return false;
@@ -55,33 +55,6 @@ Enu::EAddrMode MacroTokenizerHelper::stringToAddrMode(QString str)
     if (str == "SX") return Enu::EAddrMode::SX;
     if (str == "SFX") return Enu::EAddrMode::SFX;
     return Enu::EAddrMode::NONE;
-}
-
-int MacroTokenizerHelper::charStringToInt(QString str)
-{
-    str.remove(0, 1); // Remove the leftmost single quote.
-    str.chop(1); // Remove the rightmost single quote.
-    int value;
-    MacroTokenizerHelper::unquotedStringToInt(str, value);
-    return value;
-}
-
-int MacroTokenizerHelper::string2ArgumentToInt(QString str) {
-    int valueA, valueB;
-    str.remove(0, 1); // Remove the leftmost double quote.
-    str.chop(1); // Remove the rightmost double quote.
-    MacroTokenizerHelper::unquotedStringToInt(str, valueA);
-    if (str.length() == 0) {
-        return valueA;
-    }
-    else {
-        MacroTokenizerHelper::unquotedStringToInt(str, valueB);
-        valueA = 256 * valueA + valueB;
-        if (valueA < 0) {
-            valueA += 65536; // Stored as two-byte unsigned.
-        }
-        return valueA;
-    }
 }
 
 void MacroTokenizerHelper::unquotedStringToInt(QString &str, int &value)
@@ -177,6 +150,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
             return false;
         }
     }
+    // Works!
     if (firstChar == '@') {
         auto match = macroInvocation.match(sourceLine, offset);
         if (!match.hasMatch()) {
@@ -235,7 +209,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         offset += len;
         return true;
     }
-    if (startsWithHexPrefix(sourceLine)) {
+    if (startsWithHexPrefix(sourceLine.midRef(offset))) {
         auto match = hexConst.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
@@ -356,7 +330,8 @@ void TokenizerBuffer::setTokenizerInput(QStringList lines)
     tokenizerInput.resize(lines.size());
     int index = 0;
     for(auto line : lines) {
-        tokenizerInput[index] = line;
+        // ALways purge whitespace.
+        tokenizerInput[index] = line.trimmed();
         index++;
     }
     inputIterator = 0;
