@@ -105,6 +105,12 @@ SymbolTable::SymbolEntryPtr SymbolTable::define(const QString &symbolName)
     return entry;
 }
 
+QList<SymbolTable::SymbolEntryPtr> SymbolTable::getExternalSymbols()
+{
+
+    return this->externalSymbols;
+}
+
 bool SymbolTable::exists(const QString& symbolName) const
 {
     return symbolLookup.find(symbolName) != symbolLookup.end();

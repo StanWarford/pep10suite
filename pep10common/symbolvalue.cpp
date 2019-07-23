@@ -21,7 +21,7 @@
 */
 
 #include "symbolvalue.h"
-
+#include "symbolentry.h"
 AbstractSymbolValue::AbstractSymbolValue()
 {
 }
@@ -116,4 +116,36 @@ quint16 SymbolValueLocation::getOffset() const
 quint16 SymbolValueLocation::getBase() const
 {
     return base;
+}
+
+SymbolValueExternal::SymbolValueExternal(QSharedPointer<SymbolEntry> symbol): symbol(symbol)
+{
+
+}
+
+SymbolValueExternal::~SymbolValueExternal()
+{
+
+}
+
+qint32 SymbolValueExternal::getValue() const
+{
+    return symbol->getValue();
+}
+
+SymbolType SymbolValueExternal::getSymbolType() const
+{
+    return SymbolType::EXTERNAL;
+}
+
+bool SymbolValueExternal::canRelocate() const
+{
+    // We should not allow relocation of a symbol defined in
+    // another translation unit.
+    return false;
+}
+
+QSharedPointer<SymbolEntry> SymbolValueExternal::getSymbolValue()
+{
+    return symbol;
 }
