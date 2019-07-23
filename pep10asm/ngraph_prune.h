@@ -62,17 +62,6 @@ bool single_incoming_edge(typename NGraph::tGraph<T>::const_iterator p)
 
 // Returns the the graph formed by recursively removing all verticies with out degree 0.
 // Only works for directed graphs. Is equivalent to calcuating the 1-core of the graph.
-template <class T>
-NGraph::tGraph<T> reduce(const NGraph::tGraph<T>& input)
-{
-    std::vector<typename NGraph::tGraph<T>::vertex> ignoreList;
-    NGraph::tGraph<T> retVal = reduceList(input, ignoreList);
-    return  retVal;
-}
-
-
-// Returns the the graph formed by recursively removing all verticies with out degree 0.
-// Only works for directed graphs. Is equivalent to calcuating the 1-core of the graph.
 // This version returns the order in which nodes must be removed via peelList.
 template <class T>
 NGraph::tGraph<T> reduceList(const NGraph::tGraph<T>& input,
@@ -121,4 +110,13 @@ NGraph::tGraph<T> reduceList(const NGraph::tGraph<T>& input,
     return workingCopy;
 }
 
+// Returns the the graph formed by recursively removing all verticies with out degree 0.
+// Only works for directed graphs. Is equivalent to calcuating the 1-core of the graph.
+template <class T>
+NGraph::tGraph<T> reduce(const NGraph::tGraph<T>& input)
+{
+    std::vector<typename NGraph::tGraph<T>::vertex> ignoreList;
+    NGraph::tGraph<T> retVal = reduceList<T>(input, ignoreList);
+    return  retVal;
+}
 #endif // NGRAPH_PRUNE_H
