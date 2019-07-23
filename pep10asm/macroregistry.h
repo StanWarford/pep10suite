@@ -23,9 +23,14 @@ public:
     bool hasMacro(QString macroName) const;
     QSharedPointer<const Macro> getMacro(QString macroName) const;
 
+    QList<QSharedPointer<const Macro>> getCoreMacros() const;
     // Register a macro to the specified level with a given argument count.
     bool registerSystemCall(QString macroName, QString macroText);
+    QList<QSharedPointer<const Macro>> getSytemCalls() const;
+    void clearSystemCalls();
+
     bool registerCustomMacro(QString macroName, QString macroText);
+    QList<QSharedPointer<const Macro>> getCustomMacros() const;
     //Given the text of a macro, get the macro's name & argument count.
     static std::tuple<bool, QString, quint16> macroDefinition(QString macroText);
 private:
@@ -33,6 +38,7 @@ private:
     // Helper function that discovers all builtin macros.
     bool registerCoreMacros(QDir dir);
     bool registerMacro(QString macroName, QString macroText, MacroType type);
+    QList<QSharedPointer<const Macro>> getMacros(MacroType which) const;
     // Core macros are auto-deteced, not added by users.
     bool registerCoreMacro(QString macroName, QString macroText);
 

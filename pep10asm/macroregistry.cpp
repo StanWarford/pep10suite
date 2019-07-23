@@ -33,6 +33,11 @@ QSharedPointer<const Macro> MacroRegistry::getMacro(QString macroName) const
     return nullptr;
 }
 
+QList<QSharedPointer<const Macro> > MacroRegistry::getCoreMacros() const
+{
+    return getMacros(MacroType::CoreMacro);
+}
+
 bool MacroRegistry::registerCoreMacro(QString macroName, QString macroText)
 {
     return registerMacro(macroName, macroText, MacroType::CoreMacro);
@@ -43,9 +48,30 @@ bool MacroRegistry::registerSystemCall(QString macroName, QString macroText)
     return registerMacro(macroName, macroText, MacroType::SystemMacro);
 }
 
+QList<QSharedPointer<const Macro> > MacroRegistry::getSytemCalls() const
+{
+    return getMacros(MacroType::SystemMacro);
+}
+
+void MacroRegistry::clearSystemCalls()
+{
+    for(auto it = macroList.begin(); it != macroList.end(); ) {
+        if(it.value()->type == MacroType::SystemMacro) {
+            it = macroList.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 bool MacroRegistry::registerCustomMacro(QString macroName, QString macroText)
 {
     return registerMacro(macroName, macroText, MacroType::UserMacro);
+}
+
+QList<QSharedPointer<const Macro> > MacroRegistry::getCustomMacros() const
+{
+    return getMacros(MacroType::UserMacro);
 }
 
 std::tuple<bool, QString, quint16> MacroRegistry::macroDefinition(QString macroText)
@@ -131,4 +157,15 @@ bool MacroRegistry::registerMacro(QString macroName, QString macroText, MacroTyp
     newMacro->type = type;
     macroList.insert(macroName, newMacro);
     return true;
+}
+
+QList<QSharedPointer<const Macro> > MacroRegistry::getMacros(MacroType which) const
+{
+    QList<QSharedPointer<const Macro>> output;
+    auto filter = [which](const QSharedPointer<Macro>& other){
+        return other->type == which;
+    };
+    std::copy_if(macroList.cbegin(), macroList.cend(),
+                 std::inserter(output, output.end()), filter);
+    return output;
 }
