@@ -141,10 +141,13 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         commentLine->setComment(tokenBuffer->takeLastMatch().second.toString());
         retVal.success = true;
         retVal.codeLine = commentLine;
+        // Take the \n.
+        tokenBuffer->takeLastMatch();
         return retVal;
     }
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
-        // Match an empty line.
+        // Take the \n.
+        tokenBuffer->takeLastMatch();
         retVal.success = true;
         retVal.codeLine =  QSharedPointer<BlankLine>::create();
         return retVal;
