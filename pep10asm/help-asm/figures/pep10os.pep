@@ -61,32 +61,15 @@ oldPC:   .EQUATE 5           ;Stack address of PC on trap
 ;
 trap:    LDWX    0,i         ;      
          LDBX    oldIR,s     ;X <- trapped IR
-         CPBX    0x0028,i    ;If X >= first nonunary trap opcode
+         CPBX    0x0030,i    ;If X >= first nonunary trap opcode
          BRGE    nonUnary    ;  trap opcode is nonunary
 ;
-unary:   ANDX    0x0001,i    ;Mask out all but rightmost bit
-         ASLX                ;Two bytes per address
-         CALL    unaryJT,x   ;Call unary trap routine
-         RETSY               ;Return from trap
+unary:   MOVTPC              ;Jump directly to a trap handler
 ;
-unaryJT: .ADDRSS opcode27    ;Address of NOP1 subroutine
-;
-nonUnary:ASRX                ;Trap opcode is nonunary               
-         ASRX                ;Discard addressing mode bits
-         ASRX                
-         SUBX    5,i         ;Adjust so that NOP opcode = 0
-         ASLX                ;Two bytes per address
-         LDWA    oldPC,s     ;Must increment program counter
+nonUnary:LDWA    oldPC,s     ;Must increment program counter
          ADDA    2,i         ;  for nonunary instructions
          STWA    oldPC,s
-         CALL    nonUnJT,x   ;Call nonunary trap routine
-return:  RETSY               ;Return from trap
-;
-nonUnJT: .ADDRSS opcode28    ;Address of NOP subroutine
-         .ADDRSS opcode30    ;Address of DECI subroutine
-         .ADDRSS opcode38    ;Address of DECO subroutine
-         .ADDRSS opcode40    ;Address of HEXO subroutine
-         .ADDRSS opcode48    ;Address of STRO subroutine
+         MOVTPC
 ;
 ;******* Assert valid trap addressing mode
 oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
@@ -183,24 +166,27 @@ addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
          STWX    opAddr,d    
          RET                               
 ;
-;******* Opcode 0x27
-;The NOP1 instruction.
-opcode27:RET                 
+;******* SYUNOP
+;The unary no-operation system call.
+         .EXPORT SYUNOP
+SYUNOP:  RETSY                 
 ;
-;******* Opcode 0x28
-;The NOP instruction.
-opcode28:LDWA    0x0001,i    ;Assert i
+;******* SYNOP
+;The nonunary no-operation system call.
+         .EXPORT SYNOP
+SYNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d  
          CALL    assertAd    
-         RET                 
+         RETSY                 
 ;
-;******* Opcode 0x30
-;The DECI instruction.
+;******* DECI
+;The decimal input system call.
 ;Input format: Any number of leading spaces or line feeds are
 ;allowed, followed by '+', '-' or a digit as the first character,
 ;after which digits are input until the first nondigit is
 ;encountered. The status flags N,Z and V are set appropriately
 ;by this DECI routine. The C status flag is not affected.
+         .EXPORT DECI
 ;
 oldNZVC: .EQUATE 15          ;Stack address of NZVC on interrupt
 ;
@@ -216,7 +202,7 @@ init:    .EQUATE 0           ;Enumerated values for state
 sign:    .EQUATE 1           
 digit:   .EQUATE 2           
 ;
-opcode30:LDWA    0x00FE,i    ;Assert d, n, s, sf, x, sx, sfx
+DECI:    LDWA    0x00FE,i    ;Assert d, n, s, sf, x, sx, sfx
          STWA    addrMask,d  
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
@@ -340,7 +326,7 @@ storeFl: STBX    oldNZVC,s   ;Store the NZVC flags
 exitDeci:LDWA    total,s     ;Put total in memory
          STWA    opAddr,n    
          ADDSP   13,i        ;Deallocate locals
-         RET                 ;Return to trap handler
+         RETSY                 ;Return to trap handler
 ;
 deciErr: LDBA    '\n',i      
          STBA    charOut,d   
@@ -352,17 +338,18 @@ deciErr: LDBA    '\n',i
 ;
 deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
 ;
-;******* Opcode 0x38
-;The DECO instruction.
+;******* DECO
+;The decimal output system call.
 ;Output format: If the operand is negative, the algorithm prints
 ;a single '-' followed by the magnitude. Otherwise it prints the
 ;magnitude without a leading '+'. It suppresses leading zeros.
+         .EXPORT DECO
 ;
 remain:  .EQUATE 0           ;Remainder of value to output
 outYet:  .EQUATE 2           ;Has a character been output yet?
 place:   .EQUATE 4           ;Place value for division
 ;
-opcode38:LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
+DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          STWA    addrMask,d  
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
@@ -391,8 +378,8 @@ printMag:STWA    remain,s    ;remain <- abs(oprnd)
          LDWA    remain,s    ;Always write 1's place
          ORA     0x0030,i    ;Convert decimal to ASCII
          STBA    charOut,d   ;  and output it
-         ADDSP   6,i         ;Dallocate storage for locals
-         RET                 
+         ADDSP   6,i         ;Deallocate storage for locals
+         RETSY                 
 ;
 ;Subroutine to print the most significant decimal digit of the
 ;remainder. It assumes that place (place2 here) contains the
@@ -423,11 +410,12 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
          STBX    charOut,d   ;  and output it
          RET                 ;return to calling routine
 ;
-;******* Opcode 0x40
-;The HEXO instruction.
+;******* HEXO
+;The hexadecimal ouput system call.
 ;Outputs one word as four hex characters from memory.
+         .EXPORT HEXO
 ;
-opcode40:LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
+HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          STWA    addrMask,d  
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
@@ -449,7 +437,7 @@ opcode40:LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          CALL    hexOut      ;Output third hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
          CALL    hexOut      ;Output fourth hex character
-         RET                 
+         RETSY                 
 ;
 ;Subroutine to output in hex the least significant nybble of the
 ;accumulator.
@@ -464,11 +452,12 @@ prepNum: ORA     0x0030,i    ;else prefix ASCII code for number
 writeHex:STBA    charOut,d   ;Output nybble as hex
          RET                 
 ;
-;******* Opcode 0x48
-;The STRO instruction.
+;******* STRO
+;The string output system call.
 ;Outputs a null-terminated string from memory.
+         .EXPORT STRO
 ;
-opcode48:LDWA    0x003E,i    ;Assert d, n, s, sf, x
+STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
          STWA    addrMask,d  
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
@@ -477,7 +466,7 @@ opcode48:LDWA    0x003E,i    ;Assert d, n, s, sf, x
          SUBSP   2,i         
          CALL    prntMsg     ;and print
          ADDSP   2,i         
-         RET                 
+         RETSY                
 ;
 ;******* Print subroutine
 ;Prints a string of ASCII bytes until it encounters a null
