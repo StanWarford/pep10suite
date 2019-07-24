@@ -41,18 +41,6 @@ QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleUserProgram(QString inp
         // Cleanup any allocated memory
         return nullptr;
     }
-    else {
-        QStringList source;
-        QStringList listing;
-        for(auto codeLine : graph.instanceMap[graph.rootModule].first()->codeList) {
-            source << codeLine->getAssemblerSource();
-            listing << codeLine->getAssemblerListing();
-        }
-        qDebug().noquote() << "Source program:";
-        qDebug().noquote() << source.join("\n") << "\n\n";
-        qDebug().noquote() << "Programing listing:";
-        qDebug().noquote() << listing.join("\n");
-    }
     auto rootInstance = graph.instanceMap[graph.rootModule].first();
 
 
@@ -83,26 +71,16 @@ QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleOperatingSystem(QString
         // Cleanup any allocated memory
         return nullptr;
     }
-    else {
-        auto rootModule = graph.instanceMap[graph.rootModule].first();
-        QStringList source;
-        QStringList listing;
-        for(auto codeLine : rootModule->codeList)
-        {
-            source << codeLine->getAssemblerSource();
-            listing << codeLine->getAssemblerListing();
-        }
-        qDebug().noquote() << "Source program:";
-        qDebug().noquote() << source.join("\n") << "\n\n";
-        qDebug().noquote() << "Programing listing:";
-        qDebug().noquote() << listing.join("\n");
-    }
 
 
     annotate(*rootInstance.get());
     validate(*rootInstance.get());
-    return QSharedPointer<AsmProgram>::create(rootInstance->codeList, rootInstance->symbolTable,
-                                              nullptr);
+    auto os = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
+                                                 rootInstance->symbolTable,
+                                                 nullptr,
+                                                 rootInstance->burnInfo.startROMAddress,
+                                                 rootInstance->burnInfo.burnArgument);
+    return os;
 }
 
 bool MacroAssemblerDriver::preprocess()
