@@ -67,7 +67,7 @@ trap:    LDWX    0,i         ;
 unary:   ANDX    0x0001,i    ;Mask out all but rightmost bit
          ASLX                ;Two bytes per address
          CALL    unaryJT,x   ;Call unary trap routine
-         RETTR               ;Return from trap
+         RETSY               ;Return from trap
 ;
 unaryJT: .ADDRSS opcode27    ;Address of NOP1 subroutine
 ;
@@ -80,7 +80,7 @@ nonUnary:ASRX                ;Trap opcode is nonunary
          ADDA    2,i         ;  for nonunary instructions
          STWA    oldPC,s
          CALL    nonUnJT,x   ;Call nonunary trap routine
-return:  RETTR               ;Return from trap
+return:  RETSY               ;Return from trap
 ;
 nonUnJT: .ADDRSS opcode28    ;Address of NOP subroutine
          .ADDRSS opcode30    ;Address of DECI subroutine
