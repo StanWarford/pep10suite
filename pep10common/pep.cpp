@@ -460,6 +460,8 @@ void Pep::initAddrModesMap()
     addrModesMap.insert(EMnemonic::LDWX, all);
     addrModesMap.insert(EMnemonic::ORA, all);
     addrModesMap.insert(EMnemonic::ORX, all);
+    addrModesMap.insert(EMnemonic::XORA, all);
+    addrModesMap.insert(EMnemonic::XORX, all);
     addrModesMap.insert(EMnemonic::STBA, store);
     addrModesMap.insert(EMnemonic::STBX, store);
     addrModesMap.insert(EMnemonic::STWA, store);
@@ -575,7 +577,7 @@ void Pep::initDecoderTables()
     initDecoderTableAAAHelper(EMnemonic::ANDX, 200);
     initDecoderTableAAAHelper(EMnemonic::ORA, 208);
     initDecoderTableAAAHelper(EMnemonic::ORX, 216);
-    initDecoderTableAAAHelper(EMnemonic::XORA, 124);
+    initDecoderTableAAAHelper(EMnemonic::XORA, 224);
     initDecoderTableAAAHelper(EMnemonic::XORX, 232);
     initDecoderTableAAAHelper(EMnemonic::ADDSP, 240);
     initDecoderTableAAAHelper(EMnemonic::SUBSP, 248);
