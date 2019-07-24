@@ -180,7 +180,7 @@ void IsaCpu::updateAtInstructionEnd()
     else if(Pep::decodeMnemonic[getRegisterBank().readRegisterByteCurrent(Enu::CPURegisters::IS)] == Enu::EMnemonic::RET){
         callDepth--;
     }
-    else if(Pep::decodeMnemonic[getRegisterBank().readRegisterByteCurrent(Enu::CPURegisters::IS)] == Enu::EMnemonic::RETTR){
+    else if(Pep::decodeMnemonic[getRegisterBank().readRegisterByteCurrent(Enu::CPURegisters::IS)] == Enu::EMnemonic::RETSY){
         callDepth--;
     }
     if(hadErrorOnStep()) {
@@ -628,7 +628,7 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
         registerBank.writeRegisterWord(Enu::CPURegisters::SP, sp);
         break;
 
-    case Enu::EMnemonic::RETTR:
+    case Enu::EMnemonic::RETSY:
         memory->readWord(sp, temp);
         // Function will automatically mask out bits that don't matter
         registerBank.writeStatusBits(static_cast<quint8>(temp));
@@ -645,14 +645,22 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
     case Enu::EMnemonic::MOVSPA:
         registerBank.writeRegisterWord(Enu::CPURegisters::A, sp);
         break;
+    case Enu::EMnemonic::MOVASP:
+        registerBank.writeRegisterWord(Enu::CPURegisters::SP, acc);
+        break;
 
     case Enu::EMnemonic::MOVFLGA:
         registerBank.writeRegisterWord(Enu::CPURegisters::A, registerBank.readStatusBitsCurrent());
         break;
-
     case Enu::EMnemonic::MOVAFLG:
         // Only move the low order byte of accumulator to the status bits.
         registerBank.writeStatusBits(static_cast<quint8>(acc));
+        break;
+
+    case Enu::EMnemonic::MOVTPC:
+        // Move contents of trap register to PC.
+        temp = registerBank.readRegisterWordCurrent(Enu::CPURegisters::T);
+        registerBank.writeRegisterWord(Enu::CPURegisters::PC, temp);
         break;
 
     case Enu::EMnemonic::NOTA: // Modifies NZ bits
@@ -795,12 +803,7 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
         registerBank.writeStatusBit(Enu::EStatusBit::STATUS_C, idx & 0x8000);
         break;
 
-    case Enu::EMnemonic::NOP0:
-        if(Pep::isTrapMap[Enu::EMnemonic::NOP0]) {
-            controlError = true;
-            executionFinished = true;
-            errorMessage = "Error: NOP0 is not a unary instruction.";
-        }
+    case Enu::EMnemonic::NOP:
         break;
     default:
         // Should never occur, but gaurd against to make compiler happy.
@@ -899,13 +902,11 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         registerBank.writeRegisterWord(Enu::CPURegisters::SP, sp + tempWord);
         break;
-
     case Enu::EMnemonic::SUBSP:
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         registerBank.writeRegisterWord(Enu::CPURegisters::SP, sp - tempWord);
         break;
 
-#pragma message ("first to fix")
     case Enu::EMnemonic::ADDA:
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         // The result is the decoded operand specifier plus the accumulator
@@ -922,7 +923,6 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
         // Carry out iff result is unsigned less than register or operand.
         registerBank.writeStatusBit(Enu::EStatusBit::STATUS_C, result < a  || result < tempWord);
         break;
-
     case Enu::EMnemonic::ADDX:
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         // The result is the decoded operand specifier plus the index reg.
@@ -958,7 +958,6 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
         // Carry out iff result is unsigned less than register or operand.
         registerBank.writeStatusBit(Enu::EStatusBit::STATUS_C, result < a  || result < tempWord);
         break;
-
     case Enu::EMnemonic::SUBX:
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         // The result is the two's complement of the decoded operand specifier plus a.
@@ -988,7 +987,6 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
          // Is zero if all bits are 0's.
         registerBank.writeStatusBit(Enu::EStatusBit::STATUS_Z, result == 0);
         break;
-
     case Enu::EMnemonic::ANDX:
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         // The result is the decoded operand specifier bitwise and'ed the index reg.
@@ -1014,6 +1012,27 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         // The result is the decoded operand specifier bitwise or'ed the index reg.
         result = x | tempWord;
+        registerBank.writeRegisterWord(Enu::CPURegisters::X, result);
+        // Is negative if high order bit is 1.
+        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_N, result & 0x8000);
+         // Is zero if all bits are 0's.
+        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_Z, result == 0);
+        break;
+
+    case Enu::EMnemonic::XORA:
+        memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
+        // The result is the decoded operand specifier bitwise or'ed with the accumulator.
+        result = a ^ tempWord;
+        registerBank.writeRegisterWord(Enu::CPURegisters::A, result);
+        // Is negative if high order bit is 1.
+        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_N, result & 0x8000);
+         // Is zero if all bits are 0's.
+        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_Z, result == 0);
+        break;
+    case Enu::EMnemonic::XORX:
+        memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
+        // The result is the decoded operand specifier bitwise or'ed the index reg.
+        result = x ^ tempWord;
         registerBank.writeRegisterWord(Enu::CPURegisters::X, result);
         // Is negative if high order bit is 1.
         registerBank.writeStatusBit(Enu::EStatusBit::STATUS_N, result & 0x8000);
@@ -1059,6 +1078,15 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
         // If there was a signed overflow, selectively invert N bit.
         registerBank.writeStatusBit(Enu::EStatusBit::STATUS_N, registerBank.readStatusBitCurrent(Enu::EStatusBit::STATUS_N)
                                     ^ registerBank.readStatusBitCurrent(Enu::EStatusBit::STATUS_V));
+        break;
+
+    case Enu::EMnemonic::LDWT:
+        memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
+        registerBank.writeRegisterWord(Enu::CPURegisters::T, tempWord);
+        // Is negative if high order bit is 1.
+        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_N, tempWord & 0x8000);
+         // Is zero if all bits are 0's.
+        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_Z, tempWord == 0);
         break;
 
     case Enu::EMnemonic::LDWA:
@@ -1165,33 +1193,15 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
 void IsaCpu::executeTrap(Enu::EMnemonic mnemon)
 {
     quint16 pc;
-    // The
     quint16 tempAddr, temp = manager->getOperatingSystem()->getBurnValue() - 9;
     memory->readWord(temp, tempAddr);
     quint16 pcAddr = manager->getOperatingSystem()->getBurnValue() - 1;
     bool memSuccess = true;
     switch(mnemon) {
     // Non-unary traps
-    case Enu::EMnemonic::NOP:;
+    case Enu::EMnemonic::USYCALL:
         [[fallthrough]];
-    case Enu::EMnemonic::DECI:;
-        [[fallthrough]];
-    case Enu::EMnemonic::DECO:;
-        [[fallthrough]];
-    case Enu::EMnemonic::HEXO:;
-        [[fallthrough]];
-    case Enu::EMnemonic::STRO:;
-#if hardwarePCIncr
-        // Though not part of the specification, the Pep9 hardware must increment the program counter
-        // in order for non-unary traps to function correctly.
-        pc = registerBank.readRegisterWordCurrent(Enu::CPURegisters::PC) + 2;
-        registerBank.writeRegisterWord(Enu::CPURegisters::PC, pc);
-#endif
-        [[fallthrough]];
-    // Unary traps
-    case Enu::EMnemonic::NOP0:;
-        [[fallthrough]];
-    case Enu::EMnemonic::NOP1:;
+    case Enu::EMnemonic::SYCALL:
         // Writes to mem[T-1].
         memSuccess &= memory->writeByte(tempAddr - 1, registerBank.readRegisterByteCurrent(Enu::CPURegisters::IS) /*IS*/);
         // Writes to mem[T-2], mem[T-3].
@@ -1207,13 +1217,6 @@ void IsaCpu::executeTrap(Enu::EMnemonic mnemon)
         memSuccess &= memory->readWord(pcAddr, pc);
         registerBank.writeRegisterWord(Enu::CPURegisters::SP, tempAddr - 10);
         registerBank.writeRegisterWord(Enu::CPURegisters::PC, pc);
-#if performTrapFix
-        // Though not part of the specification, clear out the index register to
-        // prevent bug in OS where non-unary instructions fail due to junk
-        // in the high order byte of the index register. The book is published,
-        // so we have to fix it here.
-        registerBank.writeRegisterWord(Enu::CPURegisters::X, 0);
-#endif
         break;
     default:
         controlError = true;

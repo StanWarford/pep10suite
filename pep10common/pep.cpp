@@ -195,6 +195,7 @@ void Pep::initMicroEnumMnemonMaps(CPUType cpuType, bool fullCtrlSection)
     regSpecToMnemonMap.insert(X, "X");                  mnemonToRegSpecMap.insert("X", X);
     regSpecToMnemonMap.insert(SP, "SP");                mnemonToRegSpecMap.insert("SP", SP);
     regSpecToMnemonMap.insert(PC, "PC");                mnemonToRegSpecMap.insert("PC", PC);
+    regSpecToMnemonMap.insert(Trap, "T");                mnemonToRegSpecMap.insert("T", Trap);
     regSpecToMnemonMap.insert(IR, "IR");                mnemonToRegSpecMap.insert("IR", IR);
     regSpecToMnemonMap.insert(T1, "T1");                mnemonToRegSpecMap.insert("T1", T1);
     regSpecToMnemonMap.insert(T2, "T2");                mnemonToRegSpecMap.insert("T2", T2);
@@ -330,15 +331,6 @@ void Pep::initEnumMnemonMaps()
         tempqs = QString(metaEnum.key(it)).toUpper();
         enumToMnemonMap.insert(tempi, tempqs); mnemonToEnumMap.insert(tempqs, tempi);
     }
-
-    //Lastly, override whatever the above enumerator put in for the redefinable mnemonics
-    enumToMnemonMap.insert(EMnemonic::NOP, defaultNonUnaryMnemonic0); mnemonToEnumMap.insert(defaultNonUnaryMnemonic0, EMnemonic::NOP);
-    enumToMnemonMap.insert(EMnemonic::NOP0, defaultUnaryMnemonic0); mnemonToEnumMap.insert(defaultUnaryMnemonic0, EMnemonic::NOP0);
-    enumToMnemonMap.insert(EMnemonic::NOP1, defaultUnaryMnemonic1); mnemonToEnumMap.insert(defaultUnaryMnemonic1, EMnemonic::NOP1);
-    enumToMnemonMap.insert(EMnemonic::DECI, defaultNonUnaryMnemonic1); mnemonToEnumMap.insert(defaultNonUnaryMnemonic1, EMnemonic::DECI);
-    enumToMnemonMap.insert(EMnemonic::DECO, defaultNonUnaryMnemonic2); mnemonToEnumMap.insert(defaultNonUnaryMnemonic2, EMnemonic::DECO);
-    enumToMnemonMap.insert(EMnemonic::HEXO, defaultNonUnaryMnemonic3); mnemonToEnumMap.insert(defaultNonUnaryMnemonic3, EMnemonic::HEXO);
-    enumToMnemonMap.insert(EMnemonic::STRO, defaultNonUnaryMnemonic4); mnemonToEnumMap.insert(defaultNonUnaryMnemonic4, EMnemonic::STRO);
 }
 
 // Maps to characterize each instruction
@@ -352,91 +344,93 @@ void initMnemMapHelper(EMnemonic mnemon,int start,bool unary,bool addrModeReq,bo
     Pep::addrModeRequiredMap.insert(mnemon, addrModeReq); Pep::isTrapMap.insert(mnemon, isTrap);
 }
 
-void Pep::initMnemonicMaps(bool NOP0IsTrap)
+void Pep::initMnemonicMaps()
 {
-    if(NOP0IsTrap) {
-        initMnemMapHelper(EMnemonic::NOP0, 38, true, false, true);
-    }
-    else {
-        initMnemMapHelper(EMnemonic::NOP0, 38, true, false, false);
-    }
+    initMnemMapHelper(EMnemonic::ADDA, 160, false, true, false);
+    initMnemMapHelper(EMnemonic::ADDX, 168, false, true, false);
+    initMnemMapHelper(EMnemonic::ADDSP, 240, false, true, false);
+    initMnemMapHelper(EMnemonic::ANDA, 192, false, true, false);
+    initMnemMapHelper(EMnemonic::ANDX, 200, false, true, false);
+    initMnemMapHelper(EMnemonic::ASLA, 20, true, false, false);
+    initMnemMapHelper(EMnemonic::ASLX, 21, true, false, false);
+    initMnemMapHelper(EMnemonic::ASRA, 22, true, false, false);
+    initMnemMapHelper(EMnemonic::ASRX, 23, true, false, false);
 
-    initMnemMapHelper(EMnemonic::ADDA, 96, false, true, false);
-    initMnemMapHelper(EMnemonic::ADDX, 104, false, true, false);
-    initMnemMapHelper(EMnemonic::ADDSP, 80, false, true, false);
-    initMnemMapHelper(EMnemonic::ANDA, 128, false, true, false);
-    initMnemMapHelper(EMnemonic::ANDX, 136, false, true, false);
-    initMnemMapHelper(EMnemonic::ASLA, 10, true, false, false);
-    initMnemMapHelper(EMnemonic::ASLX, 11, true, false, false);
-    initMnemMapHelper(EMnemonic::ASRA, 12, true, false, false);
-    initMnemMapHelper(EMnemonic::ASRX, 13, true, false, false);
+    initMnemMapHelper(EMnemonic::BR, 28, false, false, false);
+    initMnemMapHelper(EMnemonic::BRC, 44, false, false, false);
+    initMnemMapHelper(EMnemonic::BREQ, 34, false, false, false);
+    initMnemMapHelper(EMnemonic::BRGE, 38, false, false, false);
+    initMnemMapHelper(EMnemonic::BRGT, 40, false, false, false);
+    initMnemMapHelper(EMnemonic::BRLE, 30, false, false, false);
+    initMnemMapHelper(EMnemonic::BRLT, 32, false, false, false);
+    initMnemMapHelper(EMnemonic::BRNE, 36, false, false, false);
+    initMnemMapHelper(EMnemonic::BRV, 42, false, false, false);
 
-    initMnemMapHelper(EMnemonic::BR, 18, false, false, false);
-    initMnemMapHelper(EMnemonic::BRC, 34, false, false, false);
-    initMnemMapHelper(EMnemonic::BREQ, 24, false, false, false);
-    initMnemMapHelper(EMnemonic::BRGE, 28, false, false, false);
-    initMnemMapHelper(EMnemonic::BRGT, 30, false, false, false);
-    initMnemMapHelper(EMnemonic::BRLE, 20, false, false, false);
-    initMnemMapHelper(EMnemonic::BRLT, 22, false, false, false);
-    initMnemMapHelper(EMnemonic::BRNE, 26, false, false, false);
-    initMnemMapHelper(EMnemonic::BRV, 32, false, false, false);
+    initMnemMapHelper(EMnemonic::CALL, 46, false, false, false);
+    initMnemMapHelper(EMnemonic::CPBA, 144, false, true, false);
+    initMnemMapHelper(EMnemonic::CPBX, 152, false, true, false);
+    initMnemMapHelper(EMnemonic::CPWA, 128, false, true, false);
+    initMnemMapHelper(EMnemonic::CPWX, 136, false, true, false);
 
-    initMnemMapHelper(EMnemonic::CALL, 36, false, false, false);
-    initMnemMapHelper(EMnemonic::CPBA, 176, false, true, false);
-    initMnemMapHelper(EMnemonic::CPBX, 184, false, true, false);
-    initMnemMapHelper(EMnemonic::CPWA, 160, false, true, false);
-    initMnemMapHelper(EMnemonic::CPWX, 168, false, true, false);
+    //initMnemMapHelper(EMnemonic::DECI, 48, false, true, true);
+    //initMnemMapHelper(EMnemonic::DECO, 56, false, true, true);
 
-    initMnemMapHelper(EMnemonic::DECI, 48, false, true, true);
-    initMnemMapHelper(EMnemonic::DECO, 56, false, true, true);
+    //initMnemMapHelper(EMnemonic::HEXO, 64, false, true, true);
 
-    initMnemMapHelper(EMnemonic::HEXO, 64, false, true, true);
-
-    initMnemMapHelper(EMnemonic::LDBA, 208, false, true, false);
-    initMnemMapHelper(EMnemonic::LDBX, 216, false, true, false);
-    initMnemMapHelper(EMnemonic::LDWA, 192, false, true, false);
-    initMnemMapHelper(EMnemonic::LDWX, 200, false, true, false);
+    initMnemMapHelper(EMnemonic::LDBA, 80, false, true, false);
+    initMnemMapHelper(EMnemonic::LDBX, 88, false, true, false);
+    initMnemMapHelper(EMnemonic::LDWT, 56, false, true, false);
+    initMnemMapHelper(EMnemonic::LDWA, 64, false, true, false);
+    initMnemMapHelper(EMnemonic::LDWX, 72, false, true, false);
 
     initMnemMapHelper(EMnemonic::MOVAFLG, 5, true, false, false);
     initMnemMapHelper(EMnemonic::MOVFLGA, 4, true, false, false);
-    initMnemMapHelper(EMnemonic::MOVSPA, 3, true, false, false);
+    initMnemMapHelper(EMnemonic::MOVSPA, 2, true, false, false);
+    initMnemMapHelper(EMnemonic::MOVASP, 3, true, false, false);
+    initMnemMapHelper(EMnemonic::MOVTPC, 6, true, false, false);
 
     //opCodeMap.insert(MOVAFLG, 5); isUnaryMap.insert(MOVAFLG, true); addrModeRequiredMap.insert(MOVAFLG, true); isTrapMap.insert(MOVAFLG, false);
     //opCodeMap.insert(MOVFLGA, 4); isUnaryMap.insert(MOVFLGA, true); addrModeRequiredMap.insert(MOVFLGA, true); isTrapMap.insert(MOVFLGA, false);
     //opCodeMap.insert(MOVSPA, 3); isUnaryMap.insert(MOVSPA, true); addrModeRequiredMap.insert(MOVSPA, true); isTrapMap.insert(MOVSPA, false);
-    initMnemMapHelper(EMnemonic::NEGA, 8, true, false, false);
-    initMnemMapHelper(EMnemonic::NEGX, 9, true, false, false);
-    initMnemMapHelper(EMnemonic::NOP, 40, false, true, true);
-    initMnemMapHelper(EMnemonic::NOP1, 39, true, false, true);
-    initMnemMapHelper(EMnemonic::NOTA, 6, true, false, false);
-    initMnemMapHelper(EMnemonic::NOTX, 7, true, false, false);
+    initMnemMapHelper(EMnemonic::NEGA, 18, true, false, false);
+    initMnemMapHelper(EMnemonic::NEGX, 19, true, false, false);
+    initMnemMapHelper(EMnemonic::NOP, 7, false, true, false);
+    //initMnemMapHelper(EMnemonic::NOP1, #, true, false, true);
+    initMnemMapHelper(EMnemonic::NOTA, 16, true, false, false);
+    initMnemMapHelper(EMnemonic::NOTX, 17, true, false, false);
 
-    initMnemMapHelper(EMnemonic::ORA, 144, false, true, false);
-    initMnemMapHelper(EMnemonic::ORX, 152, false, true, false);
+    initMnemMapHelper(EMnemonic::ORA, 208, false, true, false);
+    initMnemMapHelper(EMnemonic::ORX, 216, false, true, false);
 
-    initMnemMapHelper(EMnemonic::RET, 1, true, false, false);
-    initMnemMapHelper(EMnemonic::RETTR, 2, true, false, false);
-    initMnemMapHelper(EMnemonic::ROLA, 14, false, true, false);
-    initMnemMapHelper(EMnemonic::ROLX, 15, true, false, false);
-    initMnemMapHelper(EMnemonic::RORA, 16, true, false, false);
-    initMnemMapHelper(EMnemonic::RORX, 17, true, false, false);
+    initMnemMapHelper(EMnemonic::RET, 0, true, false, false);
+    initMnemMapHelper(EMnemonic::RETSY, 1, true, false, false);
+    initMnemMapHelper(EMnemonic::ROLA, 24, false, true, false);
+    initMnemMapHelper(EMnemonic::ROLX, 25, true, false, false);
+    initMnemMapHelper(EMnemonic::RORA, 26, true, false, false);
+    initMnemMapHelper(EMnemonic::RORX, 27, true, false, false);
 
-    initMnemMapHelper(EMnemonic::STBA, 240, false, true, false);
-    initMnemMapHelper(EMnemonic::STBX, 248, false, true, false);
-    initMnemMapHelper(EMnemonic::STWA, 224, false, true, false);
-    initMnemMapHelper(EMnemonic::STWX, 232, false, true, false);
-    initMnemMapHelper(EMnemonic::STOP, 0, true, false, false);
-    initMnemMapHelper(EMnemonic::STRO, 72, false, true, true);
-    initMnemMapHelper(EMnemonic::SUBA, 112, false, true, false);
-    initMnemMapHelper(EMnemonic::SUBX, 120, false, true, false);
-    initMnemMapHelper(EMnemonic::SUBSP, 88, false, true, false);
+    initMnemMapHelper(EMnemonic::STBA, 112, false, true, false);
+    initMnemMapHelper(EMnemonic::STBX, 120, false, true, false);
+    initMnemMapHelper(EMnemonic::STWA, 96, false, true, false);
+    initMnemMapHelper(EMnemonic::STWX, 104, false, true, false);
+    initMnemMapHelper(EMnemonic::STOP, 9, true, false, false);
+    //initMnemMapHelper(EMnemonic::STRO, #, false, true, true);
+    initMnemMapHelper(EMnemonic::SUBA, 176, false, true, false);
+    initMnemMapHelper(EMnemonic::SUBX, 184, false, true, false);
+    initMnemMapHelper(EMnemonic::SUBSP, 248, false, true, false);
+    initMnemMapHelper(EMnemonic::SYCALL, 48, false, true, true);
+
+    initMnemMapHelper(EMnemonic::USYCALL, 8, true, false, true);
+
+    initMnemMapHelper(EMnemonic::XORA, 224, false, true, false);
+    initMnemMapHelper(EMnemonic::XORX, 232, false, true, false);
 }
 
 // Map to specify legal addressing modes for each instruction
 QMap<Enu::EMnemonic, int > Pep::addrModesMap;
 void Pep::initAddrModesMap()
 {
-        constexpr int all = static_cast<int>(EAddrMode::ALL);
+    constexpr int all = static_cast<int>(EAddrMode::ALL);
     constexpr int IX = static_cast<int>(EAddrMode::I)|static_cast<int>(EAddrMode::X);
     constexpr int store = all & (~static_cast<int>(EAddrMode::I));
     // Nonunary instructions
@@ -461,6 +455,7 @@ void Pep::initAddrModesMap()
     addrModesMap.insert(EMnemonic::CPWX, all);
     addrModesMap.insert(EMnemonic::LDBA, all);
     addrModesMap.insert(EMnemonic::LDBX, all);
+    addrModesMap.insert(EMnemonic::LDWT, all);
     addrModesMap.insert(EMnemonic::LDWA, all);
     addrModesMap.insert(EMnemonic::LDWX, all);
     addrModesMap.insert(EMnemonic::ORA, all);
@@ -472,13 +467,8 @@ void Pep::initAddrModesMap()
     addrModesMap.insert(EMnemonic::SUBA, all);
     addrModesMap.insert(EMnemonic::SUBX, all);
     addrModesMap.insert(EMnemonic::SUBSP, all);
+    addrModesMap.insert(EMnemonic::SYCALL, all);
 
-    // Nonunary trap instructions
-    addrModesMap.insert(EMnemonic::NOP, defaultMnemon0AddrModes);
-    addrModesMap.insert(EMnemonic::DECI, defaultMnemon1AddrModes);
-    addrModesMap.insert(EMnemonic::DECO, defaultMnemon2AddrModes);
-    addrModesMap.insert(EMnemonic::HEXO, defaultMnemon3AddrModes);
-    addrModesMap.insert(EMnemonic::STRO, defaultMnemon4AddrModes);
 }
 
 bool Pep::isStoreMnemonic(EMnemonic mnemon)
@@ -486,8 +476,8 @@ bool Pep::isStoreMnemonic(EMnemonic mnemon)
     return mnemon == EMnemonic::STBA ||
            mnemon == EMnemonic::STBX ||
            mnemon == EMnemonic::STWA ||
-           mnemon == EMnemonic::STWX ||
-           mnemon == EMnemonic::DECI;
+           mnemon == EMnemonic::STWX;// ||
+           //mnemon == EMnemonic::DECI;
 }
 
 // Decoder tables
@@ -521,67 +511,75 @@ void initDecoderTableHelperTrap(EMnemonic val,int startIdx,int distance){
 
 void Pep::initDecoderTables()
 {
-    decodeMnemonic[0] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
-    decodeMnemonic[1] = EMnemonic::RET; decodeAddrMode[1] = EAddrMode::NONE;
-    decodeMnemonic[2] = EMnemonic::RETTR; decodeAddrMode[2] = EAddrMode::NONE;
-    decodeMnemonic[3] = EMnemonic::MOVSPA; decodeAddrMode[3] = EAddrMode::NONE;
+    decodeMnemonic[0] = EMnemonic::RET; decodeAddrMode[0] = EAddrMode::NONE;
+    decodeMnemonic[1] = EMnemonic::RETSY; decodeAddrMode[1] = EAddrMode::NONE;
+    decodeMnemonic[2] = EMnemonic::MOVSPA; decodeAddrMode[2] = EAddrMode::NONE;
+    decodeMnemonic[3] = EMnemonic::MOVASP; decodeAddrMode[3] = EAddrMode::NONE;
     decodeMnemonic[4] = EMnemonic::MOVFLGA; decodeAddrMode[4] = EAddrMode::NONE;
     decodeMnemonic[5] = EMnemonic::MOVAFLG; decodeAddrMode[5] = EAddrMode::NONE;
+    decodeMnemonic[6] = EMnemonic::MOVTPC; decodeAddrMode[6] = EAddrMode::NONE;
+    decodeMnemonic[7] = EMnemonic::NOP; decodeAddrMode[7] = EAddrMode::NONE;
+    decodeMnemonic[8] = EMnemonic::USYCALL; decodeAddrMode[8] = EAddrMode::NONE;
+    decodeMnemonic[9] = EMnemonic::STOP; decodeAddrMode[9] = EAddrMode::NONE;
+    //decodeMnemonic[10] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
+    //decodeMnemonic[11] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
+    //decodeMnemonic[12] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
+    //decodeMnemonic[13] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
+    //decodeMnemonic[14] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
+    //decodeMnemonic[15] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
+    decodeMnemonic[16] = EMnemonic::NOTA; decodeAddrMode[16] = EAddrMode::NONE;
+    decodeMnemonic[17] = EMnemonic::NOTX; decodeAddrMode[17] = EAddrMode::NONE;
+    decodeMnemonic[18] = EMnemonic::NEGA; decodeAddrMode[18] = EAddrMode::NONE;
+    decodeMnemonic[19] = EMnemonic::NEGX; decodeAddrMode[19] = EAddrMode::NONE;
+    decodeMnemonic[20] = EMnemonic::ASLA; decodeAddrMode[20] = EAddrMode::NONE;
+    decodeMnemonic[21] = EMnemonic::ASLX; decodeAddrMode[21] = EAddrMode::NONE;
+    decodeMnemonic[22] = EMnemonic::ASRA; decodeAddrMode[22] = EAddrMode::NONE;
+    decodeMnemonic[23] = EMnemonic::ASRX; decodeAddrMode[23] = EAddrMode::NONE;
+    decodeMnemonic[24] = EMnemonic::ROLA; decodeAddrMode[24] = EAddrMode::NONE;
+    decodeMnemonic[25] = EMnemonic::ROLX; decodeAddrMode[25] = EAddrMode::NONE;
+    decodeMnemonic[26] = EMnemonic::RORA; decodeAddrMode[26] = EAddrMode::NONE;
+    decodeMnemonic[27] = EMnemonic::RORX; decodeAddrMode[27] = EAddrMode::NONE;
 
-    decodeMnemonic[6] = EMnemonic::NOTA; decodeAddrMode[6] = EAddrMode::NONE;
-    decodeMnemonic[7] = EMnemonic::NOTX; decodeAddrMode[7] = EAddrMode::NONE;
-    decodeMnemonic[8] = EMnemonic::NEGA; decodeAddrMode[8] = EAddrMode::NONE;
-    decodeMnemonic[9] = EMnemonic::NEGX; decodeAddrMode[9] = EAddrMode::NONE;
-    decodeMnemonic[10] = EMnemonic::ASLA; decodeAddrMode[10] = EAddrMode::NONE;
-    decodeMnemonic[11] = EMnemonic::ASLX; decodeAddrMode[11] = EAddrMode::NONE;
-    decodeMnemonic[12] = EMnemonic::ASRA; decodeAddrMode[12] = EAddrMode::NONE;
-    decodeMnemonic[13] = EMnemonic::ASRX; decodeAddrMode[13] = EAddrMode::NONE;
-    decodeMnemonic[14] = EMnemonic::ROLA; decodeAddrMode[14] = EAddrMode::NONE;
-    decodeMnemonic[15] = EMnemonic::ROLX; decodeAddrMode[15] = EAddrMode::NONE;
-    decodeMnemonic[16] = EMnemonic::RORA; decodeAddrMode[16] = EAddrMode::NONE;
-    decodeMnemonic[17] = EMnemonic::RORX; decodeAddrMode[17] = EAddrMode::NONE;
+    initDecoderTableAHelper(EMnemonic::BR, 28);
+    initDecoderTableAHelper(EMnemonic::BRLE, 30);
+    initDecoderTableAHelper(EMnemonic::BRLT, 32);
+    initDecoderTableAHelper(EMnemonic::BREQ, 34);
+    initDecoderTableAHelper(EMnemonic::BRNE, 36);
+    initDecoderTableAHelper(EMnemonic::BRGE, 38);
+    initDecoderTableAHelper(EMnemonic::BRGT, 40);
+    initDecoderTableAHelper(EMnemonic::BRV, 42);
+    initDecoderTableAHelper(EMnemonic::BRC, 44);
+    initDecoderTableAHelper(EMnemonic::CALL, 46);
 
-    initDecoderTableAHelper(EMnemonic::BR, 18);
-    initDecoderTableAHelper(EMnemonic::BRLE, 20);
-    initDecoderTableAHelper(EMnemonic::BRLT, 22);
-    initDecoderTableAHelper(EMnemonic::BREQ, 24);
-    initDecoderTableAHelper(EMnemonic::BRNE, 26);
-    initDecoderTableAHelper(EMnemonic::BRGE, 28);
-    initDecoderTableAHelper(EMnemonic::BRGT, 30);
-    initDecoderTableAHelper(EMnemonic::BRV, 32);
-    initDecoderTableAHelper(EMnemonic::BRC, 34);
-    initDecoderTableAHelper(EMnemonic::CALL, 36);
 
-    initDecoderTableHelperTrap(EMnemonic::NOP0, 38, 1);
-    initDecoderTableHelperTrap(EMnemonic::NOP1, 39, 1);
-    initDecoderTableHelperTrap(EMnemonic::NOP, 40, 8);
-    initDecoderTableHelperTrap(EMnemonic::DECI, 48, 8);
-    initDecoderTableHelperTrap(EMnemonic::DECO, 56, 8);
-    initDecoderTableHelperTrap(EMnemonic::HEXO, 64, 8);
-    initDecoderTableHelperTrap(EMnemonic::STRO, 72, 8);
+    initDecoderTableAAAHelper(EMnemonic::SYCALL, 48);
 
-    initDecoderTableAAAHelper(EMnemonic::ADDSP, 80);
-    initDecoderTableAAAHelper(EMnemonic::SUBSP, 88);
-    initDecoderTableAAAHelper(EMnemonic::ADDA, 96);
-    initDecoderTableAAAHelper(EMnemonic::ADDX, 104);
-    initDecoderTableAAAHelper(EMnemonic::SUBA, 112);
-    initDecoderTableAAAHelper(EMnemonic::SUBX, 120);
-    initDecoderTableAAAHelper(EMnemonic::ANDA, 128);
-    initDecoderTableAAAHelper(EMnemonic::ANDX, 136);
-    initDecoderTableAAAHelper(EMnemonic::ORA, 144);
-    initDecoderTableAAAHelper(EMnemonic::ORX, 152);
-    initDecoderTableAAAHelper(EMnemonic::CPWA, 160);
-    initDecoderTableAAAHelper(EMnemonic::CPWX, 168);
-    initDecoderTableAAAHelper(EMnemonic::CPBA, 176);
-    initDecoderTableAAAHelper(EMnemonic::CPBX, 184);
-    initDecoderTableAAAHelper(EMnemonic::LDWA, 192);
-    initDecoderTableAAAHelper(EMnemonic::LDWX, 200);
-    initDecoderTableAAAHelper(EMnemonic::LDBA, 208);
-    initDecoderTableAAAHelper(EMnemonic::LDBX, 216);
-    initDecoderTableAAAHelper(EMnemonic::STWA, 224);
-    initDecoderTableAAAHelper(EMnemonic::STWX, 232);
-    initDecoderTableAAAHelper(EMnemonic::STBA, 240);
-    initDecoderTableAAAHelper(EMnemonic::STBX, 248);
+    initDecoderTableAAAHelper(EMnemonic::LDWT, 56);
+    initDecoderTableAAAHelper(EMnemonic::LDWA, 64);
+    initDecoderTableAAAHelper(EMnemonic::LDWX, 72);
+    initDecoderTableAAAHelper(EMnemonic::LDBA, 80);
+    initDecoderTableAAAHelper(EMnemonic::LDBX, 88);
+    initDecoderTableAAAHelper(EMnemonic::STWA, 96);
+    initDecoderTableAAAHelper(EMnemonic::STWX, 104);
+    initDecoderTableAAAHelper(EMnemonic::STBA, 112);
+    initDecoderTableAAAHelper(EMnemonic::STBX, 120);
+    initDecoderTableAAAHelper(EMnemonic::CPWA, 128);
+    initDecoderTableAAAHelper(EMnemonic::CPWX, 136);
+    initDecoderTableAAAHelper(EMnemonic::CPBA, 144);
+    initDecoderTableAAAHelper(EMnemonic::CPBX, 152);
+    initDecoderTableAAAHelper(EMnemonic::ADDA, 160);
+    initDecoderTableAAAHelper(EMnemonic::ADDX, 168);
+    initDecoderTableAAAHelper(EMnemonic::SUBA, 176);
+    initDecoderTableAAAHelper(EMnemonic::SUBX, 184);
+    initDecoderTableAAAHelper(EMnemonic::ANDA, 192);
+    initDecoderTableAAAHelper(EMnemonic::ANDX, 200);
+    initDecoderTableAAAHelper(EMnemonic::ORA, 208);
+    initDecoderTableAAAHelper(EMnemonic::ORX, 216);
+    initDecoderTableAAAHelper(EMnemonic::XORA, 124);
+    initDecoderTableAAAHelper(EMnemonic::XORX, 232);
+    initDecoderTableAAAHelper(EMnemonic::ADDSP, 240);
+    initDecoderTableAAAHelper(EMnemonic::SUBSP, 248);
+
 }
 
 QMap<Enu::EMnemonic, QString> Pep::defaultEnumToMicrocodeInstrSymbol;
@@ -605,13 +603,13 @@ void Pep::initMicroDecoderTables()
         defaultEnumToMicrocodeInstrSymbol.insert(tempi, tempqs);
     }
 
-    defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::NOP0, defaultUnaryMnemonic0);
+    /*defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::NOP0, defaultUnaryMnemonic0);
     defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::NOP1, "opcode27");
     defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::NOP,  "opcode28");
     defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::DECI, "opcode30");
     defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::DECO, "opcode38");
     defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::HEXO, "opcode40");
-    defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::STRO, "opcode48");
+    defaultEnumToMicrocodeInstrSymbol.insert(EMnemonic::STRO, "opcode48");*/
 
     // Initialize symbols for addressing modes
     defaultEnumToMicrocodeAddrSymbol.clear();

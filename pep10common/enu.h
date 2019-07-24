@@ -36,9 +36,10 @@ namespace Enu {
     {
         // Two byte registers
         // Present in any version of Pep/9
-        A = 0, X = 2, SP = 4, PC = 6, OS = 9,
+        A = 0, X = 2, SP = 4, PC = 6, OS = 11,
+        T = 8,
         // Present in any derivative of Pep9CPU
-        T2 = 12, T3 = 14,
+        T3 = 14,
         T4 = 16, T5 = 18, T6 = 20, M1 = 22, M2 = 24, M3 = 26,
         M4 = 28, M5 = 30,
         // "Fictitious" registers for Pep9micro
@@ -46,9 +47,9 @@ namespace Enu {
 
         // One byte registers
         // Present in any version of Pep/9
-        IS=8,
+        IS=10,
         // Present in any derivative of Pep9CPU
-        T1=11
+        T1=13
     };
 
     enum class BreakpointTypes: int
@@ -80,7 +81,7 @@ namespace Enu {
     /*
      * Enumerations for Pep9
      */
-    enum class EMnemonic: int
+    /*enum class EMnemonic: int
     {
         ADDA, ADDX, ADDSP, ANDA, ANDX, ASLA, ASLX, ASRA, ASRX,
         BR, BRC, BREQ, BRGE, BRGT, BRLE, BRLT, BRNE, BRV,
@@ -94,7 +95,30 @@ namespace Enu {
         RET, RETTR, ROLA, ROLX, RORA, RORX,
         STBA, STBX, STWA, STWX, STOP, STRO, SUBA, SUBX, SUBSP
 
-    };
+    };*/
+    /*
+     * Enumerations for Pep10
+     */
+    enum class EMnemonic: int
+        {
+            RET, RETSY,
+            MOVSPA, MOVASP, MOVFLGA, MOVAFLG, MOVTPC,
+            NOP,
+            USYCALL,
+            // FAULTS
+            NOTA, NOTX, NEGA, NEGX,
+            ASLA, ASLX, ASRA, ASRX,
+            ROLA, ROLX, RORA, RORX,
+            STOP, // Temporary hiding in faulted space.
+            BR, BRLE, BRLT, BREQ, BRNE, BRGE, BRGT, BRV, BRC,
+            CALL, SYCALL,
+            LDWT, LDWA, LDWX, LDBA, LDBX,
+            STWA, STWX, STBA, STBX,
+            CPWA, CPWX, CPBA, CPBX,
+            ADDA, ADDX, SUBA, SUBX,
+            ANDA, ANDX, ORA, ORX, XORA, XORX,
+            ADDSP, SUBSP
+        };
     Q_ENUM_NS(EMnemonic);
 
     // Addressing modes for instructions
@@ -197,7 +221,7 @@ namespace Enu {
 
     enum ECPUKeywords {
         Pre, Post,
-        Mem, Acc, X, SP, PC, IR,
+        Mem, Acc, X, SP, PC, IR, Trap,
         T1, T2, T3, T4, T5, T6,
         N, Z, V,Cbit, S,
         MARAREG, MARBREG,

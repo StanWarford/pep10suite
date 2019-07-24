@@ -1001,10 +1001,11 @@ void CpuPane::onSimulationUpdate()
     setRegister(Enu::X, dataSection->getRegisterBankWord(CPURegisters::X));
     setRegister(Enu::SP, dataSection->getRegisterBankWord(CPURegisters::SP));
     setRegister(Enu::PC, dataSection->getRegisterBankWord(CPURegisters::PC));
+    setRegister(Enu::Trap, dataSection->getRegisterBankWord(CPURegisters::T));
     setRegister(Enu::IR, static_cast<int>(dataSection->getRegisterBankByte(CPURegisters::IS)<<16) +
                 dataSection->getRegisterBankWord(CPURegisters::OS));
     setRegister(Enu::T1, dataSection->getRegisterBankByte(CPURegisters::T1));
-    setRegister(Enu::T2, dataSection->getRegisterBankWord(CPURegisters::T2));
+    // There is currently no T2
     setRegister(Enu::T3, dataSection->getRegisterBankWord(CPURegisters::T3));
     setRegister(Enu::T4, dataSection->getRegisterBankWord(CPURegisters::T4));
     setRegister(Enu::T5, dataSection->getRegisterBankWord(CPURegisters::T5));

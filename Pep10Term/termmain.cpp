@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 {
     // Initialize global state maps.
     Pep::initEnumMnemonMaps();
-    Pep::initMnemonicMaps(true);
+    Pep::initMnemonicMaps();
     Pep::initAddrModesMap();
     Pep::initDecoderTables();
 

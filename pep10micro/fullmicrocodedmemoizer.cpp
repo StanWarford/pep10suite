@@ -63,7 +63,7 @@ QString FullMicrocodedMemoizer::memoize()
     if(Pep::isTrapMap[Pep::decodeMnemonic[ir]]) {
         build += generateTrapFrame(state);
     }
-    else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::RETTR) {
+    else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::RETSY) {
         build += generateTrapFrame(state,false);
     }
     else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::CALL) {
