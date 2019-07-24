@@ -46,7 +46,18 @@ std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance> > Mod
         return {nullptr, nullptr};
     }
     QSharedPointer<ModulePrototype> rootPrototype = QSharedPointer<ModulePrototype>::create();
-    rootPrototype->name = "@@main@@";
+    switch(type) {
+    case ModuleType::USER_PROGRAM:
+        rootPrototype->name = "@@main@@";
+        break;
+    case ModuleType::OPERATING_SYSTEM:
+        rootPrototype->name = "@@op_sys@@";
+        break;
+    // Root module most be OS or a user program.
+    default:
+        return {nullptr, nullptr};
+
+    }
     rootPrototype->text = text;
     rootPrototype->index = ModuleAssemblyGraph::defaultRootIndex;
     rootPrototype->textLines = text.split("\n");
