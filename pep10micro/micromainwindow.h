@@ -45,7 +45,6 @@ class MicrocodePane;
 class MicroObjectCodePane;
 class CPUDataSection;
 class UpdateChecker;
-class RedefineMnemonicsDialog;
 
 /*
  * The set of possible states for the debugger.
@@ -92,7 +91,6 @@ private:
     // Dialogues
     MicroHelpDialog *helpDialog;
     AboutPep *aboutPepDialog;
-    RedefineMnemonicsDialog *redefineMnemonicsDialog;
     DecoderTableDialog *decoderTableDialog;
 
     AsmProgramManager* programManager;
@@ -222,11 +220,7 @@ private slots:
     void on_actionSystem_Clear_Memory_triggered();
     void on_actionSystem_Assemble_Install_New_OS_triggered();
     void on_actionSystem_Reinstall_Default_OS_triggered();
-    void on_actionSystem_Redefine_Mnemonics_triggered();
     void on_actionSystem_Redefine_Decoder_Tables_triggered();
-    // Allow main window to update highlighting rules after
-    // changes to the mnemonics have been finished.
-    void redefine_Mnemonics_closed();
 
     // View
     void onDarkModeChanged();

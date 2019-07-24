@@ -68,17 +68,19 @@
 #include "microcodeprogram.h"
 #include "microobjectcodepane.h"
 #include "updatechecker.h"
-#include "redefinemnemonicsdialog.h"
 #include "registerfile.h"
 #include "symboltable.h"
 
 MicroMainWindow::MicroMainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MicroMainWindow), debugState(DebugState::DISABLED), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
+    ui(new Ui::MicroMainWindow), debugState(DebugState::DISABLED),
+    codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
     updateChecker(new UpdateChecker()), isInDarkMode(false),
-    memDevice(new MainMemory(nullptr)), controlSection(new FullMicrocodedCPU(AsmProgramManager::getInstance(), memDevice)),
-    dataSection(controlSection->getDataSection()), redefineMnemonicsDialog(new RedefineMnemonicsDialog(this)),
-    decoderTableDialog(new DecoderTableDialog(nullptr)), programManager(AsmProgramManager::getInstance())
+    memDevice(new MainMemory(nullptr)),
+    controlSection(new FullMicrocodedCPU(AsmProgramManager::getInstance(), memDevice)),
+    dataSection(controlSection->getDataSection()),
+    decoderTableDialog(new DecoderTableDialog(nullptr)),
+    programManager(AsmProgramManager::getInstance())
 
 {
     // Initialize the memory subsystem
@@ -99,7 +101,6 @@ MicroMainWindow::MicroMainWindow(QWidget *parent) :
     ui->asmProgramTracePane->init(controlSection, programManager);
     ui->microcodeWidget->init(controlSection, dataSection, memDevice, true);
     ui->microObjectCodePane->init(controlSection, true);
-    redefineMnemonicsDialog->init(false);
     ui->executionStatisticsWidget->init(controlSection, true);
 
     // Create & connect all dialogs.
@@ -114,7 +115,6 @@ MicroMainWindow::MicroMainWindow(QWidget *parent) :
     QPixmap pixmap("://images/Pep9micro-icon.png");
     aboutPepDialog = new AboutPep(text, pixmap, this);
 
-    connect(redefineMnemonicsDialog, &RedefineMnemonicsDialog::closed, this, &MicroMainWindow::redefine_Mnemonics_closed);
     // Byte converter setup.
     byteConverterDec = new ByteConverterDec(this);
     ui->byteConverterToolBar->addWidget(byteConverterDec);
@@ -1010,14 +1010,6 @@ void MicroMainWindow::debugButtonEnableHelper(const int which)
     ui->actionSystem_Assemble_Install_New_OS->setEnabled(which & DebugButtons::INSTALL_OS);
     ui->actionSystem_Redefine_Decoder_Tables->setEnabled(which & DebugButtons::INSTALL_OS);
 
-    // If the user starts simulating while the redefine mnemonics dialog is open,
-    // force it to close so that the user can't change any mnemonics at runtime.
-    // Also explictly call redefine_Mnemonics_closed(), since QDialog::closed is
-    // not emitted when QDialog::hide() is invoked.
-    if(!(which & DebugButtons::INSTALL_OS) && redefineMnemonicsDialog->isVisible()) {
-        redefineMnemonicsDialog->hide();
-        redefine_Mnemonics_closed();
-    }
     // If the table to redefine decoder entries is visible, and one is unable to build microcode
     // (i.e. the simulation is running), then make sure the dialog is hidden.
     // It would be dangerous to allow microcode menmonics to be modified as a simulation is ongoing.
@@ -1731,21 +1723,9 @@ void MicroMainWindow::on_actionSystem_Reinstall_Default_OS_triggered()
     ui->memoryWidget->refreshMemory();
 }
 
-void MicroMainWindow::on_actionSystem_Redefine_Mnemonics_triggered()
-{
-    redefineMnemonicsDialog->show();
-}
-
 void MicroMainWindow::on_actionSystem_Redefine_Decoder_Tables_triggered()
 {
     decoderTableDialog->show();
-}
-
-void MicroMainWindow::redefine_Mnemonics_closed()
-{
-    // Propogate ASM-level instruction definition changes across the application.
-    ui->assemblerPane->rebuildHighlightingRules();
-    ui->asmProgramTracePane->rebuildHighlightingRules();
 }
 
 void MicroMainWindow::onSimulationFinished()

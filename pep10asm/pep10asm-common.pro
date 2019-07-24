@@ -45,7 +45,6 @@ HEADERS += \
     setops.hpp \
     typetags.h \
     stacktrace.h \
-    redefinemnemonicsdialog.h \
     asmcpupane.h \
     isacpu.h \
     isacpumemoizer.h \
@@ -79,7 +78,6 @@ SOURCES += \
     pepasmhighlighter.cpp \
     typetags.cpp \
     stacktrace.cpp \
-    redefinemnemonicsdialog.cpp \
     asmcpupane.cpp \
     isacpu.cpp \
     isacpumemoizer.cpp \

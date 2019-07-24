@@ -61,7 +61,6 @@
 #include "memorychips.h"
 #include "memorydumppane.h"
 #include "updatechecker.h"
-#include "redefinemnemonicsdialog.h"
 #include "registerfile.h"
 #include "symboltable.h"
 
@@ -70,7 +69,7 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     ui(new Ui::AsmMainWindow), debugState(DebugState::DISABLED), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
     updateChecker(new UpdateChecker()), isInDarkMode(false),
     memDevice(new MainMemory(nullptr)), controlSection(new IsaCpu(AsmProgramManager::getInstance(), memDevice)),
-    redefineMnemonicsDialog(new RedefineMnemonicsDialog(this)),programManager(AsmProgramManager::getInstance())
+    programManager(AsmProgramManager::getInstance())
 
 {
     // Initialize the memory subsystem
@@ -91,7 +90,6 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     ui->assemblerPane->init(programManager);
     ui->asmProgramTracePane->init(controlSection, programManager);
     ui->asmCpuPane->init(controlSection, controlSection);
-    redefineMnemonicsDialog->init(true);
 
     // Create & connect all dialogs.
     helpDialog = new AsmHelpDialog(this);
@@ -105,7 +103,6 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     QPixmap pixmap("://images/Pep9-icon.png");
     aboutPepDialog = new AboutPep(text, pixmap, this);
 
-    connect(redefineMnemonicsDialog, &RedefineMnemonicsDialog::closed, this, &AsmMainWindow::redefine_Mnemonics_closed);
     // Byte converter setup.
     byteConverterDec = new ByteConverterDec(this);
     ui->byteConverterToolBar->addWidget(byteConverterDec);
@@ -866,15 +863,6 @@ void AsmMainWindow::debugButtonEnableHelper(const int which)
     ui->actionSystem_Redefine_Mnemonics->setEnabled(which & DebugButtons::INSTALL_OS);
     ui->actionSystem_Reinstall_Default_OS->setEnabled(which & DebugButtons::INSTALL_OS);
     ui->actionSystem_Assemble_Install_New_OS->setEnabled(which & DebugButtons::INSTALL_OS);
-
-    // If the user starts simulating while the redefine mnemonics dialog is open,
-    // force it to close so that the user can't change any mnemonics at runtime.
-    // Also explictly call redefine_Mnemonics_closed(), since QDialog::closed is
-    // not emitted when QDialog::hide() is invoked.
-    if(!(which & DebugButtons::INSTALL_OS) && redefineMnemonicsDialog->isVisible()) {
-        redefineMnemonicsDialog->hide();
-        redefine_Mnemonics_closed();
-    }
 }
 
 void AsmMainWindow::highlightActiveLines()
@@ -1444,18 +1432,6 @@ void AsmMainWindow::on_actionSystem_Reinstall_Default_OS_triggered()
     assembleDefaultOperatingSystem();
     loadOperatingSystem();
     ui->memoryWidget->refreshMemory();
-}
-
-void AsmMainWindow::on_actionSystem_Redefine_Mnemonics_triggered()
-{
-    redefineMnemonicsDialog->show();
-}
-
-void AsmMainWindow::redefine_Mnemonics_closed()
-{
-    // Propogate ASM-level instruction definition changes across the application.
-    ui->assemblerPane->rebuildHighlightingRules();
-    ui->asmProgramTracePane->rebuildHighlightingRules();
 }
 
 void AsmMainWindow::onSimulationFinished()
