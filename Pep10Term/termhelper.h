@@ -23,6 +23,7 @@
 #define TERMHELPER_H
 #include <QtCore>
 #include <QRunnable>
+#include "macroregistry.h"
 
 extern const QString errLogOpenErr;
 extern const QString hadErr;
@@ -34,7 +35,7 @@ class BoundExecIsaCpu;
 
 // Assemble the default operating system for the help documentation,
 // and install it into the program manager.
-void buildDefaultOperatingSystem(AsmProgramManager& manager);
+void buildDefaultOperatingSystem(AsmProgramManager& manager, MacroRegistry* registry);
 
 /*
  * This class is responsible for executing a single assembly language program.
@@ -134,12 +135,14 @@ class BuildHelper: public QObject, public QRunnable {
     const QString source;
     QFileInfo objFileInfo;
     AsmProgramManager& manager;
+    MacroRegistry* registry;
     // Helper method responsible for triggering program assembly.
     bool buildProgram();
 
 public:
     explicit BuildHelper(const QString source, QFileInfo objFileInfo, AsmProgramManager& manager,
-                        QObject *parent = nullptr);
+                         MacroRegistry* registry,
+                         QObject *parent = nullptr);
     ~BuildHelper() override;
 
 

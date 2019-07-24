@@ -19,19 +19,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "termhelper.h"
-#include "isaasm.h"
-#include "pep.h"
+#include "amemorychip.h"
+#include "amemorydevice.h"
 #include "asmprogrammanager.h"
 #include "asmprogram.h"
 #include "asmcode.h"
+#include "boundexecisacpu.h"
 #include "isacpu.h"
-#include "amemorydevice.h"
+#include "pep.h"
 #include "symboltable.h"
 #include "symbolentry.h"
-#include "memorychips.h"
-#include "amemorychip.h"
+#include "macroassemblerdriver.h"
 #include "mainmemory.h"
-#include "boundexecisacpu.h"
+#include "memorychips.h"
 
 // Error messages potentially used in multiple places;
 const QString errLogOpenErr = "Could not open file: %1";
@@ -55,16 +55,17 @@ QVector<quint8> convertObjectCodeToIntArray(QString program)
     return output;
 }
 
-void buildDefaultOperatingSystem(AsmProgramManager &manager)
+void buildDefaultOperatingSystem(AsmProgramManager &manager, MacroRegistry *registry)
 {
     // Need to assemble operating system.
-    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep9os.pep", false);
+    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
     // If there is text, attempt to assemble it
     if(!defaultOSText.isEmpty()) {
         QSharedPointer<AsmProgram> prog;
         auto elist = QList<QPair<int, QString>>();
-        IsaAsm assembler(manager);
-        if(assembler.assembleOperatingSystem(defaultOSText, true, prog, elist)) {
+        MacroAssemblerDriver assembler(registry);
+        prog = assembler.assembleOperatingSystem(defaultOSText);
+        if(!prog.isNull()) {
             manager.setOperatingSystem(prog);
         }
         // If the operating system failed to assembly, we can't progress any further.
@@ -248,8 +249,10 @@ void RunHelper::run()
 }
 
 BuildHelper::BuildHelper(const QString source, QFileInfo objFileInfo,
-                         AsmProgramManager &manager, QObject *parent): QObject(parent),
-    QRunnable(), source(source), objFileInfo(objFileInfo), manager(manager)
+                         AsmProgramManager &manager, MacroRegistry* registry,
+                         QObject *parent): QObject(parent),
+    QRunnable(), source(source), objFileInfo(objFileInfo),
+    manager(manager), registry(registry)
 {
 
 }
@@ -279,9 +282,30 @@ bool BuildHelper::buildProgram()
                        QFileInfo(objectFile).baseName() + "_errLog.txt"));
     QSharedPointer<AsmProgram> program;
     auto elist = QList<QPair<int, QString> >();
-    IsaAsm assmembler(manager);
+#pragma message("Remove dummy macros")
+    registry->registerCustomMacro("asla6", "@asla6 0\n@asla5\nasla\n.END\n");
+    registry->registerCustomMacro("asla7", "@asla7 0\n@asla6\nasla\n.END\n");
+    registry->registerCustomMacro("DIVA", "@DIVA 2\nLDWX $1,$2\nCPWX 0,i\n@asla2\n.END\n");
+    // Trigger loop detection
+    registry->registerCustomMacro("LOOPA", "@LOOPA 0\n@LOOPB\n.END\n");
+    registry->registerCustomMacro("LOOPB", "@LOOPB 0\n@LOOPA\n.END\n");
+
+    // Angry diamond
+    registry->registerCustomMacro("L1A", "@L1A 0\n@L1B\n@L2\n.END\n");
+    registry->registerCustomMacro("L1B", "@L1B 0\n@L2\n.END\n");
+    registry->registerCustomMacro("L2",  "@L2 0\n@asla7\n@L3\n.END\n");
+    // Angry diamond
+    registry->registerCustomMacro("L3", "@L3 0\n@L4A\n@L4B\n@L4C\n.END\n");
+    registry->registerCustomMacro("L4A", "@L4A 0\n@L4B\n@L4C\n.END\n");
+    registry->registerCustomMacro("L4B", "@L4B 0\n@L4C\n@DIVA l,sfx\n.END\n");
+    // Works normally.
+    registry->registerCustomMacro("L4C", "@L4C 0\n@DIVA k,d\n.END\n");
+
+    MacroAssemblerDriver assembler(registry);
+    QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
+    auto osResult = assembler.assembleOperatingSystem(osText);
     // Returns true if object code is successfully generated (i.e. program is non-null).
-    bool success = assmembler.assembleUserProgram(source, program, elist);
+    program = assembler.assembleUserProgram(source, osResult->getSymbolTable());
 
     // If there were errors, attempt to write all of them to the error file.
     // If the error file can't be opened, log that failure to standard output.
@@ -301,7 +325,7 @@ bool BuildHelper::buildProgram()
     }
 
     // Only open & write object code file if assembly was successful.
-    if(success) {
+    if(true /*success*/) {
         // Program assembly can succeed despite the presence of errors in the
         // case of trace tag warnings. Must gaurd against this.
         if(elist.isEmpty()) {
@@ -345,5 +369,5 @@ bool BuildHelper::buildProgram()
     else {
         qDebug() << "Error(s) generated. See error log.";
     }
-    return success;
+    return true /*success*/;
 }

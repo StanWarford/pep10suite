@@ -120,10 +120,10 @@ Run pep9term 'mode' --help for more options.");
     // Task that will be
     QRunnable *run = nullptr;
     QThreadPool pool;
-    MacroRegistry registry("");
+    MacroRegistry *registry = new MacroRegistry("");
     // Assembly the default operating system from this thread, so that
     // no worker threads have to check for the presence of an operating system.
-    buildDefaultOperatingSystem(*AsmProgramManager::getInstance());
+    buildDefaultOperatingSystem(*AsmProgramManager::getInstance(), registry);
 
     if (command == "asm") {
         // Needs both an input and output source to be a well-defined command.
@@ -147,7 +147,7 @@ Run pep9term 'mode' --help for more options.");
             sourceText = sourceStream.readAll();
             sourceFile.close();
 
-            BuildHelper *helper = new BuildHelper(sourceText, objectFileString, *AsmProgramManager::getInstance());
+            BuildHelper *helper = new BuildHelper(sourceText, objectFileString, *AsmProgramManager::getInstance(), registry);
             QObject::connect(helper, &BuildHelper::finished, &a, &QCoreApplication::quit);
 
             run = helper;
@@ -192,15 +192,15 @@ Run pep9term 'mode' --help for more options.");
     else if(command == "macros") {
         QStringList macroNames;
         macroNames << "Builtins:";
-        for(auto builtin : registry.getCoreMacros()) {
+        for(auto builtin : registry->getCoreMacros()) {
             macroNames << QString("\t%1").arg(builtin->macroName);
         }
         macroNames << "Syscalls:";
-        for(auto syscall : registry.getSytemCalls()) {
+        for(auto syscall : registry->getSytemCalls()) {
             macroNames << QString("\t%1").arg(syscall->macroName);
         }
         macroNames << "User Defined Macros:";
-        for(auto udm : registry.getCustomMacros()) {
+        for(auto udm : registry->getCustomMacros()) {
             macroNames << QString("\t%1").arg(udm->macroName);
         }
         qDebug().noquote().nospace() << "Available Macros\n" << macroNames.join("\n");
@@ -212,11 +212,11 @@ Run pep9term 'mode' --help for more options.");
             parser.showHelp(-1);
         }
         QString macroName = parser.value("n");
-        if(!registry.hasMacro(macroName)) {
+        if(!registry->hasMacro(macroName)) {
             qDebug() << "No such macro.";
             return 0;
         }
-        qDebug().noquote() << registry.getMacro(macroName)->macroText;
+        qDebug().noquote() << registry->getMacro(macroName)->macroText;
         return 0;
     }
     else {
