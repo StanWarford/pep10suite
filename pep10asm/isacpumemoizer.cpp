@@ -60,8 +60,6 @@ QString IsaCpuMemoizer::memoize()
             formatInstr(symTable, file.getIRCache(), file.readRegisterWordCurrent(Enu::CPURegisters::OS));
     build += "  " + AX;
     build += NZVC;
-    build += "  " + AX;
-    build += NZVC;
     ir = file.getIRCache();
     if(Pep::isTrapMap[Pep::decodeMnemonic[ir]]) {
         build += generateTrapFrame(state);
