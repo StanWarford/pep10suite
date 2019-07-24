@@ -144,7 +144,7 @@ void IsaCpu::onISAStep()
     emit asmInstructionFinished();
     asmInstructionCounter++;
 
-    // qDebug().noquote().nospace() << memoizer->memoize();
+    qDebug().noquote().nospace() << memoizer->memoize();
 
     registerBank.flattenFile();
 
