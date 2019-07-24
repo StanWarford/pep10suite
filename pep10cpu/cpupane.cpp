@@ -229,6 +229,11 @@ void CpuPane::setRegister(Enu::ECPUKeywords reg, int value)
     case Enu::PC:
         cpuPaneItems->pcRegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
         break;
+    case Enu::Trap:
+        #pragma message("Must create real register line editor for Trap.")
+        // Use t6 register for the moment.
+        cpuPaneItems->t6RegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
+        break;
     case Enu::IR:
         cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(value, 6, 16, QLatin1Char('0')).toUpper());
         break;
@@ -247,9 +252,10 @@ void CpuPane::setRegister(Enu::ECPUKeywords reg, int value)
     case Enu::T5:
         cpuPaneItems->t5RegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
         break;
-    case Enu::T6:
+    /*case Enu::T6:
+        // T6 register no longer exists.
         cpuPaneItems->t6RegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
-        break;
+        break;*/
     case Enu::MARAREG:
         cpuPaneItems->MARALabel->setText("0x" + QString("%1").arg(value, 2, 16, QLatin1Char('0')).toUpper());
         break;
@@ -399,13 +405,14 @@ void CpuPane::clearCpu()
     setRegister(Enu::X, 0);
     setRegister(Enu::SP, 0);
     setRegister(Enu::PC, 0);
+    setRegister(Enu::Trap, 0);
     setRegister(Enu::IR, 0);
     setRegister(Enu::T1, 0);
     setRegister(Enu::T2, 0);
     setRegister(Enu::T3, 0);
     setRegister(Enu::T4, 0);
     setRegister(Enu::T5, 0);
-    setRegister(Enu::T6, 0);
+    //setRegister(Enu::T6, 0);
 
     setRegister(Enu::MARAREG, 0);
     setRegister(Enu::MARBREG, 0);
@@ -1001,15 +1008,15 @@ void CpuPane::onSimulationUpdate()
     setRegister(Enu::X, dataSection->getRegisterBankWord(CPURegisters::X));
     setRegister(Enu::SP, dataSection->getRegisterBankWord(CPURegisters::SP));
     setRegister(Enu::PC, dataSection->getRegisterBankWord(CPURegisters::PC));
-    setRegister(Enu::Trap, dataSection->getRegisterBankWord(CPURegisters::T));
+    setRegister(Enu::Trap, dataSection->getRegisterBankWord(CPURegisters::TR));
     setRegister(Enu::IR, static_cast<int>(dataSection->getRegisterBankByte(CPURegisters::IS)<<16) +
                 dataSection->getRegisterBankWord(CPURegisters::OS));
     setRegister(Enu::T1, dataSection->getRegisterBankByte(CPURegisters::T1));
-    // There is currently no T2
+    setRegister(Enu::T2, dataSection->getRegisterBankWord(CPURegisters::T2));
     setRegister(Enu::T3, dataSection->getRegisterBankWord(CPURegisters::T3));
     setRegister(Enu::T4, dataSection->getRegisterBankWord(CPURegisters::T4));
     setRegister(Enu::T5, dataSection->getRegisterBankWord(CPURegisters::T5));
-    setRegister(Enu::T6, dataSection->getRegisterBankWord(CPURegisters::T6));
+    // setRegister(Enu::T6, dataSection->getRegisterBankWord(CPURegisters::T6));
     setRegister(Enu::MARAREG, dataSection->getMemoryRegister(Enu::MEM_MARA));
     setRegister(Enu::MARBREG, dataSection->getMemoryRegister(Enu::MEM_MARB));
     setRegister(Enu::MDRREG, dataSection->getMemoryRegister(Enu::MEM_MDR));

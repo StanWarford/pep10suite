@@ -659,7 +659,7 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
 
     case Enu::EMnemonic::MOVTPC:
         // Move contents of trap register to PC.
-        temp = registerBank.readRegisterWordCurrent(Enu::CPURegisters::T);
+        temp = registerBank.readRegisterWordCurrent(Enu::CPURegisters::TR);
         registerBank.writeRegisterWord(Enu::CPURegisters::PC, temp);
         break;
 
@@ -1082,7 +1082,7 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
 
     case Enu::EMnemonic::LDWT:
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
-        registerBank.writeRegisterWord(Enu::CPURegisters::T, tempWord);
+        registerBank.writeRegisterWord(Enu::CPURegisters::TR, tempWord);
         // Is negative if high order bit is 1.
         registerBank.writeStatusBit(Enu::EStatusBit::STATUS_N, tempWord & 0x8000);
          // Is zero if all bits are 0's.

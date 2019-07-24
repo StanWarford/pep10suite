@@ -37,10 +37,10 @@ namespace Enu {
         // Two byte registers
         // Present in any version of Pep/9
         A = 0, X = 2, SP = 4, PC = 6, OS = 11,
-        T = 8,
+        TR = 8,
         // Present in any derivative of Pep9CPU
-        T3 = 14,
-        T4 = 16, T5 = 18, T6 = 20, M1 = 22, M2 = 24, M3 = 26,
+        T2 = 14,
+        T3 = 16, T4 = 18, T5 = 20, M1 = 22, M2 = 24, M3 = 26,
         M4 = 28, M5 = 30,
         // "Fictitious" registers for Pep9micro
         MicroProgramCounter = 128,
@@ -222,7 +222,7 @@ namespace Enu {
     enum ECPUKeywords {
         Pre, Post,
         Mem, Acc, X, SP, PC, IR, Trap,
-        T1, T2, T3, T4, T5, T6,
+        T1, T2, T3, T4, T5,
         N, Z, V,Cbit, S,
         MARAREG, MARBREG,
         MDRREG, MDREREG, MDROREG

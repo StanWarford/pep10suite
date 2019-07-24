@@ -195,14 +195,14 @@ void Pep::initMicroEnumMnemonMaps(CPUType cpuType, bool fullCtrlSection)
     regSpecToMnemonMap.insert(X, "X");                  mnemonToRegSpecMap.insert("X", X);
     regSpecToMnemonMap.insert(SP, "SP");                mnemonToRegSpecMap.insert("SP", SP);
     regSpecToMnemonMap.insert(PC, "PC");                mnemonToRegSpecMap.insert("PC", PC);
-    regSpecToMnemonMap.insert(Trap, "T");                mnemonToRegSpecMap.insert("T", Trap);
+    regSpecToMnemonMap.insert(Trap, "TR");                mnemonToRegSpecMap.insert("TR", Trap);
     regSpecToMnemonMap.insert(IR, "IR");                mnemonToRegSpecMap.insert("IR", IR);
     regSpecToMnemonMap.insert(T1, "T1");                mnemonToRegSpecMap.insert("T1", T1);
     regSpecToMnemonMap.insert(T2, "T2");                mnemonToRegSpecMap.insert("T2", T2);
     regSpecToMnemonMap.insert(T3, "T3");                mnemonToRegSpecMap.insert("T3", T3);
     regSpecToMnemonMap.insert(T4, "T4");                mnemonToRegSpecMap.insert("T4", T4);
     regSpecToMnemonMap.insert(T5, "T5");                mnemonToRegSpecMap.insert("T5", T5);
-    regSpecToMnemonMap.insert(T6, "T6");                mnemonToRegSpecMap.insert("T6", T6);
+    //regSpecToMnemonMap.insert(T6, "T6");                mnemonToRegSpecMap.insert("T6", T6);
     regSpecToMnemonMap.insert(MARAREG, "MARA");         mnemonToRegSpecMap.insert("MARA", MARAREG);
     regSpecToMnemonMap.insert(MARBREG, "MARB");         mnemonToRegSpecMap.insert("MARB", MARBREG);
     regSpecToMnemonMap.insert(MDRREG, "MDR");           mnemonToRegSpecMap.insert("MDR", MDRREG);

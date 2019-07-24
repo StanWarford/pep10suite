@@ -116,9 +116,13 @@ void RegSpecification::setUnitPre(CPUDataSection *data) noexcept
     case Enu::T5:
         data->onSetRegisterWord(18, static_cast<quint16>(regValue));
         break;
-    case Enu::T6:
+    case Enu::Trap:
+        // Temporary for trap.
         data->onSetRegisterWord(20, static_cast<quint16>(regValue));
         break;
+    /*case Enu::T6:
+        data->onSetRegisterWord(20, static_cast<quint16>(regValue));
+        break;*/
     case Enu::MARAREG:
         data->onSetMemoryRegister(Enu::MEM_MARA, static_cast<quint8>(regValue));
         break;
@@ -174,9 +178,12 @@ bool RegSpecification::testUnitPost(const CPUDataSection *data, QString &errorSt
     case Enu::T5:
         reg = 18;
         break;
-    case Enu::T6:
+    case Enu::Trap:
         reg = 20;
         break;
+    /*case Enu::T6:
+        reg = 20;
+        break;*/
     default: return true; //Should never occur, microassembler should only allow for actual registers to be referenced.
     }
 
@@ -186,13 +193,14 @@ bool RegSpecification::testUnitPost(const CPUDataSection *data, QString &errorSt
     case Enu::X: errorString = "// ERROR: Unit test failed for register X."; return false;
     case Enu::SP: errorString = "// ERROR: Unit test failed for register SP."; return false;
     case Enu::PC: errorString = "// ERROR: Unit test failed for register PC."; return false;
+    case Enu::Trap: errorString = "// ERROR: Unit test failed for register TR."; return false;
     case Enu::IR: errorString = "// ERROR: Unit test failed for register IR."; return false;
     case Enu::T1: errorString = "// ERROR: Unit test failed for register T1."; return false;
     case Enu::T2: errorString = "// ERROR: Unit test failed for register T2."; return false;
     case Enu::T3: errorString = "// ERROR: Unit test failed for register T3."; return false;
     case Enu::T4: errorString = "// ERROR: Unit test failed for register T4."; return false;
     case Enu::T5: errorString = "// ERROR: Unit test failed for register T5."; return false;
-    case Enu::T6: errorString = "// ERROR: Unit test failed for register T6."; return false;
+    //case Enu::T6: errorString = "// ERROR: Unit test failed for register T6."; return false;case Enu::T6: errorString = "// ERROR: Unit test failed for register T6."; return false;
     case Enu::MARAREG: errorString = "// ERROR: Unit test failed for MARA."; return false;
     case Enu::MARBREG: errorString = "// ERROR: Unit test failed for MARB."; return false;
     case Enu::MDRREG: errorString = "// ERROR: Unit test failed for MDR."; return false;
@@ -206,13 +214,14 @@ QString RegSpecification::getSourceCode() const noexcept {
     case Enu::X: return "X=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::SP: return "SP=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::PC: return "PC=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
+    case Enu::Trap: return "TR=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::IR: return "IR=0x" + QString("%1").arg(regValue, 6, 16, QLatin1Char('0')).toUpper();
     case Enu::T1: return "T1=0x" + QString("%1").arg(regValue, 2, 16, QLatin1Char('0')).toUpper();
     case Enu::T2: return "T2=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::T3: return "T3=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::T4: return "T4=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::T5: return "T5=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
-    case Enu::T6: return "T6=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
+    //case Enu::T6: return "T6=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::MARAREG: return "MARA=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::MARBREG: return "MARB=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::MDRREG: return "MDR=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
