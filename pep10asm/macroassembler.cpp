@@ -49,7 +49,7 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
         }
         qDebug().noquote() << "Assembling module: " << currentModule->prototype->name;
         auto result = assembleModule(graph, *currentModule);
-         qDebug().noquote() << "";
+        //qDebug().noquote() << "";
         if(!result.success) {
             retVal.success = false;
             #pragma message("Must map map line number from child to root")
@@ -94,7 +94,7 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
             break;
         }
         else {
-            qDebug().noquote() << retVal.codeLine->getAssemblerSource();
+            //qDebug().noquote() << retVal.codeLine->getAssemblerSource();
         }
         codeList.append(retVal.codeLine);
         ++lineNumber;

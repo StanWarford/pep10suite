@@ -447,7 +447,7 @@ void TokenizerBuffer::fetchNextLine()
                 ++offset;
             }
         }
-        qDebug().noquote() << token << tokenString;
+        // qDebug().noquote() << token << tokenString;
         newTokens.append({token, tokenString});
     }
     backedUpInput.append(newTokens);
