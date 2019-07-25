@@ -1,6 +1,6 @@
 #include "macrotokenizer.h"
-// Regular expressions for lexical analysis
-//const QRegularExpression MacroTokenizerHelper::addrMode("((,)(\\s*)(i|d|x|n|s(?![fx])|sx(?![f])|sf|sfx){1}){1}");
+
+// Helper to make sure regular expressions are initialized in case-insensitive mode.
 const QRegularExpression init(QString string)
 {
     QRegularExpression regEx(string);
@@ -8,6 +8,7 @@ const QRegularExpression init(QString string)
     regEx.setPatternOptions(regEx.patternOptions() | QRegularExpression::CaseInsensitiveOption);
     return regEx;
 }
+// Regular expressions for lexical analysis
 // For addressing modes starting with s, use negative lookaheads to ensure
 // that the longest possible addressing is matched.
 const QRegularExpression MacroTokenizerHelper::addrMode = init("\\s*(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
@@ -282,8 +283,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         int startIdx = match.capturedStart();
         int len = match.capturedLength();;
         tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
-        // Remove the first and last characters, since they are ".
-        //tokenString = tokenString.mid(1, tokenString.length() - 2);
+        // No need to remove ", this will be handled in the assembler.
         offset += len;
         return true;
     }
@@ -305,6 +305,7 @@ void MacroTokenizer::performMacroSubstitutions(QString &sourceLine)
     }
 
 }
+
 
 
 TokenizerBuffer::TokenizerBuffer(): tokenizer(new MacroTokenizer())
