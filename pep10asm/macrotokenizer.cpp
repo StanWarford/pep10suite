@@ -10,7 +10,7 @@ const QRegularExpression init(QString string)
 }
 // For addressing modes starting with s, use negative lookaheads to ensure
 // that the longest possible addressing is matched.
-const QRegularExpression MacroTokenizerHelper::addrMode = init("(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
+const QRegularExpression MacroTokenizerHelper::addrMode = init("\\s*(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
 const QRegularExpression MacroTokenizerHelper::charConst("((\')(?![\'])(([^\'\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
 const QRegularExpression MacroTokenizerHelper::decConst = init("[+|-]{0,1}[0-9]+\\s*");
