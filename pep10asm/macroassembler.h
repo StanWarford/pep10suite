@@ -16,7 +16,7 @@ class TokenizerBuffer;
 class MacroAssembler
 {
 public:
-    MacroAssembler(const MacroRegistry* registry);
+    MacroAssembler(MacroRegistry* registry);
     ~MacroAssembler();
 
 
@@ -73,8 +73,12 @@ private:
     QSharedPointer<DotExport> parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                           ModuleInstance &instance,
                                           QString &errorMessage);
-    bool parseSYCALL();
-    bool parseUSYCALL();
+    QSharedPointer<DotSycall> parseSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                          ModuleInstance &instance,
+                                          QString &errorMessage);
+    QSharedPointer<DotUSycall> parseUSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                            ModuleInstance &instance,
+                                            QString &errorMessage);
     QSharedPointer<DotWord> parseWORD(std::optional<QSharedPointer<SymbolEntry>> symbol,
                        ModuleInstance& instance, QString& errorMessage);
 
@@ -83,7 +87,7 @@ private:
                                                       std::optional<QSharedPointer<SymbolEntry>> symbol,
                                                       ModuleInstance& instance, QString& errorMessage);
 
-    const MacroRegistry* registry;
+    MacroRegistry* registry;
     TokenizerBuffer* tokenBuffer;
 };
 

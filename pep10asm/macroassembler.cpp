@@ -12,8 +12,8 @@ static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
      MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT,
      MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT};
 
-MacroAssembler::MacroAssembler(const MacroRegistry* registry): tokenBuffer(new TokenizerBuffer()),
-    registry(registry)
+MacroAssembler::MacroAssembler(MacroRegistry* registry): registry(registry),
+    tokenBuffer(new TokenizerBuffer())
 {
 
 }
@@ -217,6 +217,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND)) {
         tokenString =  tokenBuffer->takeLastMatch().second;
         tokenString = tokenString.mid(1);
+        auto rootInstance = graph.instanceMap[graph.rootModule].first();
         if (QString("ADDRSS").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseADDRSS(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
@@ -246,6 +247,11 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
             }
         }
         else if (QString("BURN").compare(tokenString, Qt::CaseInsensitive) == 0) {
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                retVal.success = false;
+                errorMessage = ";ERROR: Only operating systems may contain a .BURN.";
+                return retVal;
+            }
             retVal.codeLine = parseBURN(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
@@ -275,6 +281,11 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
             }
         }
         else if (QString("EXPORT").compare(tokenString, Qt::CaseInsensitive) == 0) {
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                retVal.success = false;
+                errorMessage = ";ERROR: Only operating systems may contain a .EXPORT.";
+                return retVal;
+            }
             retVal.codeLine = parseEXPORT(symbolPointer, instance, errorMessage);
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
@@ -282,10 +293,28 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
             }
         }
         else if (QString("SYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
-            if(!parseSYCALL()){}
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                retVal.success = false;
+                errorMessage = ";ERROR: Only operating systems may contain a .SYCALL.";
+                return retVal;
+            }
+            retVal.codeLine = parseSYCALL(symbolPointer, instance, errorMessage);
+            if(!errorMessage.isEmpty()) {
+                retVal.success = false;
+                return retVal;
+            }
         }
         else if (QString("USYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
-            if(!parseUSYCALL()){}
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                retVal.success = false;
+                errorMessage = ";ERROR: Only operating systems may contain a .USYCALL.";
+                return retVal;
+            }
+            retVal.codeLine = parseUSYCALL(symbolPointer, instance, errorMessage);
+            if(!errorMessage.isEmpty()) {
+                retVal.success = false;
+                return retVal;
+            }
         }
         else if (QString("WORD").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseWORD(symbolPointer, instance, errorMessage);
@@ -381,7 +410,7 @@ QSharedPointer<MacroInvoke>
         MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& graph,
                                               const QString &macroName,
                                               std::optional<QSharedPointer<SymbolEntry> > symbol,
-                                              ModuleInstance &instance, QString &errorMessage)
+                                              ModuleInstance &/*instance*/, QString &errorMessage)
 {
     if(!registry->hasMacro(macroName)) {
         errorMessage = ";ERROR: Macro " + macroName + " does not exist.";
@@ -557,10 +586,7 @@ QSharedPointer<DotAlign>
         int value = tokenString.toInt(&ok, 10);
         if (value == 2 || value == 4 || value == 8) {
             dotAlign->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
-            // Num bytes generated is now deduced by the linker.
-            //int numBytes = (value - byteCount % value) % value;
-#pragma message("Fix byte count calc.")
-            // dotAlign->numBytesGenerated = new UnsignedDecArgument(numBytes);
+            // Number of bytes geberated is now calculated by linker.
             return dotAlign;
         }
         else {
@@ -823,14 +849,60 @@ QSharedPointer<DotExport>
     }
 }
 
-bool MacroAssembler::parseSYCALL()
+QSharedPointer<DotSycall> MacroAssembler::parseSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
-    return false;
+    if (symbol.has_value()) {
+        errorMessage = ";ERROR: .SYCALL must not have a symbol definition.";
+        return nullptr;
+    }
+    if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
+        QString tokenString = tokenBuffer->takeLastMatch().second.toString();
+        if (tokenString.length() > 8) {
+            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            return nullptr;
+        }
+        QSharedPointer<DotSycall> dotSycall = QSharedPointer<DotSycall>::create();
+        dotSycall->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
+        // Export declares a symbol from the operating system to be visible in user code.
+        bool success = registry->registerNonunarySystemCall(tokenString);
+        if(!success) {
+            errorMessage = ";ERROR: Failed to register system call.";
+            return nullptr;
+        }
+        return dotSycall;
+    }
+    else {
+        errorMessage = ";ERROR: .SYCALL requires a symbol argument.";
+        return nullptr;
+    }
 }
 
-bool MacroAssembler::parseUSYCALL()
+QSharedPointer<DotUSycall> MacroAssembler::parseUSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
-    return false;
+    if (symbol.has_value()) {
+        errorMessage = ";ERROR: .USYCALL must not have a symbol definition.";
+        return nullptr;
+    }
+    if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
+        QString tokenString = tokenBuffer->takeLastMatch().second.toString();
+        if (tokenString.length() > 8) {
+            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            return nullptr;
+        }
+        QSharedPointer<DotUSycall> dotUSycall = QSharedPointer<DotUSycall>::create();
+        dotUSycall->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
+        // Export declares a symbol from the operating system to be visible in user code.
+        bool success = registry->registerUnarySystemCall(tokenString);
+        if(!success) {
+            errorMessage = ";ERROR: Failed to register system call.";
+            return nullptr;
+        }
+        return dotUSycall;
+    }
+    else {
+        errorMessage = ";ERROR: .USYCALL requires a symbol argument.";
+        return nullptr;
+    }
 }
 
 QSharedPointer<DotWord>
