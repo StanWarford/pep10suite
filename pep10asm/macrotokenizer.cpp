@@ -17,7 +17,7 @@ const QRegularExpression MacroTokenizerHelper::decConst = init("[+|-]{0,1}[0-9]+
 const QRegularExpression MacroTokenizerHelper::dotCommand = init("\\.[a-zA-Z]\\w*\\s*");
 const QRegularExpression MacroTokenizerHelper::hexConst = init("0[xX][0-9a-fA-F]+\\s*");
 const QRegularExpression MacroTokenizerHelper::identifier = init("[A-Z|a-z|_]\\w*(:){0,1}\\s*");
-const QRegularExpression MacroTokenizerHelper::stringConst("((\")((([^\"\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\"))");
+const QRegularExpression MacroTokenizerHelper::stringConst("((\")((([^\"\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\")\\s*)");
 const QRegularExpression MacroTokenizerHelper::macroInvocation = init("@[A-Z|a-z|_]{1}(\\w*)\\s*");
 const QRegularExpression MacroTokenizerHelper::macroSubstitution = init("\\$\\d+\\s*");
 // Regular expressions for trace tag analysis
@@ -282,6 +282,8 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         int startIdx = match.capturedStart();
         int len = match.capturedLength();;
         tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        // Remove the first and last characters, since they are ".
+        //tokenString = tokenString.mid(1, tokenString.length() - 2);
         offset += len;
         return true;
     }

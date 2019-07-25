@@ -302,10 +302,12 @@ bool BuildHelper::buildProgram()
     registry->registerCustomMacro("L4C", "@L4C 0\n@DIVA k,d\n.END\n");
 
     MacroAssemblerDriver assembler(registry);
-    QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
-    auto osResult = assembler.assembleOperatingSystem(osText);
+    //QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
+    //auto osResult = assembler.assembleOperatingSystem(osText);
     // Returns true if object code is successfully generated (i.e. program is non-null).
-    program = assembler.assembleUserProgram(source, osResult->getSymbolTable());
+    program = assembler.assembleUserProgram(source,
+                                            AsmProgramManager::getInstance()->
+                                            getOperatingSystem()->getSymbolTable());
 
     // If there were errors, attempt to write all of them to the error file.
     // If the error file can't be opened, log that failure to standard output.
