@@ -1274,3 +1274,131 @@ void DotExport::setArgument(QSharedPointer<SymbolRefArgument> argument)
 {
     this->argument = argument;
 }
+
+DotSycall::DotSycall(const DotSycall &other) : AsmCode(other)
+{
+    this->argument = other.argument;
+}
+
+DotSycall &DotSycall::operator=(DotSycall other)
+{
+    swap(*this, other);
+    return *this;
+}
+
+AsmCode *DotSycall::cloneAsmCode() const
+{
+    return new DotSycall(*this);
+}
+
+void DotSycall::appendObjectCode(QList<int> &) const
+{
+    return;
+}
+
+QString DotSycall::getAssemblerListing() const
+{
+    return "             " + getAssemblerSource();
+}
+
+QString DotSycall::getAssemblerSource() const
+{
+    QString symbolStr = "";
+    QString dotStr = ".SYCALL";
+    QString oprndStr = argument->getArgumentString();
+    QString lineStr = QString("%1%2%3%4")
+            .arg("", -9, QLatin1Char(' '))
+            .arg(dotStr, -8, QLatin1Char(' '))
+            .arg(oprndStr, -12)
+            .arg(comment);
+    return lineStr;
+}
+
+quint16 DotSycall::objectCodeLength() const
+{
+    return 0;
+}
+
+bool DotSycall::hasSymbolicOperand() const
+{
+    return true;
+}
+
+QSharedPointer<const SymbolEntry> DotSycall::getSymbolicOperand() const
+{
+    return argument->getSymbolValue();
+}
+
+QSharedPointer<SymbolRefArgument> DotSycall::getArgument() const
+{
+    return argument;
+}
+
+void DotSycall::setArgument(QSharedPointer<SymbolRefArgument> argument)
+{
+    this->argument = argument;
+}
+
+DotUSycall::DotUSycall(const DotUSycall &other) : AsmCode(other)
+{
+    this->argument = other.argument;
+}
+
+DotUSycall &DotUSycall::operator=(DotUSycall other)
+{
+    swap(*this, other);
+    return *this;
+}
+
+AsmCode *DotUSycall::cloneAsmCode() const
+{
+    return new DotUSycall(*this);
+}
+
+void DotUSycall::appendObjectCode(QList<int> &) const
+{
+    return;
+}
+
+QString DotUSycall::getAssemblerListing() const
+{
+    return "             " + getAssemblerSource();
+}
+
+QString DotUSycall::getAssemblerSource() const
+{
+    QString symbolStr = "";
+    QString dotStr = ".USYCALL";
+    QString oprndStr = argument->getArgumentString();
+    QString lineStr = QString("%1%2%3%4")
+            .arg("", -9, QLatin1Char(' '))
+            .arg(dotStr, -8, QLatin1Char(' '))
+            .arg(oprndStr, -12)
+            .arg(comment);
+    return lineStr;
+}
+
+quint16 DotUSycall::objectCodeLength() const
+{
+    return 0;
+}
+
+bool DotUSycall::hasSymbolicOperand() const
+{
+    return true;
+}
+
+QSharedPointer<const SymbolEntry> DotUSycall::getSymbolicOperand() const
+{
+    return argument->getSymbolValue();
+}
+
+QSharedPointer<SymbolRefArgument> DotUSycall::getArgument() const
+{
+    return argument;
+}
+
+void DotUSycall::setArgument(QSharedPointer<SymbolRefArgument> argument)
+{
+    this->argument = argument;
+}
