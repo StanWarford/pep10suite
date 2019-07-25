@@ -419,12 +419,13 @@ void TokenizerBuffer::clearMatchBuffer()
 
 void TokenizerBuffer::fetchNextLine()
 {
-    MacroTokenizerHelper::ELexicalToken token;
+    // Compiler believes this variable to always be unitialized. This is incorrect,
+    // since it is initialized within the getToekn(...) method.
+    MacroTokenizerHelper::ELexicalToken token = MacroTokenizerHelper::ELexicalToken::LTE_ERROR;
     QStringRef tokenString;
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> newTokens;
     int offset = 0;
     bool hadMacroInvoke = false;
-    if(inputIterator < tokenizerInput.size()) tokenizerInput[inputIterator].trimmed();
     // Only need to perform macro substitutions once per line.
     tokenizer->performMacroSubstitutions(tokenizerInput[inputIterator]);
     while(token != MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
