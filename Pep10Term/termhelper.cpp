@@ -55,7 +55,7 @@ QVector<quint8> convertObjectCodeToIntArray(QString program)
     return output;
 }
 
-void buildDefaultOperatingSystem(AsmProgramManager &manager, MacroRegistry *registry)
+void buildDefaultOperatingSystem(AsmProgramManager &manager, QSharedPointer<MacroRegistry> registry)
 {
     // Need to assemble operating system.
     QString defaultOSText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
@@ -249,7 +249,7 @@ void RunHelper::run()
 }
 
 BuildHelper::BuildHelper(const QString source, QFileInfo objFileInfo,
-                         AsmProgramManager &manager, MacroRegistry* registry,
+                         AsmProgramManager &manager, QSharedPointer<MacroRegistry> registry,
                          QObject *parent): QObject(parent),
     QRunnable(), source(source), objFileInfo(objFileInfo),
     manager(manager), registry(registry)

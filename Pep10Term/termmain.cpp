@@ -120,7 +120,7 @@ Run pep9term 'mode' --help for more options.");
     // Task that will be
     QRunnable *run = nullptr;
     QThreadPool pool;
-    MacroRegistry *registry = new MacroRegistry("");
+    QSharedPointer<MacroRegistry> registry = QSharedPointer<MacroRegistry> ::create("");
     // Assembly the default operating system from this thread, so that
     // no worker threads have to check for the presence of an operating system.
     buildDefaultOperatingSystem(*AsmProgramManager::getInstance(), registry);

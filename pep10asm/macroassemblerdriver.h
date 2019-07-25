@@ -76,7 +76,7 @@ class MacroLinker;
 class MacroAssemblerDriver
 {
 public:
-    MacroAssemblerDriver(const MacroRegistry* registry);
+    MacroAssemblerDriver(QSharedPointer<MacroRegistry>  registry);
     ~MacroAssemblerDriver();
     QSharedPointer<AsmProgram> assembleUserProgram(QString input, QSharedPointer<const SymbolTable> osSymbol);
     QSharedPointer<AsmProgram> assembleOperatingSystem(QString input);
@@ -104,7 +104,7 @@ private:
     // For example, that the program object code can fit in main memory.
     void validate(ModuleInstance& module);
 
-    const MacroRegistry *registry;
+    QSharedPointer<MacroRegistry> registry;
     MacroPreprocessor *processor;
     MacroAssembler *assembler;
     MacroLinker *linker;

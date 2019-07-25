@@ -35,7 +35,7 @@ class BoundExecIsaCpu;
 
 // Assemble the default operating system for the help documentation,
 // and install it into the program manager.
-void buildDefaultOperatingSystem(AsmProgramManager& manager, MacroRegistry* registry);
+void buildDefaultOperatingSystem(AsmProgramManager& manager, QSharedPointer<MacroRegistry> registry);
 
 /*
  * This class is responsible for executing a single assembly language program.
@@ -135,13 +135,13 @@ class BuildHelper: public QObject, public QRunnable {
     const QString source;
     QFileInfo objFileInfo;
     AsmProgramManager& manager;
-    MacroRegistry* registry;
+    QSharedPointer<MacroRegistry> registry;
     // Helper method responsible for triggering program assembly.
     bool buildProgram();
 
 public:
     explicit BuildHelper(const QString source, QFileInfo objFileInfo, AsmProgramManager& manager,
-                         MacroRegistry* registry,
+                         QSharedPointer<MacroRegistry> registry,
                          QObject *parent = nullptr);
     ~BuildHelper() override;
 

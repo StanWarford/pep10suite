@@ -5,8 +5,9 @@
 #include "macroassembler.h"
 #include "macrolinker.h"
 
-MacroAssemblerDriver::MacroAssemblerDriver(const  MacroRegistry *registry) :  registry(registry),
-    processor(new MacroPreprocessor(registry)), assembler(new MacroAssembler(registry)), linker(new MacroLinker)
+MacroAssemblerDriver::MacroAssemblerDriver(QSharedPointer<MacroRegistry> registry) :  registry(registry),
+    processor(new MacroPreprocessor(registry.get())), assembler(new MacroAssembler(registry.get())),
+    linker(new MacroLinker)
 {
 
 }
@@ -53,6 +54,8 @@ QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleUserProgram(QString inp
 
 QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleOperatingSystem(QString input)
 {
+    // Clear out old system calls to make way for new definitions.
+    registry->clearSystemCalls();
     // Create a clean assembly graph to prevent accidental re-compiling of old code.
     this->graph = ModuleAssemblyGraph();
     auto [rootPrototype, rootInstance] = graph.createRoot(input, ModuleType::OPERATING_SYSTEM);

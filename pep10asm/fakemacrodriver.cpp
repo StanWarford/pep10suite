@@ -1,6 +1,6 @@
 #include "fakemacrodriver.h"
 
-FakeMacroDriver::FakeMacroDriver(): registry(new MacroRegistry()), assembler(new MacroAssemblerDriver(registry))
+FakeMacroDriver::FakeMacroDriver(): registry(QSharedPointer<MacroRegistry>::create()), assembler(new MacroAssemblerDriver(registry))
 {
     registry->registerCustomMacro("asla6", "@asla6 0\n@asla5\nasla\n.END\n");
     registry->registerCustomMacro("asla7", "@asla7 0\n@asla6\nasla\n.END\n");
@@ -33,7 +33,6 @@ FakeMacroDriver::FakeMacroDriver(): registry(new MacroRegistry()), assembler(new
 
 FakeMacroDriver::~FakeMacroDriver()
 {
-    delete registry;
     delete assembler;
 }
 
