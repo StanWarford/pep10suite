@@ -5,6 +5,8 @@ MacroRegistry::MacroRegistry(QString registryName) : macroList()
 {
     QString builtinDir = ":/help-asm/macros/builtin";
     registerCoreMacros(QDir(builtinDir));
+    nonunaryMacroTemplate = Pep::resToString(":/help-asm/macros/syscall/SYCALL.txt", false);
+    unaryMacroTemplate = Pep::resToString(":/help-asm/macros/syscall/USYCALL.txt", false);
 }
 
 MacroRegistry::~MacroRegistry()
@@ -38,14 +40,21 @@ QList<QSharedPointer<const Macro> > MacroRegistry::getCoreMacros() const
     return getMacros(MacroType::CoreMacro);
 }
 
+bool MacroRegistry::registerUnarySystemCall(QString macroName)
+{
+    QString macroText = unaryMacroTemplate.arg(macroName);
+    return registerMacro(macroName, macroText, MacroType::SystemMacro);
+}
+
+bool MacroRegistry::registerNonunarySystemCall(QString macroName)
+{
+    QString macroText = nonunaryMacroTemplate.arg(macroName);
+    return registerMacro(macroName, macroText, MacroType::SystemMacro);
+}
+
 bool MacroRegistry::registerCoreMacro(QString macroName, QString macroText)
 {
     return registerMacro(macroName, macroText, MacroType::CoreMacro);
-}
-
-bool MacroRegistry::registerSystemCall(QString macroName, QString macroText)
-{
-    return registerMacro(macroName, macroText, MacroType::SystemMacro);
 }
 
 QList<QSharedPointer<const Macro> > MacroRegistry::getSytemCalls() const

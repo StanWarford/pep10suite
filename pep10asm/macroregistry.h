@@ -25,7 +25,8 @@ public:
 
     QList<QSharedPointer<const Macro>> getCoreMacros() const;
     // Register a macro to the specified level with a given argument count.
-    bool registerSystemCall(QString macroName, QString macroText);
+    bool registerUnarySystemCall(QString macroName);
+    bool registerNonunarySystemCall(QString macroName);
     QList<QSharedPointer<const Macro>> getSytemCalls() const;
     void clearSystemCalls();
 
@@ -35,6 +36,11 @@ public:
     static std::tuple<bool, QString, quint16> macroDefinition(QString macroText);
 private:
     QMap<QString, QSharedPointer<Macro>> macroList;
+    // "Template" text for macros. Still contains QString::arg() format specifiers,
+    // so must be formatted before use. These texts shall have at most 1 format
+    // specifier argument.
+    QString unaryMacroTemplate;
+    QString nonunaryMacroTemplate;
     // Helper function that discovers all builtin macros.
     bool registerCoreMacros(QDir dir);
     bool registerMacro(QString macroName, QString macroText, MacroType type);
