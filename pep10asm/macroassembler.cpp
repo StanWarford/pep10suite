@@ -14,6 +14,15 @@ static const QString onlyInOperatingSystem = ";ERROR: Only operating systems may
 static const QString invalidDotCommand = ";ERROR: Invalid dot command";
 static const QString longSymbol = ";ERROR: Symbol %1 cannot have more than eight characters.";
 static const QString missingEND = ";ERROR: Missing .END sentinel.";
+static const QString reqAddrMode = ";ERROR: Addressing mode required for this instruction.";
+static const QString illegalAddrMode = ";ERROR: Illegal addressing mode for this instruction.";
+static const QString macroDoesNotExist = ";ERROR: Macro %1 does not exist.";
+static const QString macroWrongArgCount = ";ERROR: Macro %1 has wrong number of arguments.";
+static const QString opsecAfterMnemonic = ";ERROR: Operand specifier expected after mnemonic.";
+static const QString wordStringOutOfRange = ";ERROR: String operands must have length at most two.";
+static const QString wordHexOutOfRange = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+static const QString wordDecOutOfRange = ";ERROR: Decimal constant is out of range (-32768..65535).";
+static const QString addrssSymbolicArg = ";ERROR: .ADDRSS requires a symbolic argument.";
 
 static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
     {MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER,
@@ -398,10 +407,11 @@ QSharedPointer<NonUnaryInstruction>
     // is a valid instruction to omit the addressing mode for.
     if(!tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE)) {
         if (Pep::addrModeRequiredMap.value(mnemonic)) {
-            errorMessage = ";ERROR: Addressing mode required for this instruction.";
+            errorMessage = reqAddrMode;
             // No need to delete argument, this will be deleted by nonUnaryInstruction.
             return nullptr;
         }
+        // For instructions that do not require an explicit addressing mode, we assume I is implied.
         addrMode = Enu::EAddrMode::I;
 
     }
@@ -411,7 +421,7 @@ QSharedPointer<NonUnaryInstruction>
         addrMode = stringToAddrMode(tokenBuffer->takeLastMatch().second.toString());
         // Nested parens required.
         if ((static_cast<int>(addrMode) & Pep::addrModesMap.value(mnemonic)) == 0) {
-            errorMessage = ";ERROR: Illegal addressing mode for this instruction.";
+            errorMessage = illegalAddrMode;
             // No need to delete argument, this will be deleted by nonUnaryInstruction.
             return nullptr;
         }
@@ -426,34 +436,38 @@ QSharedPointer<MacroInvoke>
                                               std::optional<QSharedPointer<SymbolEntry> > symbol,
                                               ModuleInstance &/*instance*/, QString &errorMessage)
 {
+    // Require that the registry already contains a definition for the passed macro.
     if(!registry->hasMacro(macroName)) {
-        errorMessage = ";ERROR: Macro " + macroName + " does not exist.";
+        errorMessage = macroDoesNotExist.arg(macroName);
         return nullptr;
     }
     auto macro = registry->getMacro(macroName);
+    // Collect all arguments for macro.
     QStringList argumentList;
     while(tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
         auto [token, tokenString] = tokenBuffer->takeLastMatch();
         argumentList << tokenString.toString();
     }
 
-    // Validate that passed macro is a real macro
+    // Validate that macro was placed in assembly graph by the preprocessor.
     quint16 index = graph.getIndexFromName(macroName);
     if(index == 0xFFFF) {
-        errorMessage = ";ERROR: Module " + macroName + " is not a previously declared macro.";
+        errorMessage = macroDoesNotExist.arg(macroName);
         return nullptr;
     }
 
     // Validate that the correct number of macro arguments were passed.
     if(macro->argCount != argumentList.size()) {
-        errorMessage = ";ERROR: Module " + macroName + " is not a previously declared macro.";
+        errorMessage = macroWrongArgCount.arg(macroName);
         return nullptr;
     }
 
+    // Check that a macro with the same argument list was
+    // found by the preprocessor.
     auto modulePrototype = graph.prototypeMap[index];
     auto moduleInstance = graph.getInstanceFromArgs(index, argumentList);
     if(!moduleInstance.has_value()) {
-        errorMessage = ";ERROR: Module instance for " + macroName + " could not be found.";
+        errorMessage = macroDoesNotExist.arg(macroName);
         return nullptr;
     }
     QSharedPointer<MacroInvoke> macroInstruction = QSharedPointer<MacroInvoke>::create();
@@ -469,27 +483,31 @@ QSharedPointer<AsmArgument>
         MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)
 {
     if(!tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
-        errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
+        errorMessage = opsecAfterMnemonic;
         return nullptr;
     }
     auto pair = tokenBuffer->takeLastMatch();
 
     MacroTokenizerHelper::ELexicalToken token = pair.first;
     QString tokenString = pair.second.toString();
+    // Symbolic argument.
     if (token == MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER) {
+        // Symbols may be no longer than 8 characters
         if (tokenString.length() > 8) {
-            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            errorMessage = longSymbol.arg(tokenString);
             return nullptr;
         }
         return QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString));
     }
+    // String constant of at most two bytes long.
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT) {
         if (MacroTokenizerHelper::byteStringLength(tokenString) > 2) {
-            errorMessage = ";ERROR: String operands must have length at most two.";
+            errorMessage = wordStringOutOfRange;
             return nullptr;
         }
         return QSharedPointer<StringArgument>::create(tokenString);
     }
+    // Hex constant in range [0000, FFFF]
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT) {
         tokenString.remove(0, 2); // Remove "0x" prefix.
         bool ok;
@@ -499,32 +517,36 @@ QSharedPointer<AsmArgument>
             return QSharedPointer<HexArgument>::create(value);
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
+    // Decimal constant in range [-32768, 65535]
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT) {
         bool ok;
         int value = tokenString.toInt(&ok, 10);
         if ((-32768 <= value) && (value <= 65535)) {
+            // Negative, so store as signed.
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
                 return QSharedPointer<DecArgument>::create(value);
             }
+            // Otherwise store as unsigned.
             else {
                 return QSharedPointer<UnsignedDecArgument>::create(value);
             }
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
+            errorMessage = wordDecOutOfRange;
             return nullptr;
         }
     }
+    // Character constant.
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT) {
         return QSharedPointer<CharArgument>::create(tokenString);
     }
     else {
-        errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
+        errorMessage = opsecAfterMnemonic;
         return nullptr;
     }
 }
@@ -547,10 +569,11 @@ QSharedPointer<DotAddrss>
         MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                     ModuleInstance &instance, QString &errorMessage)
 {
+    // .ADDRSS requires a symbolic argument
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (tokenString.length() > 8) {
-            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            errorMessage = longSymbol.arg(tokenString);
             return nullptr;
         }
         QSharedPointer<DotAddrss> dotAddrss = QSharedPointer<DotAddrss>::create();
@@ -561,7 +584,7 @@ QSharedPointer<DotAddrss>
         return dotAddrss;
     }
     else {
-        errorMessage = ";ERROR: .ADDRSS requires a symbol argument.";
+        errorMessage = addrssSymbolicArg;
         return nullptr;
     }
 }
