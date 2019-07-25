@@ -5,6 +5,16 @@
 #include "asmcode.h"
 #include "symboltable.h"
 #include "optional_helper.h"
+static const QString unexpectedToken = ";ERROR: Unexpected token %1 encountered.";
+static const QString unxpectedEOL = ";ERROR: Found unexpected end of line.";
+static const QString expectNewlineAfterComment = ";ERROR: \n expected after a comment";
+static const QString unexpectedSymbolDecl = ";ERROR: symbol definition must be followed by a  identifier, dot command, or macro.";
+static const QString invalidMnemonic = ";ERROR: Invalid mnemonic.";
+static const QString onlyInOperatingSystem = ";ERROR: Only operating systems may contain a %1.";
+static const QString invalidDotCommand = ";ERROR: Invalid dot command";
+static const QString longSymbol = ";ERROR: Symbol %1 cannot have more than eight characters.";
+static const QString missingEND = ";ERROR: Missing .END sentinel.";
+
 static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
     {MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER,
      MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT,
@@ -105,7 +115,7 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
     if(!dotEndDetected && result.success) {
         result.success = false;
 #pragma message("Validate location of END error.")
-        result.errInfo = {instance.prototype->textLines.size(), ";ERROR: Missing .END sentinel."};
+        result.errInfo = {instance.prototype->textLines.size(), missingEND};
     }
     if(result.success) {
         instance.codeList = codeList;
@@ -131,10 +141,10 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         errorMessage = tokenBuffer->takeLastMatch().second.toString();
         return retVal;
     }
-    // Check the non-code lines: comments and empty lines.
+    // Check for non-code lines: comments and empty lines.
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)) {
         if(!tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
-            errorMessage = ";ERROR: \n expected after a comment";
+            errorMessage = expectNewlineAfterComment;
             retVal.success = false;
             return retVal;
         }
@@ -143,12 +153,12 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         commentLine->setComment(tokenBuffer->takeLastMatch().second.toString());
         retVal.success = true;
         retVal.codeLine = commentLine;
-        // Take the \n.
+        // Take the \n so that it does not clog token buffer.
         tokenBuffer->takeLastMatch();
         return retVal;
     }
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
-        // Take the \n.
+        // Take the \n so that it does not clog token buffer.
         tokenBuffer->takeLastMatch();
         retVal.success = true;
         retVal.codeLine =  QSharedPointer<BlankLine>::create();
@@ -160,7 +170,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         if(!(tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)
              || tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND)
              || tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LTE_MACRO_INVOKE))) {
-            errorMessage = ";ERROR: symbol definition must be followed by a  identifier, dot command, or macro.";
+            errorMessage = unexpectedSymbolDecl;
             retVal.success = false;
             return retVal;
         }
@@ -168,6 +178,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         symbolDeclaration = tokenBuffer->takeLastMatch().second.chopped(1);
         if(!validateSymbolName(optional_helper(symbolDeclaration), errorMessage)) {
             retVal.success = false;
+            // Error message was set by validateSymbolName(...).
             return retVal;
         }
         symbolPointer = instance.symbolTable->define(symbolDeclaration->toString());
@@ -183,9 +194,9 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         };
         auto iterator = std::find_if(Pep::mnemonToEnumMap.keyBegin(), Pep::mnemonToEnumMap.keyEnd(), compare);
 
-        // If the itera is the end of the map, then tokenString was not in the mnemonic map.
+        // If the iterator is the end of the map, then tokenString was not in the mnemonic map.
         if (iterator == Pep::mnemonToEnumMap.keyEnd()) {
-            errorMessage = ";ERROR: Invalid mnemonic.";
+            errorMessage = invalidMnemonic;
             retVal.success = false;
             return retVal;
         }
@@ -203,10 +214,10 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         }
         // Process a non-unary instruction
         else {
-            // Unliked unary parsing, use helper method since the code is long and involved.
+            // Unliked unary parsing, use helper method since the code is long.
             retVal.codeLine = parseNonUnaryInstruction(mnemonic, symbolPointer, instance, errorMessage);
 
-            // If some part of parsing the instruction failed, raise the error to the next level.
+            // If some part of parsing the instruction failed, propogate the error upwards.
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
@@ -217,115 +228,82 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND)) {
         tokenString =  tokenBuffer->takeLastMatch().second;
         tokenString = tokenString.mid(1);
+        // Some instructions (like BURN) may only occur in the operating system,
+        // and we need access to the root instance to determine what is being compiled.
         auto rootInstance = graph.instanceMap[graph.rootModule].first();
+
+        // Use compare(...) instead of == because tokenizer does not
+        // automatically capitalize dot command strings.
         if (QString("ADDRSS").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseADDRSS(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else if (QString("ALIGN").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseALIGN(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else if (QString("ASCII").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseASCII(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else if (QString("BLOCK").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseBLOCK(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else if (QString("BURN").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
-                retVal.success = false;
-                errorMessage = ";ERROR: Only operating systems may contain a .BURN.";
-                return retVal;
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".BURN");
             }
-            retVal.codeLine = parseBURN(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
+            else {
+                retVal.codeLine = parseBURN(symbolPointer, instance, errorMessage);
             }
+
         }
         else if (QString("BYTE").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseBYTE(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else if (QString("END").compare(tokenString, Qt::CaseInsensitive) == 0) {
             dotEndDetected = true;
             retVal.codeLine = parseEND(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else if (QString("EQUATE").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseEQUATE(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else if (QString("EXPORT").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
-                retVal.success = false;
-                errorMessage = ";ERROR: Only operating systems may contain a .EXPORT.";
-                return retVal;
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".EXPORT");
             }
-            retVal.codeLine = parseEXPORT(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
+            else {
+                retVal.codeLine = parseEXPORT(symbolPointer, instance, errorMessage);
             }
         }
         else if (QString("SYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
-                retVal.success = false;
-                errorMessage = ";ERROR: Only operating systems may contain a .SYCALL.";
-                return retVal;
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".SYCALL");
             }
-            retVal.codeLine = parseSYCALL(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
+            else {
+                retVal.codeLine = parseSYCALL(symbolPointer, instance, errorMessage);
             }
         }
         else if (QString("USYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
-                retVal.success = false;
-                errorMessage = ";ERROR: Only operating systems may contain a .USYCALL.";
-                return retVal;
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".USYCALL");
             }
-            retVal.codeLine = parseUSYCALL(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
+            else {
+                retVal.codeLine = parseUSYCALL(symbolPointer, instance, errorMessage);
             }
         }
         else if (QString("WORD").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseWORD(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
         else {
             retVal.success = false;
-            errorMessage = ";ERROR: Invalid dot command";
+            errorMessage = invalidDotCommand;
+            return retVal;
+        }
+
+        if(!errorMessage.isEmpty()) {
+            retVal.success = false;
             return retVal;
         }
 
@@ -339,8 +317,35 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
             return retVal;
         }
     }
+    // If we didn't match some form of instruction, and we didn't hit empty or comment line,
+    // then the current line has major parsing issues and an error must be returned.
+    else {
+        // Check if we had a symbol followed by nonsense, like
+        //  f: "hi" \sjd
+        retVal.success = false;
+        if(symbolDeclaration.has_value()) {
+            errorMessage = unexpectedSymbolDecl;
+        }
+        // Check if there was a non-empty token that caused a syntax error.
+        // If-with-assignment to limit scope of match.
+        else if(auto match = tokenBuffer->takeLastMatch();
+                match.first != MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
+            errorMessage =  unexpectedToken.arg(match.second);
 
+        }
+        // Otherwise we hit an unexpected end of line.
+        else {
+           errorMessage = unxpectedEOL;
+        }
+        return retVal;
+        // Otherwise, indicate the token that caused the error,
+
+    }
+
+    // Any line may end in a comment, and prior path that does not generate a codeLine
+    // would have returned an error message by now, so no needed to compare codeLine to nullptr.
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)) {
+        assert(retVal.codeLine);
         // Match a comment at the end of a line.
         retVal.codeLine->setComment(tokenBuffer->takeLastMatch().second.toString());
     }
@@ -349,8 +354,17 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         tokenBuffer->takeLastMatch();
         return retVal;
     }
+    // Something went wrong parsing the line, and all we know it that last
+    // token to be visibile caused it, so propogate that token as the error.
     else {
         retVal.success = false;
+        auto match = tokenBuffer->takeLastMatch();
+        if(match.first == MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
+            errorMessage = unxpectedEOL;
+        }
+        else {
+            errorMessage =  unexpectedToken.arg(match.second);
+        }
         return retVal;
     }
 }
@@ -358,7 +372,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
 bool MacroAssembler::validateSymbolName(const QStringRef &name, QString &errorMessage)
 {
     if (name.length() > 8) {
-        errorMessage = ";ERROR: Symbol " + name + " cannot have more than eight characters.";
+        errorMessage = longSymbol.arg(name);
         return false;
     }
     return true;
