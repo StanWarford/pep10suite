@@ -1,0 +1,4 @@
+@%1 0
+LDWT %1,i
+USYCALL
+.END
