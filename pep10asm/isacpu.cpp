@@ -180,7 +180,7 @@ void IsaCpu::updateAtInstructionEnd()
     else if(Pep::decodeMnemonic[getRegisterBank().readRegisterByteCurrent(Enu::CPURegisters::IS)] == Enu::EMnemonic::RET){
         callDepth--;
     }
-    else if(Pep::decodeMnemonic[getRegisterBank().readRegisterByteCurrent(Enu::CPURegisters::IS)] == Enu::EMnemonic::RETSY){
+    else if(Pep::decodeMnemonic[getRegisterBank().readRegisterByteCurrent(Enu::CPURegisters::IS)] == Enu::EMnemonic::SRET){
         callDepth--;
     }
     if(hadErrorOnStep()) {
@@ -628,7 +628,7 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
         registerBank.writeRegisterWord(Enu::CPURegisters::SP, sp);
         break;
 
-    case Enu::EMnemonic::RETSY:
+    case Enu::EMnemonic::SRET:
         memory->readWord(sp, temp);
         // Function will automatically mask out bits that don't matter
         registerBank.writeStatusBits(static_cast<quint8>(temp));
@@ -1199,9 +1199,9 @@ void IsaCpu::executeTrap(Enu::EMnemonic mnemon)
     bool memSuccess = true;
     switch(mnemon) {
     // Non-unary traps
-    case Enu::EMnemonic::USYCALL:
+    case Enu::EMnemonic::USCALL:
         [[fallthrough]];
-    case Enu::EMnemonic::SYCALL:
+    case Enu::EMnemonic::SCALL:
         // Writes to mem[T-1].
         memSuccess &= memory->writeByte(tempAddr - 1, registerBank.readRegisterByteCurrent(Enu::CPURegisters::IS) /*IS*/);
         // Writes to mem[T-2], mem[T-3].

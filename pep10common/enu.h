@@ -101,17 +101,17 @@ namespace Enu {
      */
     enum class EMnemonic: int
         {
-            RET, RETSY,
+            RET, SRET,
             MOVSPA, MOVASP, MOVFLGA, MOVAFLG, MOVTPC,
             NOP,
-            USYCALL,
+            USCALL,
             // FAULTS
             NOTA, NOTX, NEGA, NEGX,
             ASLA, ASLX, ASRA, ASRX,
             ROLA, ROLX, RORA, RORX,
             STOP, // Temporary hiding in faulted space.
             BR, BRLE, BRLT, BREQ, BRNE, BRGE, BRGT, BRV, BRC,
-            CALL, SYCALL,
+            CALL, SCALL,
             LDWT, LDWA, LDWX, LDBA, LDBX,
             STWA, STWX, STBA, STBX,
             CPWA, CPWX, CPBA, CPBX,

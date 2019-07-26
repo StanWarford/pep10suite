@@ -78,7 +78,7 @@ void InterfaceISACPU::calculateStackChangeStart(quint8 instr)
         isTrapped = true;
         activeActions = &osActions;
     }
-    else if(Pep::decodeMnemonic[instr] == Enu::EMnemonic::RETSY) {
+    else if(Pep::decodeMnemonic[instr] == Enu::EMnemonic::SRET) {
         isTrapped = false;
         memTrace->activeStack = &memTrace->userStack;
         activeActions = &userActions;

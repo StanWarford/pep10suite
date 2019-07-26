@@ -1,5 +1,4 @@
 @XNORX 2
-; XORr is not an instruction in the instruction set yet.
-;XORX $1, $2
+XORX $1, $2
 NOTX
 .END

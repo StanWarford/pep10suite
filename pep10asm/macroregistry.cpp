@@ -5,8 +5,8 @@ MacroRegistry::MacroRegistry(QString registryName) : macroList()
 {
     QString builtinDir = ":/help-asm/macros/builtin";
     registerCoreMacros(QDir(builtinDir));
-    nonunaryMacroTemplate = Pep::resToString(":/help-asm/macros/syscall/SYCALL.txt", false);
-    unaryMacroTemplate = Pep::resToString(":/help-asm/macros/syscall/USYCALL.txt", false);
+    nonunaryMacroTemplate = Pep::resToString(":/help-asm/macros/systemcall/SCALL.txt", false);
+    unaryMacroTemplate = Pep::resToString(":/help-asm/macros/systemcall/USCALL.txt", false);
 }
 
 MacroRegistry::~MacroRegistry()

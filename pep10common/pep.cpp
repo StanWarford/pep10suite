@@ -403,7 +403,6 @@ void Pep::initMnemonicMaps()
     initMnemMapHelper(EMnemonic::ORX, 216, false, true, false);
 
     initMnemMapHelper(EMnemonic::RET, 0, true, false, false);
-    initMnemMapHelper(EMnemonic::RETSY, 1, true, false, false);
     initMnemMapHelper(EMnemonic::ROLA, 24, false, true, false);
     initMnemMapHelper(EMnemonic::ROLX, 25, true, false, false);
     initMnemMapHelper(EMnemonic::RORA, 26, true, false, false);
@@ -418,9 +417,10 @@ void Pep::initMnemonicMaps()
     initMnemMapHelper(EMnemonic::SUBA, 176, false, true, false);
     initMnemMapHelper(EMnemonic::SUBX, 184, false, true, false);
     initMnemMapHelper(EMnemonic::SUBSP, 248, false, true, false);
-    initMnemMapHelper(EMnemonic::SYCALL, 48, false, true, true);
+    initMnemMapHelper(EMnemonic::SCALL, 48, false, true, true);
+    initMnemMapHelper(EMnemonic::SRET, 1, true, false, false);
 
-    initMnemMapHelper(EMnemonic::USYCALL, 8, true, false, true);
+    initMnemMapHelper(EMnemonic::USCALL, 8, true, false, true);
 
     initMnemMapHelper(EMnemonic::XORA, 224, false, true, false);
     initMnemMapHelper(EMnemonic::XORX, 232, false, true, false);
@@ -469,7 +469,7 @@ void Pep::initAddrModesMap()
     addrModesMap.insert(EMnemonic::SUBA, all);
     addrModesMap.insert(EMnemonic::SUBX, all);
     addrModesMap.insert(EMnemonic::SUBSP, all);
-    addrModesMap.insert(EMnemonic::SYCALL, all);
+    addrModesMap.insert(EMnemonic::SCALL, all);
 
 }
 
@@ -514,14 +514,14 @@ void initDecoderTableHelperTrap(EMnemonic val,int startIdx,int distance){
 void Pep::initDecoderTables()
 {
     decodeMnemonic[0] = EMnemonic::RET; decodeAddrMode[0] = EAddrMode::NONE;
-    decodeMnemonic[1] = EMnemonic::RETSY; decodeAddrMode[1] = EAddrMode::NONE;
+    decodeMnemonic[1] = EMnemonic::SRET; decodeAddrMode[1] = EAddrMode::NONE;
     decodeMnemonic[2] = EMnemonic::MOVSPA; decodeAddrMode[2] = EAddrMode::NONE;
     decodeMnemonic[3] = EMnemonic::MOVASP; decodeAddrMode[3] = EAddrMode::NONE;
     decodeMnemonic[4] = EMnemonic::MOVFLGA; decodeAddrMode[4] = EAddrMode::NONE;
     decodeMnemonic[5] = EMnemonic::MOVAFLG; decodeAddrMode[5] = EAddrMode::NONE;
     decodeMnemonic[6] = EMnemonic::MOVTPC; decodeAddrMode[6] = EAddrMode::NONE;
     decodeMnemonic[7] = EMnemonic::NOP; decodeAddrMode[7] = EAddrMode::NONE;
-    decodeMnemonic[8] = EMnemonic::USYCALL; decodeAddrMode[8] = EAddrMode::NONE;
+    decodeMnemonic[8] = EMnemonic::USCALL; decodeAddrMode[8] = EAddrMode::NONE;
     decodeMnemonic[9] = EMnemonic::STOP; decodeAddrMode[9] = EAddrMode::NONE;
     //decodeMnemonic[10] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
     //decodeMnemonic[11] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
@@ -554,7 +554,7 @@ void Pep::initDecoderTables()
     initDecoderTableAHelper(EMnemonic::CALL, 46);
 
 
-    initDecoderTableAAAHelper(EMnemonic::SYCALL, 48);
+    initDecoderTableAAAHelper(EMnemonic::SCALL, 48);
 
     initDecoderTableAAAHelper(EMnemonic::LDWT, 56);
     initDecoderTableAAAHelper(EMnemonic::LDWA, 64);

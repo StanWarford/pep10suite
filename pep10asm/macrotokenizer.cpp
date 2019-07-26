@@ -137,6 +137,8 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
 {
     using namespace MacroTokenizerHelper;
     QChar firstChar;
+    // Consume whitespace until absent, as whitepsace is not syntatically significant.
+
     for(firstChar = sourceLine[offset];
         offset >= sourceLine.length() && firstChar.isSpace();
         offset++) {

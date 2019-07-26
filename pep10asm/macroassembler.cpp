@@ -284,22 +284,22 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
                 retVal.codeLine = parseEXPORT(symbolPointer, instance, errorMessage);
             }
         }
-        else if (QString("SYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
+        else if (QString("SCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
                 // Presence of error message will cause early return after if block.
-                errorMessage = onlyInOperatingSystem.arg(".SYCALL");
+                errorMessage = onlyInOperatingSystem.arg(".SCALL");
             }
             else {
-                retVal.codeLine = parseSYCALL(symbolPointer, instance, errorMessage);
+                retVal.codeLine = parseSCALL(symbolPointer, instance, errorMessage);
             }
         }
-        else if (QString("USYCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
+        else if (QString("USCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
             if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
                 // Presence of error message will cause early return after if block.
-                errorMessage = onlyInOperatingSystem.arg(".USYCALL");
+                errorMessage = onlyInOperatingSystem.arg(".USCALL");
             }
             else {
-                retVal.codeLine = parseUSYCALL(symbolPointer, instance, errorMessage);
+                retVal.codeLine = parseUSCALL(symbolPointer, instance, errorMessage);
             }
         }
         else if (QString("WORD").compare(tokenString, Qt::CaseInsensitive) == 0) {
@@ -886,7 +886,7 @@ QSharedPointer<DotExport>
     }
 }
 
-QSharedPointer<DotSycall> MacroAssembler::parseSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<DotSycall> MacroAssembler::parseSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
     if (symbol.has_value()) {
         errorMessage = ";ERROR: .SYCALL must not have a symbol definition.";
@@ -914,7 +914,7 @@ QSharedPointer<DotSycall> MacroAssembler::parseSYCALL(std::optional<QSharedPoint
     }
 }
 
-QSharedPointer<DotUSycall> MacroAssembler::parseUSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<DotUSycall> MacroAssembler::parseUSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
     if (symbol.has_value()) {
         errorMessage = ";ERROR: .USYCALL must not have a symbol definition.";

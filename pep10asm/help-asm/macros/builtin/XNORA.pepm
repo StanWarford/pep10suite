@@ -1,5 +1,4 @@
 @XNORA 2
-; XORr is not an instruction in the instruction set yet.
-;XORA $1, $2
+XORA $1, $2
 NOTA
 .END

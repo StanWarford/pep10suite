@@ -40,7 +40,7 @@
         <file>help-asm/macros/builtin/RORX/RORX4.pepm</file>
         <file>help-asm/macros/builtin/RORX/RORX5.pepm</file>
         <file>help-asm/figures/pep10os.pep</file>
-        <file>help-asm/macros/syscall/SYCALL.txt</file>
-        <file>help-asm/macros/syscall/USYCALL.txt</file>
+        <file>help-asm/macros/systemcall/SCALL.txt</file>
+        <file>help-asm/macros/systemcall/USCALL.txt</file>
     </qresource>
 </RCC>

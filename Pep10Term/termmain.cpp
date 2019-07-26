@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     // Placeholder for one of the execution modes. Ideally, the parser would
     // have different options and positional arguments depending on the value of
     // the leading positional argument. However, the parser lacks this functionality.
-    parser.addPositionalArgument("mode", "The mode Pep/ to be executed: Options are \"asm\", \"run\"\
+    parser.addPositionalArgument("mode", "The mode Pep10 is to be executed in: Options are \"asm\", \"run\"\
 , \"macros\", and \"listing\". \
 Run pep9term 'mode' --help for more options.");
     parser.addOption(QCommandLineOption("about",

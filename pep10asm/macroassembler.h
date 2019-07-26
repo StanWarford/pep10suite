@@ -73,10 +73,10 @@ private:
     QSharedPointer<DotExport> parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                           ModuleInstance &instance,
                                           QString &errorMessage);
-    QSharedPointer<DotSycall> parseSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol,
+    QSharedPointer<DotSycall> parseSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                           ModuleInstance &instance,
                                           QString &errorMessage);
-    QSharedPointer<DotUSycall> parseUSYCALL(std::optional<QSharedPointer<SymbolEntry> > symbol,
+    QSharedPointer<DotUSycall> parseUSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                             ModuleInstance &instance,
                                             QString &errorMessage);
     QSharedPointer<DotWord> parseWORD(std::optional<QSharedPointer<SymbolEntry>> symbol,

@@ -1149,10 +1149,10 @@ QString MacroInvoke::getAssemblerListing() const
     if (!symbolEntry.isNull()) {
         symbolStr = symbolEntry->getName()+": ";
     }
-    QString lineStr = QString("             ;start macro %1@%2 %3")
-            .arg(symbolStr,0, QLatin1Char(' '))
-            .arg(name, -8, QLatin1Char(' '))
-            .arg(argumentList.join(","));
+    QString lineStr = QString("             %1@%2%3")
+            .arg(symbolStr,-9, QLatin1Char(' '))
+            .arg(name, -7, QLatin1Char(' '))
+            .arg(argumentList.join(","), -12);
             //.arg(comment);
     list.append(lineStr);
     for(auto code : this->macroInstance->codeList) {
@@ -1160,7 +1160,7 @@ QString MacroInvoke::getAssemblerListing() const
         if(dynamic_cast<DotEnd*>(code.get()) != nullptr) break;
         list << code->getAssemblerListing();
     }
-    list.append(QString("             ;end macro   @%1 %2").arg(name).arg(argumentList.join(", ")));
+    list.append(QString("             ;end macro"));
     return list.join("\n");
 }
 
@@ -1304,7 +1304,7 @@ QString DotSycall::getAssemblerListing() const
 QString DotSycall::getAssemblerSource() const
 {
     QString symbolStr = "";
-    QString dotStr = ".SYCALL";
+    QString dotStr = ".SCALL";
     QString oprndStr = argument->getArgumentString();
     QString lineStr = QString("%1%2%3%4")
             .arg("", -9, QLatin1Char(' '))
@@ -1368,7 +1368,7 @@ QString DotUSycall::getAssemblerListing() const
 QString DotUSycall::getAssemblerSource() const
 {
     QString symbolStr = "";
-    QString dotStr = ".USYCALL";
+    QString dotStr = ".USCALL";
     QString oprndStr = argument->getArgumentString();
     QString lineStr = QString("%1%2%3%4")
             .arg("", -9, QLatin1Char(' '))

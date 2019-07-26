@@ -10,10 +10,14 @@ wordTemp:.BLOCK  1           ;Temporary word storage
 byteTemp:.BLOCK  1           ;Least significant byte of wordTemp
 addrMask:.BLOCK  2           ;Addressing mode mask
 opAddr:  .BLOCK  2           ;Trap instruction operand address
+; Do not allow diskIn to be referenced in user programs.
+diskIn:  .BLOCK  2           ;Memory-mapped input device
          .EXPORT charIn      ;Allow charIn to be referenced in user programs.
 charIn:  .BLOCK  2           ;Memory-mapped input device
          .EXPORT charOut     ;Allow charIn to be referenced in user programs.
 charOut: .BLOCK  2           ;Memory-mapped output device
+         .EXPORT pwroff      ;Allow pwroff to be referenced in user programs.
+pwroff:  .BLOCK  2           ;Memory-mapped shutdown device
          .ALIGN  2           ;I/O ports at even addresses
 
 ;******* Operating system ROM
@@ -169,17 +173,17 @@ addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
 ;******* SYUNOP
 ;The unary no-operation system call.
          .EXPORT SYUNOP
-         .USYCALL SYUNOP
-SYUNOP:  RETSY                 
+         .USCALL SYUNOP
+SYUNOP:  SRET                 
 ;
 ;******* SYNOP
 ;The nonunary no-operation system call.
          .EXPORT SYNOP
-         .SYCALL SYNOP
+         .SCALL  SYNOP
 SYNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d  
          CALL    assertAd    
-         RETSY                 
+         SRET                 
 ;
 ;******* DECI
 ;The decimal input system call.
@@ -189,7 +193,7 @@ SYNOP:   LDWA    0x0001,i    ;Assert i
 ;encountered. The status flags N,Z and V are set appropriately
 ;by this DECI routine. The C status flag is not affected.
          .EXPORT DECI
-         .SYCALL DECI
+         .SCALL  DECI
 ;
 oldNZVC: .EQUATE 15          ;Stack address of NZVC on interrupt
 ;
@@ -329,7 +333,7 @@ storeFl: STBX    oldNZVC,s   ;Store the NZVC flags
 exitDeci:LDWA    total,s     ;Put total in memory
          STWA    opAddr,n    
          ADDSP   13,i        ;Deallocate locals
-         RETSY                 ;Return to trap handler
+         SRET                 ;Return to trap handler
 ;
 deciErr: LDBA    '\n',i      
          STBA    charOut,d   
@@ -347,7 +351,7 @@ deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
 ;a single '-' followed by the magnitude. Otherwise it prints the
 ;magnitude without a leading '+'. It suppresses leading zeros.
          .EXPORT DECO
-         .SYCALL DECO
+         .SCALL  DECO
 ;
 remain:  .EQUATE 0           ;Remainder of value to output
 outYet:  .EQUATE 2           ;Has a character been output yet?
@@ -383,7 +387,7 @@ printMag:STWA    remain,s    ;remain <- abs(oprnd)
          ORA     0x0030,i    ;Convert decimal to ASCII
          STBA    charOut,d   ;  and output it
          ADDSP   6,i         ;Deallocate storage for locals
-         RETSY                 
+         SRET                 
 ;
 ;Subroutine to print the most significant decimal digit of the
 ;remainder. It assumes that place (place2 here) contains the
@@ -418,7 +422,7 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
 ;The hexadecimal ouput system call.
 ;Outputs one word as four hex characters from memory.
          .EXPORT HEXO
-         .SYCALL HEXO
+         .SCALL  HEXO
 ;
 HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          STWA    addrMask,d  
@@ -442,7 +446,7 @@ HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          CALL    hexOut      ;Output third hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
          CALL    hexOut      ;Output fourth hex character
-         RETSY                 
+         SRET                 
 ;
 ;Subroutine to output in hex the least significant nybble of the
 ;accumulator.
@@ -461,7 +465,7 @@ writeHex:STBA    charOut,d   ;Output nybble as hex
 ;The string output system call.
 ;Outputs a null-terminated string from memory.
          .EXPORT STRO
-         .SYCALL STRO
+         .SCALL  STRO
 ;
 STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
          STWA    addrMask,d  
@@ -472,7 +476,7 @@ STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
          SUBSP   2,i         
          CALL    prntMsg     ;and print
          ADDSP   2,i         
-         RETSY                
+         SRET                
 ;
 ;******* Print subroutine
 ;Prints a string of ASCII bytes until it encounters a null

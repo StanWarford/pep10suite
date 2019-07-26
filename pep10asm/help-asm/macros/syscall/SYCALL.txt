@@ -1,4 +1,0 @@
-@%1 2
-LDWT %1,i
-SYCALL $1,$2
-.END
