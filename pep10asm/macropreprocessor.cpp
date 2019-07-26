@@ -132,10 +132,14 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         // Check if the @ is occuring in a comment. If so, skip to the next line.
         auto commentMatch = MacroTokenizerHelper::comment.match(lineText);
         int commentLoc = -1;
-        if(commentMatch.hasMatch() && commentMatch.capturedStart() < location) continue;
+        if(commentMatch.hasMatch() && commentMatch.capturedStart() < location) {
+            continue;
+        }
         // If there was a comment, but it did not overlap with the macro definition,
         // keep track of its location for help with macro argument parsing.
-        else if (commentMatch.hasMatch()) commentLoc = commentMatch.capturedStart();
+        else if (commentMatch.hasMatch()) {
+            commentLoc = commentMatch.capturedStart();
+        }
 
         // Find the number of @ outside of a comment on this line.
         int count = 0;
@@ -176,7 +180,7 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         //QStringList splitList = trimmedSubstr.split(",", QString::SplitBehavior::SkipEmptyParts);
 
         // Get the number of "things" seperated by commas AND outside of comments.
-        QString argText = lineText.mid(endMacroName, commentLoc).trimmed();
+        QString argText = lineText.mid(endMacroName, commentLoc - endMacroName).trimmed();
         QStringList argList = argText.split(",", QString::SplitBehavior::SkipEmptyParts);
         if(argText.size() == 0) {
             // If there is no argument text, we have 0 arguments.
