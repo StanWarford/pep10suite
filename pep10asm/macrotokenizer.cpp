@@ -11,7 +11,7 @@ const QRegularExpression init(QString string)
 // Regular expressions for lexical analysis
 // For addressing modes starting with s, use negative lookaheads to ensure
 // that the longest possible addressing is matched.
-const QRegularExpression MacroTokenizerHelper::addrMode = init("\\s*(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
+const QRegularExpression MacroTokenizerHelper::addrMode = init("(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
 const QRegularExpression MacroTokenizerHelper::charConst("((\')(?![\'])(([^\'\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
 const QRegularExpression MacroTokenizerHelper::decConst = init("[+|-]{0,1}[0-9]+\\s*");
@@ -136,13 +136,19 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
                               QStringRef &tokenString, QString &errorString)
 {
     using namespace MacroTokenizerHelper;
+    QChar firstChar;
+    for(firstChar = sourceLine[offset];
+        offset >= sourceLine.length() && firstChar.isSpace();
+        offset++) {
+
+    }
     if (offset >= sourceLine.length()) {
         token = ELexicalToken::LT_EMPTY;
         tokenString = QStringRef();
         return true;
     }
 
-    QChar firstChar = sourceLine[offset];
+
     if (firstChar == '$') {
         auto match = macroSubstitution.match(sourceLine, offset);
         if (!match.hasMatch()) {
