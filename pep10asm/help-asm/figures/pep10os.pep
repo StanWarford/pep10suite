@@ -431,18 +431,12 @@ HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          LDWA    opAddr,n    ;A <- oprnd
          STWA    wordTemp,d  ;Save oprnd in wordTemp
          LDBA    wordTemp,d  ;Put high-order byte in low-order A
-         ASRA                ;Shift right four bits
-         ASRA                
-         ASRA                
-         ASRA                
+         @ASRA4              ;Shift right four bits              
          CALL    hexOut      ;Output first hex character
          LDBA    wordTemp,d  ;Put high-order byte in low-order A
          CALL    hexOut      ;Output second hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
-         ASRA                ;Shift right four bits
-         ASRA                
-         ASRA                
-         ASRA                
+         @ASRA4              ;Shift right four bits              
          CALL    hexOut      ;Output third hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
          CALL    hexOut      ;Output fourth hex character
