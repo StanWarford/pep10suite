@@ -66,18 +66,15 @@ mainCln: LDWA    0,s         ;Load return value
          ADDSP   2,i         ;Deallocate main return value
          LDWA    osSPTemp,d  ;Restore system stack pointer
          MOVASP              ;OS Stack might be clobbered during by syscalls
-         BR      shutdown    ;  So branch 
+         BR      shutdown    ;  So branch instead of call
 ;
 mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
          STWA    -2,s        ;Push address of error message
          SUBSP   2,i
          CALL    prntMsg
          ADDSP   2,i
-         LDWA    -2,s        ;Load return code from stack
-         STWA    -2,s
-         SUBSP   2,i         ;Allocate #toPrint
+;Return value is already on stack, no need to push additional copy.
          CALL    numPrint
-         ADDSP   2,i         ;Deallocate #toPrint
          ADDSP   2,i         ;Deallocate main return value
          BR      shutdown
 execErr: .ASCII "Main failed with return value \x00"
