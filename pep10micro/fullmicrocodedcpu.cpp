@@ -408,6 +408,18 @@ void FullMicrocodedCPU::stepOut()
     doISAStepWhile(cond);
 }
 
+void FullMicrocodedCPU::runUntilLoaded()
+{
+    std::function<bool(void)> cond = [this](){
+        return data->getRegisterBank().readRegisterWordCurrent(Enu::CPURegisters::PC) != 0
+        && !getExecutionFinished()
+        && !stoppedForBreakpoint()
+        && !hadErrorOnStep();};
+    doISAStepWhile(cond);
+    // Clear memory at end to hide the fact that the user program was loaded.
+    memory->clearBytesWritten();
+}
+
 quint64 FullMicrocodedCPU::getCycleCount()
 {
     return memoizer->getCycleCount();

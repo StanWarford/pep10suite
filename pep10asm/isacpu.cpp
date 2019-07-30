@@ -65,6 +65,18 @@ void IsaCpu::stepOut()
     doISAStepWhile(cond);
 }
 
+void IsaCpu::runUntilLoaded()
+{
+    std::function<bool(void)> cond = [this](){
+        return this->registerBank.readRegisterWordCurrent(Enu::CPURegisters::PC) != 0
+        && !getExecutionFinished()
+        && !stoppedForBreakpoint()
+        && !hadErrorOnStep();};
+    doISAStepWhile(cond);
+    // Clear memory at end to hide the fact that the user program was loaded.
+    memory->clearBytesWritten();
+}
+
 quint64 IsaCpu::getCycleCount()
 {
     return memoizer->getInstructionCount();
@@ -217,12 +229,12 @@ void IsaCpu::initCPU()
     }
     // Otherwise, get the correct value from the memory vectors.
     else {
-        // Get the offset from the bottom of memory.
-        quint16 offset = manager->getMemoryVectorOffset(AsmProgramManager::MemoryVectors::UserStack);
-        quint16 value;
-        // The value starts at max address minus offset.
-        memory->getWord(static_cast<quint16>(memory->maxAddress()) - offset,value);
+        // Load the system stack from the correct location in the memory vector.
+        quint16 value = manager->getMemoryVectorValue(AsmProgramManager::MemoryVectors::SystemStack);
         registerBank.writeRegisterWord(Enu::CPURegisters::SP, value);
+        // Also set the program counter to use the system loader.
+        value = manager->getMemoryVectorValue(AsmProgramManager::MemoryVectors::Start);
+        registerBank.writeRegisterWord(Enu::CPURegisters::PC, value);
     }
     registerBank.flattenFile();
 }

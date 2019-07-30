@@ -78,6 +78,9 @@ public:
     virtual void stepInto() = 0;
     // Executes the next ISA instructions until the call depth is decreased by 1.
     virtual void stepOut() = 0;
+    // The OS is loaded by the simulator, so request the simulator step until the first user instruction
+    // is about to be executed.
+    virtual void runUntilLoaded() = 0;
 
     // Returns how many cycles were used by the CPU. For an ISA level CPU, this will be
     // equal to getInstructionCount(), but for a microcoded implementation it may be different.

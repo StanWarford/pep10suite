@@ -128,8 +128,10 @@ void RunHelper::loadOperatingSystem()
     startAddress = manager.getOperatingSystem()->getBurnAddress();
     // Get addresses for I/O chips
     auto osSymTable = manager.getOperatingSystem()->getSymbolTable();
+    diskIn = static_cast<quint16>(osSymTable->getValue("diskIn")->getValue());
     charIn = static_cast<quint16>(osSymTable->getValue("charIn")->getValue());
     charOut = static_cast<quint16>(osSymTable->getValue("charOut")->getValue());
+    powerOff  = static_cast<quint16>(osSymTable->getValue("pwrOff")->getValue());
 
     // Construct main memory according to the current configuration of the operating system.
     QList<MemoryChipSpec> list;
@@ -138,8 +140,10 @@ void RunHelper::loadOperatingSystem()
     list.append({AMemoryChip::ChipTypes::RAM, 0, startAddress});
     list.append({AMemoryChip::ChipTypes::ROM, startAddress, static_cast<quint32>(values.length())});
     // Character input / output ports are only 1 byte wide by design.
+    list.append({AMemoryChip::ChipTypes::IDEV, diskIn, 1});
     list.append({AMemoryChip::ChipTypes::IDEV, charIn, 1});
     list.append({AMemoryChip::ChipTypes::ODEV, charOut, 1});
+    list.append({AMemoryChip::ChipTypes::ODEV, powerOff, 1});
     memory->constructMemoryDevice(list);
 
     memory->autoUpdateMemoryMap(true);
@@ -157,8 +161,10 @@ void RunHelper::onInputRequested(quint16 address)
 static QDebug* dbg = new QDebug(QtDebugMsg);
 void RunHelper::onOutputReceived(quint16 address, quint8 value)
 {
-    if(address != charOut) return;
-    if(outputFile != nullptr) {
+    if(address == powerOff) {
+        this->cpu->onCancelExecution();
+    }
+    if(address == charOut &&outputFile != nullptr) {
         // Use a temporary (anonymous) text stream to make writing easy.
         QTextStream (&*outputFile) << QChar(value);
         // Try to block and make sure the IO actually completes.
@@ -207,6 +213,9 @@ void RunHelper::runProgram()
 
     // Make sure to set up any last minute flags needed by CPU to perform simulation.
     cpu->onSimulationStarted();
+    cpu->runUntilLoaded();
+    qDebug().noquote() << "Yeet yeet i'm loaded \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+    QThread::currentThread()->msleep(1000);
     if(!cpu->onRun()) {
         qDebug().noquote() << "The CPU failed for the following reason: "<<cpu->getErrorMessage();
         QTextStream (&*outputFile) << "[[" << cpu->getErrorMessage() << "]]";
@@ -236,8 +245,9 @@ void RunHelper::run()
 
     // Load operating system & user program into memory.
     loadOperatingSystem();
-    auto objCode = convertObjectCodeToIntArray(objectCodeString);
-    memory->loadValues(0, objCode);
+    //auto objCode = convertObjectCodeToIntArray(objectCodeString);
+    memory->onInputReceived(diskIn, objectCodeString);
+    //memory->loadValues(0, objCode);
 
     // Clear & initialize all values in CPU before starting simulation.
     cpu->reset();

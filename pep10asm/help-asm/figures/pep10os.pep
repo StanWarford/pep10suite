@@ -11,9 +11,6 @@ byteTemp:.BLOCK  1           ;Least significant byte of wordTemp
 osSPTemp:.BLOCK  2           ;Store system stack pointer when calling user program.
 addrMask:.BLOCK  2           ;Addressing mode mask
 opAddr:  .BLOCK  2           ;Trap instruction operand address
-strtFlg: .BLOCK  2           ;Entry point flags
-doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk.
-doExec:  .EQUATE 0x0002      ;System entry point will execute the program
 ;Do not allow diskIn to be referenced in user programs.
 diskIn:  .BLOCK  2           ;Memory-mapped input device
          .EXPORT charIn      ;Allow charIn to be referenced in user programs.
@@ -27,6 +24,12 @@ pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device
 ;******* Operating system ROM
          .BURN   0xFFFF      
 ;
+;Place entry point flags in read-only memory, as these
+;  may only be modified by the simulator.
+strtFlg: .WORD   3           ;Entry point flags
+doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk.
+doExec:  .EQUATE 0x0002      ;System entry point will execute the program
+;
 ;******* System Entry Point
 start:   LDWX    0,i         ;X <- 0
          LDWA    strtFlg,d   ;Load start flags
@@ -37,7 +40,12 @@ start:   LDWX    0,i         ;X <- 0
 callMain:LDWA    strtFlg,d  ;Reload start flags
          ANDA    doExec,i   ;Check if the start flags indicate 
          BREQ    shutdown   ;  user program is to be run
-         CALL    execMain   ;If so, run program.
+;Transfer control to method that will execute main
+;The system stack may be clobbered at runtime by system calls,
+;  so control will not be able to be returned to this point
+;  execMain is responsible for cleaning up the system stack
+;  and shutting down the machine.
+         BR      execMain
 
 shutdown:LDWA    0xDEAD,i
          STBA    pwrOff,d
@@ -51,12 +59,12 @@ execMain:MOVSPA              ;Preserve system stack pointer
          LDWA    0,i         ;Initialize user main return
          STWA    0,s         ;  value to zero
          CALL    0x0000      ;Call main entry point
-         LDWA    0,s         ;Load return value
+mainCln: LDWA    0,s         ;Load return value
          BRNE    mainErr     ;If retval is not zero, report error
          ADDSP   2,i         ;Deallocate main return value
          LDWA    osSPTemp,d  ;Restore system stack pointer
-         MOVASP
-         RET
+         MOVASP              ;OS Stack might be clobbered during by syscalls
+         BR      shutdown    ;  So branch 
 ;
 mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
          STWA    -2,s        ;Push address of error message
@@ -109,7 +117,7 @@ endLoad: LDBA    diskIn,d    ;Consume second 'z'
          CPBA    'z',i       ;If sentinel is not zz, 
          BRNE    loadErr     ;  then there is an error
          RET
-loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error address.
+loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error message.
          STWA    -2,s        ;Push address of error message
          SUBSP   2,i
          CALL    prntMsg
