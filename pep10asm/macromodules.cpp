@@ -66,7 +66,7 @@ std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance> > Mod
     moduleGraph.insert_vertex(rootPrototype->index);
 
     QSharedPointer<ModuleInstance> rootInstance = QSharedPointer<ModuleInstance>::create();
-    rootInstance->prototype = rootPrototype.get();
+    rootInstance->prototype = rootPrototype;
     rootInstance->macroArgs = QStringList();
     instanceMap.insert(rootPrototype->index, {rootInstance});
     return {rootPrototype, rootInstance};
@@ -90,7 +90,8 @@ ModuleInstance::ModuleInstance(const ModuleInstance &other)
 
 ModuleInstance::~ModuleInstance()
 {
-
+    // We don't own prototype. Do not delete.
+    this->prototype = nullptr;
 }
 
 ModuleInstance &ModuleInstance::operator=(ModuleInstance rhs)

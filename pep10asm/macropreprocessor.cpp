@@ -364,7 +364,7 @@ QSharedPointer<ModuleInstance> MacroPreprocessor::maybeCreateInstance(quint16 mo
 
     // We did not find a macro invocation with the same args, must create a new instance.
     auto instance = QSharedPointer<ModuleInstance>::create();
-    instance->prototype = target->prototypeMap[moduleIndex].get();
+    instance->prototype = target->prototypeMap[moduleIndex];
     instance->macroArgs = args;
     target->instanceMap[moduleIndex].append(instance);
     return instance;

@@ -66,6 +66,11 @@ struct MacroBurnInfo
  *
  */
 struct ModuleInstance;
+/*
+ * Module prototype MUST NOT have an owning smart pointer to child instances,
+ * as the instances having an owning pointer to the prototype.
+ * Adding an owning pointer would cause memory to not be freed, causing a memory leak.
+ */
 struct ModulePrototype {
     /*
      * Information that must be filled in before preprocessing.
@@ -104,7 +109,8 @@ struct ModuleInstance {
     /*
      * Information that must be filled in before preprocessing.
      */
-    ModulePrototype* prototype;
+    // Keep parent prototype alive for the lifetime of all child instances.
+    QSharedPointer<ModulePrototype> prototype;
 
     /*
      * Information filled in by preprocessor.
