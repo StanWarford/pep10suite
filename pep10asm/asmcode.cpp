@@ -1135,6 +1135,7 @@ void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
 
 void MacroInvoke::adjustMemAddress(int addressDelta)
 {
+    this->memAddress+=addressDelta;
     for(auto code : this->macroInstance->codeList) {
         // Don't generate listing for anything after and including .END
         code->adjustMemAddress(addressDelta);

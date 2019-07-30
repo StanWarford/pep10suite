@@ -129,10 +129,9 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
                 retVal.errorList.append({lineNum, multidefinedSymbol.arg(symbolName)});
                 continue;
             }
-            else if(dynamic_cast<DotEquate*>(line.get()) != nullptr
-                    || dynamic_cast<DotAddrss*>(line.get()) != nullptr)
+            else if(dynamic_cast<DotEquate*>(line.get()) != nullptr)
             {
-                // The value of a .EQUATE and .ADDRSS is handled in the assembler,
+                // The value of a .EQUATE is handled in the assembler,
                 // as it is not tied the address of a the current line of code.
             }
             // Otherwise the symbol was defined once, and its value needs to
@@ -235,8 +234,11 @@ bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
     }
 
     // Adjust for .BURN.
+    // The number of  bytes that need to be added to each instruction is the value of the BURN (0xFFFF)
+    // minus the number of bytes in the program (nextAddress + 1)
     quint16 addressDelta = static_cast<quint16>(burnInfo.burnArgument - nextAddress + 1);
-    burnInfo.startROMAddress = burnInfo.burnArgument - (nextAddress - burnInfo.burnAddress) +1;
+    // The first byte of ROM is the object code address of the BURN shifted by addressDelta.
+    burnInfo.startROMAddress = addressDelta + burnInfo.burnAddress;
     relocateCode(*rootInstance.get(), addressDelta);
     rootInstance->symbolTable->setOffset(addressDelta);
 
@@ -288,13 +290,13 @@ bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
             // The address of the last byte of the .ALIGN.
             int endAddr = startAddr + asAlign->getNumBytesGenerated();
             // Based on the ending byte, calculate where the first byte needs to be for proper alignment.
-            int blockStart = endAddr - endAddr % asAlign->getArgument()->getArgumentValue();
+            int blockStart = endAddr - (endAddr % asAlign->getArgument()->getArgumentValue());
             // We can't change an AsmArgument in place, so we must construct a new one.
             //delete asAlign->numBytesGenerated;
             // The align must still reach down to endAddr, but now must span up to blockStart.
-            asAlign->setNumBytesGenerated(blockStart - endAddr);
+            asAlign->setNumBytesGenerated(endAddr - blockStart);
             // Other instructions will be shifter by the change in starting address.
-            rollingOffset += blockStart - startAddr;
+            rollingOffset += startAddr - blockStart ;
             asAlign->setMemoryAddress(blockStart);
         }
     }
