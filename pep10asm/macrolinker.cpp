@@ -212,6 +212,14 @@ void MacroLinker::relocateCode(ModuleInstance &instance, quint16 addressDelta)
 
 bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
 {
+    /*
+     * I doubt .ALIGN after a burn work as anticipated.
+     * In order to properly align, one would need to begin with the last line of code,
+     * and assign address back-to-front. This wouldn't be a massic change,
+     * but it would completely divorce the OS linker implementation from
+     * the user linker.
+     */
+
     auto rootInstance = graph.instanceMap[graph.rootModule].first();
     bool success = true;
     QString errorString;
