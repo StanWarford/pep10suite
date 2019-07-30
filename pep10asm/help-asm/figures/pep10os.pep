@@ -62,6 +62,7 @@ execMain:MOVSPA              ;Preserve system stack pointer
          SUBSP   2,i         ;Allocate #retVal
          LDWA    0,i         ;Initialize user main return
          STWA    0,s         ;  value to zero
+         LDWX    0,i         ;Initialize X to zero
          CALL    0x0000      ;Call main entry point
 mainCln: LDWA    0,s         ;Load return value
          BRNE    mainErr     ;If retval is not zero, report error
