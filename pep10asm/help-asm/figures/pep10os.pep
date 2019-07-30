@@ -8,21 +8,67 @@ osRAM:   .BLOCK  128         ;System stack area
          .ALIGN  2           ;System stack at even address
 wordTemp:.BLOCK  1           ;Temporary word storage
 byteTemp:.BLOCK  1           ;Least significant byte of wordTemp
+osSPTemp:.BLOCK  2           ;Store system stack pointer when calling user program.
 addrMask:.BLOCK  2           ;Addressing mode mask
 opAddr:  .BLOCK  2           ;Trap instruction operand address
-; Do not allow diskIn to be referenced in user programs.
+strtFlg: .BLOCK  2           ;Entry point flags
+doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk.
+doExec:  .EQUATE 0x0002      ;System entry point will execute the program
+;Do not allow diskIn to be referenced in user programs.
 diskIn:  .BLOCK  2           ;Memory-mapped input device
          .EXPORT charIn      ;Allow charIn to be referenced in user programs.
 charIn:  .BLOCK  2           ;Memory-mapped input device
          .EXPORT charOut     ;Allow charIn to be referenced in user programs.
 charOut: .BLOCK  2           ;Memory-mapped output device
-         .EXPORT pwroff      ;Allow pwroff to be referenced in user programs.
-pwroff:  .BLOCK  2           ;Memory-mapped shutdown device
+         .EXPORT pwrOff      ;Allow pwroff to be referenced in user programs.
+pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device
          .ALIGN  2           ;I/O ports at even addresses
 
 ;******* Operating system ROM
          .BURN   0xFFFF      
 ;
+;******* System Entry Point
+start:   LDWX    0,i         ;X <- 0
+         LDWA    strtFlg,d   ;Load start flags
+         ANDA    doLoad,i    ;Check if the start flags indicate 
+         BREQ    callMain    ;  loading is to be performed
+         CALL    loader      ;If so, begin load
+
+callMain:LDWA    strtFlg,d  ;Reload start flags
+         ANDA    doExec,i   ;Check if the start flags indicate 
+         BREQ    shutdown   ;  user program is to be run
+         CALL    execMain   ;If so, run program.
+
+shutdown:LDWA    0xDEAD,i
+         STBA    pwrOff,d
+         STOP
+
+execMain:MOVSPA              ;Preserve system stack pointer  
+         STWA    osSPTemp,d  
+         LDWA    osRAM,i     ;Load address of user stack
+         MOVASP              ;Switch to user stack
+         SUBSP   2,i         ;Allocate #retVal
+         LDWA    0,i         ;Initialize user main return
+         STWA    0,s         ;  value to zero
+         CALL    0x0000      ;Call main entry point
+         LDWA    0,s         ;Load return value
+         BRNE    mainErr     ;If retval is not zero, report error
+         ADDSP   2,i         ;Deallocate main return value
+         LDWA    osSPTemp,d  ;Restore system stack pointer
+         MOVASP
+         RET
+;
+mainErr: LDWA    execErr,i  ;Load the address of the loader error address.
+         STWA    -2,s       ;Push address of error message
+         SUBSP   2,i
+         CALL    prntMsg
+         ADDSP   2,i
+         LDWA    -2,s       ;Load return code from stack
+         CALL    numPrint   ;Print the error code
+         ADDSP   2,i        ;Deallocate main return value
+         BR      shutdown
+execErr: .ASCII "Main failed with return value \x00"
+
 ;******* System Loader
 ;Data must be in the following format:
 ;Each hex number representing a byte must contain exactly two
@@ -35,9 +81,9 @@ pwroff:  .BLOCK  2           ;Memory-mapped shutdown device
 ;
 loader:  LDWX    0,i         ;X <- 0
 ;
-getChar: LDBA    charIn,d    ;Get first hex character
+getChar: LDBA    diskIn,d    ;Get first hex character
          CPBA    'z',i       ;If end of file sentinel 'z'
-         BREQ    stopLoad    ;  then exit loader routine
+         BREQ    endLoad     ;  then exit loader routine
          CPBA    '9',i       ;If characer <= '9', assume decimal
          BRLE    shift       ;  and right nybble is correct digit
          ADDA    9,i         ;else convert nybble to correct digit
@@ -46,7 +92,7 @@ shift:   ASLA                ;Shift left by four bits to send
          ASLA                ;  position in the byte
          ASLA                
          STBA    byteTemp,d  ;Save the most significant nybble
-         LDBA    charIn,d    ;Get second hex character
+         LDBA    diskIn,d    ;Get second hex character
          CPBA    '9',i       ;If characer <= '9', assume decimal
          BRLE    combine     ;  and right nybble is correct digit
          ADDA    9,i         ;else convert nybble to correct digit
@@ -54,10 +100,20 @@ combine: ANDA    0x000F,i    ;Mask out the left nybble
          ORA     wordTemp,d  ;Combine both hex digits in binary
          STBA    0,x         ;Store in Mem[X]
          ADDX    1,i         ;X <- X + 1
-         LDBA    charIn,d    ;Skip blank or <LF>
+         LDBA    diskIn,d    ;Skip blank or <LF>
          BR      getChar     ;
 ;
-stopLoad:STOP                ;
+endLoad: LDBA    diskIn,d    ;Consume second 'z' 
+         CPBA    'z',i       ;If sentinel is not zz, 
+         BRNE    loadErr     ;  then there is an error
+         RET
+loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error address.
+         STWA    -2,s        ;Push address of error message
+         SUBSP   2,i
+         CALL    prntMsg
+         ADDSP   2,i
+         BR      shutdown
+ldErrMsg:.ASCII "Sentinel value was corrupted\x00"
 ;
 ;******* Trap handler
 oldIR:   .EQUATE 9           ;Stack address of IR on trap
@@ -76,9 +132,9 @@ nonUnary:LDWA    oldPC,s     ;Must increment program counter
          MOVTPC
 ;
 ;******* Assert valid trap addressing mode
-oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
+oldIR2:  .EQUATE 11          ;oldIR + 2 with one return address
 assertAd:LDBA    1,i         ;A <- 1
-         LDBX    oldIR4,s    ;X <- OldIR
+         LDBX    oldIR2,s    ;X <- OldIR
          ANDX    0x0007,i    ;Keep only the addressing mode bits
          BREQ    testAd      ;000 = immediate addressing
 loop:    ASLA                ;Shift the 1 bit left
@@ -93,14 +149,14 @@ addrErr: LDBA    '\n',i
          STWA    -2,s        
          SUBSP   2,i         ;Call print subroutine
          CALL    prntMsg     
-         STOP                ;Halt: Fatal runtime error
+         BR      shutdown    ;Halt: Fatal runtime error
 trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\x00"
 ;
 ;******* Set address of trap operand
-oldX4:   .EQUATE 7           ;oldX + 4 with two return addresses
-oldPC4:  .EQUATE 9           ;oldPC + 4 with two return addresses
-oldSP4:  .EQUATE 11          ;oldSP + 4 with two return addresses
-setAddr: LDBX    oldIR4,s    ;X <- old instruction register
+oldX2:   .EQUATE 5           ;oldX + 2 with one return address
+oldPC2:  .EQUATE 7           ;oldPC + 2 with two return address
+oldSP2:  .EQUATE 9          ;oldSP + 2 with two return address
+setAddr: LDBX    oldIR2,s    ;X <- old instruction register
          ANDX    0x0007,i    ;Keep only the addressing mode bits
          ASLX                ;Two bytes per address
          BR      addrJT,x    
@@ -113,60 +169,60 @@ addrJT:  .ADDRSS addrI       ;Immediate addressing
          .ADDRSS addrSX      ;Stack-indexed addressing
          .ADDRSS addrSFX     ;Stack-deferred indexed addressing
 ;
-addrI:   LDWX    oldPC4,s    ;Immediate addressing
+addrI:   LDWX    oldPC2,s    ;Immediate addressing
          SUBX    2,i         ;Oprnd = OprndSpec
          STWX    opAddr,d    
          RET                 
 ;
-addrD:   LDWX    oldPC4,s    ;Direct addressing
+addrD:   LDWX    oldPC2,s    ;Direct addressing
          SUBX    2,i         ;Oprnd = Mem[OprndSpec]
          LDWX    0,x         
          STWX    opAddr,d    
          RET                 
 ;
-addrN:   LDWX    oldPC4,s    ;Indirect addressing
+addrN:   LDWX    oldPC2,s    ;Indirect addressing
          SUBX    2,i         ;Oprnd = Mem[Mem[OprndSpec]]
          LDWX    0,x         
          LDWX    0,x         
          STWX    opAddr,d    
          RET                 
 ;
-addrS:   LDWX    oldPC4,s    ;Stack-relative addressing
+addrS:   LDWX    oldPC2,s    ;Stack-relative addressing
          SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec]
          LDWX    0,x         
-         ADDX    oldSP4,s    
+         ADDX    oldSP2,s    
          STWX    opAddr,d    
          RET                 
 ;
-addrSF:  LDWX    oldPC4,s    ;Stack-relative deferred addressing
+addrSF:  LDWX    oldPC2,s    ;Stack-relative deferred addressing
          SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec]]
          LDWX    0,x         
-         ADDX    oldSP4,s    
+         ADDX    oldSP2,s    
          LDWX    0,x         
          STWX    opAddr,d    
          RET                 
 ;
-addrX:   LDWX    oldPC4,s    ;Indexed addressing
+addrX:   LDWX    oldPC2,s    ;Indexed addressing
          SUBX    2,i         ;Oprnd = Mem[OprndSpec + X]
          LDWX    0,x         
-         ADDX    oldX4,s     
+         ADDX    oldX2,s     
          STWX    opAddr,d    
          RET                 
 ;
-addrSX:  LDWX    oldPC4,s    ;Stack-indexed addressing
+addrSX:  LDWX    oldPC2,s    ;Stack-indexed addressing
          SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec + X]
          LDWX    0,x         
-         ADDX    oldX4,s     
-         ADDX    oldSP4,s    
+         ADDX    oldX2,s     
+         ADDX    oldSP2,s    
          STWX    opAddr,d    
          RET                 
 ;
-addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
+addrSFX: LDWX    oldPC2,s    ;Stack-deferred indexed addressing
          SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec] + X]
          LDWX    0,x         
-         ADDX    oldSP4,s    
+         ADDX    oldSP2,s    
          LDWX    0,x         
-         ADDX    oldX4,s     
+         ADDX    oldX2,s     
          STWX    opAddr,d    
          RET                               
 ;
@@ -341,7 +397,7 @@ deciErr: LDBA    '\n',i
          STWA    -2,s        
          SUBSP   2,i         
          CALL    prntMsg     ;and print
-         STOP                ;Fatal error: program terminates
+         BR      shutdown    ;Fatal error: program terminates
 ;
 deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
 ;
@@ -361,7 +417,9 @@ DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          STWA    addrMask,d  
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
-         SUBSP   6,i         ;Allocate storage for locals
+         call    numPrint
+         SRET
+numPrint:SUBSP   6,i         ;Allocate storage for locals
          LDWA    opAddr,n    ;A <- oprnd
          CPWA    0,i         ;If oprnd is negative then
          BRGE    printMag    
@@ -387,7 +445,7 @@ printMag:STWA    remain,s    ;remain <- abs(oprnd)
          ORA     0x0030,i    ;Convert decimal to ASCII
          STBA    charOut,d   ;  and output it
          ADDSP   6,i         ;Deallocate storage for locals
-         SRET                 
+         RET                 
 ;
 ;Subroutine to print the most significant decimal digit of the
 ;remainder. It assumes that place (place2 here) contains the
@@ -492,8 +550,11 @@ exitPrnt:RET
 ;******* Vectors for system memory map
          .ADDRSS osRAM       ;User stack pointer
          .ADDRSS wordTemp    ;System stack pointer
+         .ADDRSS diskIn      ;Memory-mapped disk input device
          .ADDRSS charIn      ;Memory-mapped input device
          .ADDRSS charOut     ;Memory-mapped output device
+         .ADDRSS pwrOff      ;Memory-mapped power off device
+         .ADDRSS start       ;Entry point program counter
          .ADDRSS loader      ;Loader program counter
          .ADDRSS trap        ;Trap program counter
 ;
