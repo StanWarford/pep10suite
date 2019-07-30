@@ -191,7 +191,10 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
             // and one additional argument per comma in the string.
             count = argText.count(",") + 1;
         }
-
+        // Remove any whitespace from arguments
+        for(auto& arg : argList) {
+            arg = arg.trimmed();
+        }
 
 
         // Check that we supply the right number of args to a macro.

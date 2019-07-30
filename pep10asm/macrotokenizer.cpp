@@ -11,7 +11,7 @@ const QRegularExpression init(QString string)
 // Regular expressions for lexical analysis
 // For addressing modes starting with s, use negative lookaheads to ensure
 // that the longest possible addressing is matched.
-const QRegularExpression MacroTokenizerHelper::addrMode = init("(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
+const QRegularExpression MacroTokenizerHelper::addrMode = init("\\s*(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
 const QRegularExpression MacroTokenizerHelper::charConst("((\')(?![\'])(([^\'\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
 const QRegularExpression MacroTokenizerHelper::decConst = init("[+|-]{0,1}[0-9]+\\s*");
@@ -138,12 +138,12 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
     using namespace MacroTokenizerHelper;
     QChar firstChar;
     // Consume whitespace until absent, as whitepsace is not syntatically significant.
-
     for(firstChar = sourceLine[offset];
-        offset >= sourceLine.length() && firstChar.isSpace();
-        offset++) {
+        offset < sourceLine.length() && firstChar.isSpace();
+        firstChar = sourceLine[++offset]) {
 
     }
+    // If all whitespace was consumed and the line is now empty, we have a empty token.
     if (offset >= sourceLine.length()) {
         token = ELexicalToken::LT_EMPTY;
         tokenString = QStringRef();
