@@ -48,11 +48,13 @@ callMain:LDWA    strtFlg,d  ;Reload start flags
 ;  execMain is responsible for cleaning up the system stack
 ;  and shutting down the machine.
          BR      execMain
-
+;
+;Write an arbitrary value to the power off port to shutdown the computer.
 shutdown:LDWA    0xDEAD,i
          STBA    pwrOff,d
-         STOP
-
+         STOP                ;Unused, but retained for backwards compatability with Pep9.
+         
+;
 execMain:MOVSPA              ;Preserve system stack pointer  
          STWA    osSPTemp,d  
          LDWA    osRAM,i     ;Load address of user stack
