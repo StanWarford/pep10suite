@@ -730,7 +730,6 @@ QSharedPointer<DotByte>
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        DotByte *dotByte = new DotByte;
         dotByte->setArgument(QSharedPointer<CharArgument>::create(tokenString));
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
@@ -752,7 +751,6 @@ QSharedPointer<DotByte>
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
         if (value < 256) {
-            DotByte *dotByte = new DotByte;
             dotByte->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
