@@ -9,7 +9,6 @@
 #include "interrupthandler.h"
 #include "isacpumemoizer.h"
 #include "pep.h"
-
 IsaCpu::IsaCpu(const AsmProgramManager *manager, QSharedPointer<AMemoryDevice> memDevice, QObject *parent):
     ACPUModel(memDevice, parent), InterfaceISACPU(memDevice.get(), manager), memoizer(new IsaCpuMemoizer(*this))
 {
@@ -612,6 +611,7 @@ bool IsaCpu::writeOperandByte(quint16 operand, quint8 value, Enu::EAddrMode addr
 void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
 {
     quint16 temp, sp, acc, idx;
+    quint8 tempByte;
     sp = registerBank.readRegisterWordCurrent(Enu::CPURegisters::SP);
     acc = registerBank.readRegisterWordCurrent(Enu::CPURegisters::A);
     idx = registerBank.readRegisterWordCurrent(Enu::CPURegisters::X);
@@ -629,9 +629,10 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
         break;
 
     case Enu::EMnemonic::SRET:
-        memory->readWord(sp, temp);
+        // Only perform single byte read as status bits do not span full word.
+        memory->readByte(sp, tempByte);
         // Function will automatically mask out bits that don't matter
-        registerBank.writeStatusBits(static_cast<quint8>(temp));
+        registerBank.writeStatusBits(tempByte);
         memory->readWord(sp + 1, temp);
         registerBank.writeRegisterWord(Enu::CPURegisters::A, temp);
         memory->readWord(sp + 3, temp);
@@ -1191,10 +1192,8 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
 
 void IsaCpu::executeTrap(Enu::EMnemonic mnemon)
 {
-    quint16 pc;
-    quint16 tempAddr, temp = manager->getOperatingSystem()->getBurnValue() - 9;
-    memory->readWord(temp, tempAddr);
-    quint16 pcAddr = manager->getOperatingSystem()->getBurnValue() - 1;
+    quint16 temp = manager->getMemoryVectorValue(AsmProgramManager::MemoryVectors::SystemStack); //-17
+    quint16 pc = manager->getMemoryVectorValue(AsmProgramManager::MemoryVectors::Trap); //-1
     bool memSuccess = true;
     switch(mnemon) {
     // Non-unary traps
@@ -1202,19 +1201,18 @@ void IsaCpu::executeTrap(Enu::EMnemonic mnemon)
         [[fallthrough]];
     case Enu::EMnemonic::SCALL:
         // Writes to mem[T-1].
-        memSuccess &= memory->writeByte(tempAddr - 1, registerBank.readRegisterByteCurrent(Enu::CPURegisters::IS) /*IS*/);
+        memSuccess &= memory->writeByte(temp - 1, registerBank.readRegisterByteCurrent(Enu::CPURegisters::IS) /*IS*/);
         // Writes to mem[T-2], mem[T-3].
-        memSuccess &= memory->writeWord(tempAddr - 3, registerBank.readRegisterWordCurrent(Enu::CPURegisters::SP) /*SP*/);
+        memSuccess &= memory->writeWord(temp - 3, registerBank.readRegisterWordCurrent(Enu::CPURegisters::SP) /*SP*/);
         // Writes to mem[T-4], mem[T-5].
-        memSuccess &= memory->writeWord(tempAddr - 5, registerBank.readRegisterWordCurrent(Enu::CPURegisters::PC) /*PC*/);
+        memSuccess &= memory->writeWord(temp - 5, registerBank.readRegisterWordCurrent(Enu::CPURegisters::PC) /*PC*/);
         // Writes to mem[T-6], mem[T-7].
-        memSuccess &= memory->writeWord(tempAddr - 7, registerBank.readRegisterWordCurrent(Enu::CPURegisters::X) /*X*/);
+        memSuccess &= memory->writeWord(temp - 7, registerBank.readRegisterWordCurrent(Enu::CPURegisters::X) /*X*/);
         // Writes to mem[T-8], mem[T-9].
-        memSuccess &= memory->writeWord(tempAddr - 9, registerBank.readRegisterWordCurrent(Enu::CPURegisters::A) /*A*/);
+        memSuccess &= memory->writeWord(temp - 9, registerBank.readRegisterWordCurrent(Enu::CPURegisters::A) /*A*/);
         // Writes to mem[T-10].
-        memSuccess &= memory->writeByte(tempAddr - 10, registerBank.readStatusBitsCurrent() /*NZVC*/);
-        memSuccess &= memory->readWord(pcAddr, pc);
-        registerBank.writeRegisterWord(Enu::CPURegisters::SP, tempAddr - 10);
+        memSuccess &= memory->writeByte(temp - 10, registerBank.readStatusBitsCurrent() /*NZVC*/);
+        registerBank.writeRegisterWord(Enu::CPURegisters::SP, temp - 10);
         registerBank.writeRegisterWord(Enu::CPURegisters::PC, pc);
         break;
     default:
