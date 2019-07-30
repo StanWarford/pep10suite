@@ -28,6 +28,7 @@
 #include "isaasm.h"
 class AsmProgram;
 class SymbolTable;
+class MacroRegistry;
 /*
  * A class to manage the lifetime of user programs & the operating system.
  * Also helps communicate changes in breakpoints between assembler source &
@@ -50,7 +51,7 @@ public:
      * that contain useful addresses.
      */
     enum MemoryVectors{
-        UserStack, SystemStack, CharIn, CharOut, Loader, Trap
+        UserStack, SystemStack, DiskIn, CharIn, CharOut, PowerOff, Start, Loader, Trap
     };
     /* Number of bytes to subtract from the end of memory to get a particular memory
      * vector.
@@ -75,6 +76,9 @@ public:
 
     // Return all breakpoints for the program counter
     QSet<quint16> getBreakpoints() const;
+
+    QSharedPointer<MacroRegistry> getMacroRegistry();
+    void setMacroRegistry(QSharedPointer<MacroRegistry> macroRegistry);
 public slots:
     void onBreakpointAdded(quint16 address);
     void onBreakpointRemoved(quint16 address);
@@ -91,6 +95,7 @@ private:
     static AsmProgramManager* instance;
     QSharedPointer<AsmProgram> operatingSystem;
     QSharedPointer<AsmProgram> userProgram;
+    QSharedPointer<MacroRegistry> macroRegistry;
 
 };
 

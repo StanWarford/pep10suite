@@ -97,6 +97,16 @@ QSet<quint16> AsmProgramManager::getBreakpoints() const
     return breakpoints;
 }
 
+QSharedPointer<MacroRegistry> AsmProgramManager::getMacroRegistry()
+{
+    return macroRegistry;
+}
+
+void AsmProgramManager::setMacroRegistry(QSharedPointer<MacroRegistry> macroRegistry)
+{
+    this->macroRegistry = macroRegistry;
+}
+
 const AsmProgram *AsmProgramManager::getProgramAt(quint16 address) const
 {
     if(!userProgram.isNull()) {
@@ -171,17 +181,23 @@ QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleProgram(
 quint16 AsmProgramManager::getMemoryVectorOffset(MemoryVectors which)
 {
     switch(which) {
-    case UserStack:;
+    case UserStack:
+        return 17;
+    case SystemStack:
+        return 15;
+    case DiskIn:
+        return 13;
+    case CharIn:
         return 11;
-    case SystemStack:;
+    case CharOut:
         return 9;
-    case CharIn:;
+    case PowerOff:
         return 7;
-    case CharOut:;
+    case Start:
         return 5;
-    case Loader:;
+    case Loader:
         return 3;
-    case Trap:;
+    case Trap:
         return 1;
     }
 }
