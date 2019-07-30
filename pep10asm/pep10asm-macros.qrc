@@ -42,5 +42,6 @@
         <file>help-asm/figures/pep10os.pep</file>
         <file>help-asm/macros/systemcall/SCALL.txt</file>
         <file>help-asm/macros/systemcall/USCALL.txt</file>
+        <file>help-asm/macros/builtin/XCHGA.pepm</file>
     </qresource>
 </RCC>
