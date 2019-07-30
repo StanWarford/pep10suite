@@ -20,7 +20,8 @@ charOut: .BLOCK  2           ;Memory-mapped output device
          .EXPORT pwrOff      ;Allow pwroff to be referenced in user programs.
 pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device
          .ALIGN  2           ;I/O ports at even addresses
-
+_inSCall:.EQUATE 0x0001      ;Indicate that OS is in a system call state.
+osFlags: .WORD   0           ;Store persistent OS state flags.
 ;******* Operating system ROM
          .BURN   0xFFFF      
 ;
@@ -29,6 +30,7 @@ pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device
 strtFlg: .WORD   3           ;Entry point flags
 doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk.
 doExec:  .EQUATE 0x0002      ;System entry point will execute the program
+
 ;
 ;******* System Entry Point
 start:   LDWX    0,i         ;X <- 0
@@ -133,13 +135,41 @@ trap:    LDWX    0,i         ;
          LDBX    oldIR,s     ;X <- trapped IR
          CPBX    0x0030,i    ;If X >= first nonunary trap opcode
          BRGE    nonUnary    ;  trap opcode is nonunary
+         BR      sCallSt     ;Begin nonunary trap execution 
 ;
-unary:   MOVTPC              ;Jump directly to a trap handler
+;Helpers to gaurd against recursive system calls
 ;
+;System Call Start
+;  Set osFlags to indicate entering system call
+sCallSt: LDWA    osFlags,d   ;Load system call flags
+         ORA    _inSCall,i   ;OR with in system call flag
+         CPWA   osFlags,d    ;If flags|inSCall == flags, then inSCall is set
+         BREQ   SCallErr     ;If already in scall, then error
+         STWA   osFlags,d    ;Otherwise store updated flags
+         MOVTPC              ;Jump directly to a trap handler
+;
+;System Call End
+;  Remove inSystemCall flag and return from system call
+sCallEnd:LDWA   _inSCall,i   ;Load system call flag
+         NOTA                ;Invert bit pattern
+         ANDA   osFlags,d    ;  and & with osFlags to set system call bit flag to 0.
+         STWA   osFlags,d    ;Save flagse
+         SRET                ;Exit operating system
+
+;
+;Nonunary System Call Helper
 nonUnary:LDWA    oldPC,s     ;Must increment program counter
          ADDA    2,i         ;  for nonunary instructions
          STWA    oldPC,s
-         MOVTPC
+         BR      sCallSt     ;Now that PC is updated, set OS system call flags.
+;
+SCallErr:LDWA    scErrMsg,i  ;Load the address of the loader error message.
+         STWA    -2,s        ;Push address of error message
+         SUBSP   2,i
+         CALL    prntMsg
+         ADDSP   2,i
+         BR      shutdown
+scErrMsg:.ASCII "Recursively entered system call.\x00"
 ;
 ;******* Assert valid trap addressing mode
 oldIR2:  .EQUATE 11          ;oldIR + 2 with one return address
@@ -240,7 +270,7 @@ addrSFX: LDWX    oldPC2,s    ;Stack-deferred indexed addressing
 ;The unary no-operation system call.
          .EXPORT SYUNOP
          .USCALL SYUNOP
-SYUNOP:  SRET                 
+SYUNOP:  BR      sCallEnd    ;Return to trap handler            
 ;
 ;******* SYNOP
 ;The nonunary no-operation system call.
@@ -249,7 +279,7 @@ SYUNOP:  SRET
 SYNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d  
          CALL    assertAd    
-         SRET                 
+         BR      sCallEnd    ;Return to trap handler               
 ;
 ;******* DECI
 ;The decimal input system call.
@@ -399,7 +429,7 @@ storeFl: STBX    oldNZVC,s   ;Store the NZVC flags
 exitDeci:LDWA    total,s     ;Put total in memory
          STWA    opAddr,n    
          ADDSP   13,i        ;Deallocate locals
-         SRET                 ;Return to trap handler
+         BR      sCallEnd    ;Return to trap handler
 ;
 deciErr: LDBA    '\n',i      
          STBA    charOut,d   
@@ -428,7 +458,7 @@ DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          SUBSP   2,i         ;Allocate #toPrint
          CALL    numPrint
          ADDSP   2,i         ;Deallocate #toPrint
-         SRET
+         BR      sCallEnd    ;Return to trap handler
 ;Print number
 ;Expects the number to be printed stored in the accumulator.
 remain:  .EQUATE 0           ;Remainder of value to output
@@ -514,7 +544,7 @@ HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          CALL    hexOut      ;Output third hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
          CALL    hexOut      ;Output fourth hex character
-         SRET                 
+         BR      sCallEnd    ;Return to trap handler                 
 ;
 ;Subroutine to output in hex the least significant nybble of the
 ;accumulator.
@@ -544,7 +574,7 @@ STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
          SUBSP   2,i         
          CALL    prntMsg     ;and print
          ADDSP   2,i         
-         SRET                
+         BR      sCallEnd    ;Return to trap handler                
 ;
 ;******* Print subroutine
 ;Prints a string of ASCII bytes until it encounters a null
