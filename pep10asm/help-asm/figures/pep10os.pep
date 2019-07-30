@@ -58,14 +58,17 @@ execMain:MOVSPA              ;Preserve system stack pointer
          MOVASP
          RET
 ;
-mainErr: LDWA    execErr,i  ;Load the address of the loader error address.
-         STWA    -2,s       ;Push address of error message
+mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
+         STWA    -2,s        ;Push address of error message
          SUBSP   2,i
          CALL    prntMsg
          ADDSP   2,i
-         LDWA    -2,s       ;Load return code from stack
-         CALL    numPrint   ;Print the error code
-         ADDSP   2,i        ;Deallocate main return value
+         LDWA    -2,s        ;Load return code from stack
+         STWA    -2,s
+         SUBSP   2,i         ;Allocate #toPrint
+         CALL    numPrint
+         ADDSP   2,i         ;Deallocate #toPrint
+         ADDSP   2,i         ;Deallocate main return value
          BR      shutdown
 execErr: .ASCII "Main failed with return value \x00"
 
@@ -79,8 +82,7 @@ execErr: .ASCII "Main failed with return value \x00"
 ;file must be lowercase zz, which is used as the terminating
 ;sentinel by the loader.
 ;
-loader:  LDWX    0,i         ;X <- 0
-;
+loader: LDWX    0,i          ;X <- 0
 getChar: LDBA    diskIn,d    ;Get first hex character
          CPBA    'z',i       ;If end of file sentinel 'z'
          BREQ    endLoad     ;  then exit loader routine
@@ -409,18 +411,24 @@ deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
          .EXPORT DECO
          .SCALL  DECO
 ;
-remain:  .EQUATE 0           ;Remainder of value to output
-outYet:  .EQUATE 2           ;Has a character been output yet?
-place:   .EQUATE 4           ;Place value for division
-;
 DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          STWA    addrMask,d  
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
-         call    numPrint
-         SRET
-numPrint:SUBSP   6,i         ;Allocate storage for locals
          LDWA    opAddr,n    ;A <- oprnd
+         STWA    -2,s
+         SUBSP   2,i         ;Allocate #toPrint
+         CALL    numPrint
+         ADDSP   2,i         ;Deallocate #toPrint
+         SRET
+;Print number
+;Expects the number to be printed stored in the accumulator.
+remain:  .EQUATE 0           ;Remainder of value to output
+outYet:  .EQUATE 2           ;Has a character been output yet?
+place:   .EQUATE 4           ;Place value for division
+toPrint: .EQUATE 8           ;Number to be printed
+numPrint:SUBSP   6,i         ;Allocate storage for locals
+         LDWA    toPrint,s   ;Load the number to print
          CPWA    0,i         ;If oprnd is negative then
          BRGE    printMag    
          LDBX    '-',i       ;Print leading '-'
