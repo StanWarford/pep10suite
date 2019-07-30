@@ -1081,12 +1081,11 @@ void IsaCpu::executeNonunary(Enu::EMnemonic mnemon, quint16 opSpec, Enu::EAddrMo
         break;
 
     case Enu::EMnemonic::LDWT:
+        // Do not modify status bits.
+        // Modifyign status bits would make system call macro touch internal state,
+        // and this could be a signifcant annoyance to an end user.
         memSuccess = readOperandWordValue(opSpec, addrMode, tempWord);
         registerBank.writeRegisterWord(Enu::CPURegisters::TR, tempWord);
-        // Is negative if high order bit is 1.
-        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_N, tempWord & 0x8000);
-         // Is zero if all bits are 0's.
-        registerBank.writeStatusBit(Enu::EStatusBit::STATUS_Z, tempWord == 0);
         break;
 
     case Enu::EMnemonic::LDWA:
