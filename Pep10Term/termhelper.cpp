@@ -78,6 +78,13 @@ void buildDefaultOperatingSystem(AsmProgramManager &manager, QSharedPointer<Macr
             }
             throw std::logic_error("The default operating system failed to assemble.");
         }
+        QFile outputFile ("os.pepl");
+        outputFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate);
+        QString listing =  manager.getOperatingSystem()->getProgramListing();
+        QTextStream (&outputFile) << listing
+        << manager.getOperatingSystem()->getSymbolTable()->getSymbolTableListing();
+        outputFile.flush();
+        outputFile.close();
     }
     // If the operating system couldn't be found, we can't progress any further.
     // All application functionality depends on the operating system being defined.
