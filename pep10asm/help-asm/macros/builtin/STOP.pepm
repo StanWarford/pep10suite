@@ -1,0 +1,4 @@
+@STOP 0
+LDWA   0xDEAD,i
+STWA   pwrOff,d
+.END

@@ -45,5 +45,6 @@
         <file>help-asm/macros/builtin/XCHGX.pepm</file>
         <file>help-asm/macros/builtin/XCHGA.pepm</file>
         <file>help-asm/macros/builtin/SWAPAX.pepm</file>
+        <file>help-asm/macros/builtin/STOP.pepm</file>
     </qresource>
 </RCC>
