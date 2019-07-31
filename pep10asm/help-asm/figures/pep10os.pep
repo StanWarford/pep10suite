@@ -20,8 +20,6 @@ charOut: .BLOCK  2           ;Memory-mapped output device
          .EXPORT pwrOff      ;Allow pwroff to be referenced in user programs.
 pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device
          .ALIGN  2           ;I/O ports at even addresses
-_inSCall:.EQUATE 0x0001      ;Indicate that OS is in a system call state.
-osFlags: .WORD   0           ;Store persistent OS state flags.
 ;******* Operating system ROM
          .BURN   0xFFFF      
 ;
@@ -135,46 +133,76 @@ trap:    LDWX    0,i         ;
          LDBX    oldIR,s     ;X <- trapped IR
          CPBX    0x0030,i    ;If X >= first nonunary trap opcode
          BRGE    nonUnary    ;  trap opcode is nonunary
-         BR      sCallSt     ;Begin nonunary trap execution 
-;
-;Helpers to gaurd against recursive system calls
-;
-;System Call Start
-;  Set osFlags to indicate entering system call
-sCallSt: LDWA    osFlags,d   ;Load system call flags
-         ORA    _inSCall,i   ;OR with in system call flag
-         CPWA   osFlags,d    ;If flags|inSCall == flags, then inSCall is set
-         BREQ   SCallErr     ;If already in scall, then error
-         STWA   osFlags,d    ;Otherwise store updated flags
-         MOVTPC              ;Jump directly to a trap handler
-;
-;System Call End
-;  Remove inSystemCall flag and return from system call
-sCallEnd:LDWA   _inSCall,i   ;Load system call flag
-         NOTA                ;Invert bit pattern
-         ANDA   osFlags,d    ;  and & with osFlags to set system call bit flag to 0.
-         STWA   osFlags,d    ;Save flagse
-         SRET                ;Exit operating system
-
+;Unary System Call Helper
+unary:   LDWA    USCJT,i
+         STWA    -4,s
+         LDWA    EUSCJT,i
+         SUBA    USCJT,i
+         STWA    -2,s
+         SUBSP   4,i
+         CALL    trapFind
+         ADDSP   4,i
+         CALL    USCJT, x
+         SRET
 ;
 ;Nonunary System Call Helper
 nonUnary:LDWA    oldPC,s     ;Must increment program counter
          ADDA    2,i         ;  for nonunary instructions
          STWA    oldPC,s
-         BR      sCallSt     ;Now that PC is updated, set OS system call flags.
+         LDWA    SCJT,i
+         STWA    -4,s
+         LDWA    ESCJT,i
+         SUBA    SCJT,i
+         STWA    -2,s
+         SUBSP   4,i
+         CALL    trapFind
+         ADDSP   4,i
+         CALL    SCJT, x
+         SRET
 ;
-SCallErr:LDWA    scErrMsg,i  ;Load the address of the loader error message.
+arrDim: .EQUATE 4           ;Stack address of the array size
+arrAddr: .EQUATE 2          ;Stack address of the trap array
+trapFind: MOVTA
+          LDWX   0,i         ;Initialize array iterator
+trapLoop: CPWX   arrDim,s    ;Check if iterator is at end of array
+          BRGE   trapErr     ;Did not find T in array
+          CPWA   arrAddr,sfx ;Compare A
+          BREQ   trapFnd
+          ADDX   2,i
+          BR     trapLoop
+;
+trapFnd:RET   
+trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
          STWA    -2,s        ;Push address of error message
          SUBSP   2,i
          CALL    prntMsg
          ADDSP   2,i
+         MOVTA
+         STWA    -2,s
+         SUBSP   2,i
+         CALL    hexPrint
+         ADDSP   2,i
          BR      shutdown
-scErrMsg:.ASCII "Recursively entered system call.\x00"
+scErrMsg:.ASCII "Could not find system call \x00"
+;
+;******* System Call Jump Tables
+;Unary System Call Jump Table
+USCJT:   .ADDRSS SYUNOP
+EUSCJT:  .ADDRSS trapErr
+;
+;Nonunary System Call Jump Table
+SCJT:    .ADDRSS SYNOP
+         .ADDRSS DECI
+         .ADDRSS DECO
+         .ADDRSS HEXO
+         .ADDRSS STRO
+ESCJT:   .ADDRSS trapErr
+
 ;
 ;******* Assert valid trap addressing mode
-oldIR2:  .EQUATE 11          ;oldIR + 2 with one return address
+oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
 assertAd:LDBA    1,i         ;A <- 1
-         LDBX    oldIR2,s    ;X <- OldIR
+         LDBX    oldIR4,s    ;X <- OldIR
          ANDX    0x0007,i    ;Keep only the addressing mode bits
          BREQ    testAd      ;000 = immediate addressing
 loop:    ASLA                ;Shift the 1 bit left
@@ -193,10 +221,10 @@ addrErr: LDBA    '\n',i
 trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\x00"
 ;
 ;******* Set address of trap operand
-oldX2:   .EQUATE 5           ;oldX + 2 with one return address
-oldPC2:  .EQUATE 7           ;oldPC + 2 with two return address
-oldSP2:  .EQUATE 9          ;oldSP + 2 with two return address
-setAddr: LDBX    oldIR2,s    ;X <- old instruction register
+oldX4:   .EQUATE 7           ;oldX + 4 with two return addresses
+oldPC4:  .EQUATE 9           ;oldPC + 4 with two return address
+oldSP4:  .EQUATE 11          ;oldSP + 4 with two return address
+setAddr: LDBX    oldIR4,s    ;X <- old instruction register
          ANDX    0x0007,i    ;Keep only the addressing mode bits
          ASLX                ;Two bytes per address
          BR      addrJT,x    
@@ -209,60 +237,60 @@ addrJT:  .ADDRSS addrI       ;Immediate addressing
          .ADDRSS addrSX      ;Stack-indexed addressing
          .ADDRSS addrSFX     ;Stack-deferred indexed addressing
 ;
-addrI:   LDWX    oldPC2,s    ;Immediate addressing
+addrI:   LDWX    oldPC4,s    ;Immediate addressing
          SUBX    2,i         ;Oprnd = OprndSpec
          STWX    opAddr,d    
          RET                 
 ;
-addrD:   LDWX    oldPC2,s    ;Direct addressing
+addrD:   LDWX    oldPC4,s    ;Direct addressing
          SUBX    2,i         ;Oprnd = Mem[OprndSpec]
          LDWX    0,x         
          STWX    opAddr,d    
          RET                 
 ;
-addrN:   LDWX    oldPC2,s    ;Indirect addressing
+addrN:   LDWX    oldPC4,s    ;Indirect addressing
          SUBX    2,i         ;Oprnd = Mem[Mem[OprndSpec]]
          LDWX    0,x         
          LDWX    0,x         
          STWX    opAddr,d    
          RET                 
 ;
-addrS:   LDWX    oldPC2,s    ;Stack-relative addressing
+addrS:   LDWX    oldPC4,s    ;Stack-relative addressing
          SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec]
          LDWX    0,x         
-         ADDX    oldSP2,s    
+         ADDX    oldSP4,s    
          STWX    opAddr,d    
          RET                 
 ;
-addrSF:  LDWX    oldPC2,s    ;Stack-relative deferred addressing
+addrSF:  LDWX    oldPC4,s    ;Stack-relative deferred addressing
          SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec]]
          LDWX    0,x         
-         ADDX    oldSP2,s    
+         ADDX    oldSP4,s    
          LDWX    0,x         
          STWX    opAddr,d    
          RET                 
 ;
-addrX:   LDWX    oldPC2,s    ;Indexed addressing
+addrX:   LDWX    oldPC4,s    ;Indexed addressing
          SUBX    2,i         ;Oprnd = Mem[OprndSpec + X]
          LDWX    0,x         
-         ADDX    oldX2,s     
+         ADDX    oldX4,s     
          STWX    opAddr,d    
          RET                 
 ;
-addrSX:  LDWX    oldPC2,s    ;Stack-indexed addressing
+addrSX:  LDWX    oldPC4,s    ;Stack-indexed addressing
          SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec + X]
          LDWX    0,x         
-         ADDX    oldX2,s     
-         ADDX    oldSP2,s    
+         ADDX    oldX4,s     
+         ADDX    oldSP4,s    
          STWX    opAddr,d    
          RET                 
 ;
-addrSFX: LDWX    oldPC2,s    ;Stack-deferred indexed addressing
+addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
          SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec] + X]
          LDWX    0,x         
-         ADDX    oldSP2,s    
+         ADDX    oldSP4,s    
          LDWX    0,x         
-         ADDX    oldX2,s     
+         ADDX    oldX4,s     
          STWX    opAddr,d    
          RET                               
 ;
@@ -270,7 +298,7 @@ addrSFX: LDWX    oldPC2,s    ;Stack-deferred indexed addressing
 ;The unary no-operation system call.
          .EXPORT SYUNOP
          .USCALL SYUNOP
-SYUNOP:  BR      sCallEnd    ;Return to trap handler            
+SYUNOP:  RET                 ;Return to trap handler            
 ;
 ;******* SYNOP
 ;The nonunary no-operation system call.
@@ -279,7 +307,7 @@ SYUNOP:  BR      sCallEnd    ;Return to trap handler
 SYNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d  
          CALL    assertAd    
-         BR      sCallEnd    ;Return to trap handler               
+         RET                 ;Return to trap handler               
 ;
 ;******* DECI
 ;The decimal input system call.
@@ -429,7 +457,7 @@ storeFl: STBX    oldNZVC,s   ;Store the NZVC flags
 exitDeci:LDWA    total,s     ;Put total in memory
          STWA    opAddr,n    
          ADDSP   13,i        ;Deallocate locals
-         BR      sCallEnd    ;Return to trap handler
+         RET                 ;Return to trap handler
 ;
 deciErr: LDBA    '\n',i      
          STBA    charOut,d   
@@ -458,7 +486,7 @@ DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          SUBSP   2,i         ;Allocate #toPrint
          CALL    numPrint
          ADDSP   2,i         ;Deallocate #toPrint
-         BR      sCallEnd    ;Return to trap handler
+         RET                 ;Return to trap handler
 ;Print number
 ;Expects the number to be printed stored in the accumulator.
 remain:  .EQUATE 0           ;Remainder of value to output
@@ -533,6 +561,13 @@ HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
          LDWA    opAddr,n    ;A <- oprnd
+         STWA    -2,s
+         SUBSP   2,i
+         CALL    hexPrint
+         ADDSP   2,i
+         RET
+num:             .EQUATE 2
+hexPrint:LDWA    num,s 
          STWA    wordTemp,d  ;Save oprnd in wordTemp
          LDBA    wordTemp,d  ;Put high-order byte in low-order A
          @ASRA4              ;Shift right four bits              
@@ -544,7 +579,7 @@ HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          CALL    hexOut      ;Output third hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
          CALL    hexOut      ;Output fourth hex character
-         BR      sCallEnd    ;Return to trap handler                 
+         RET              
 ;
 ;Subroutine to output in hex the least significant nybble of the
 ;accumulator.
@@ -574,7 +609,7 @@ STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
          SUBSP   2,i         
          CALL    prntMsg     ;and print
          ADDSP   2,i         
-         BR      sCallEnd    ;Return to trap handler                
+         RET                 ;Return to trap handler                
 ;
 ;******* Print subroutine
 ;Prints a string of ASCII bytes until it encounters a null

@@ -676,6 +676,12 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
         registerBank.writeRegisterWord(Enu::CPURegisters::PC, temp);
         break;
 
+    case Enu::EMnemonic::MOVTA:
+        // Move contents of trap register to PC.
+        temp = registerBank.readRegisterWordCurrent(Enu::CPURegisters::TR);
+        registerBank.writeRegisterWord(Enu::CPURegisters::A, temp);
+        break;
+
     case Enu::EMnemonic::NOTA: // Modifies NZ bits
         acc = ~acc;
         registerBank.writeRegisterWord(Enu::CPURegisters::A, acc);
