@@ -629,10 +629,10 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
     idx = registerBank.readRegisterWordCurrent(Enu::CPURegisters::X);
 
     switch(mnemon) {
-    case Enu::EMnemonic::STOP:
+    /*case Enu::EMnemonic::STOP:
         executionFinished = true;
         break;
-
+    */
     case Enu::EMnemonic::RET:
         memory->readWord(sp, temp);
         registerBank.writeRegisterWord(Enu::CPURegisters::PC, temp);

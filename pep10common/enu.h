@@ -109,7 +109,7 @@ namespace Enu {
             NOTA, NOTX, NEGA, NEGX,
             ASLA, ASLX, ASRA, ASRX,
             ROLA, ROLX, RORA, RORX,
-            STOP, // Temporary hiding in faulted space.
+            //STOP,
             BR, BRLE, BRLT, BREQ, BRNE, BRGE, BRGT, BRV, BRC,
             CALL, SCALL,
             LDWT, LDWA, LDWX, LDBA, LDBX,

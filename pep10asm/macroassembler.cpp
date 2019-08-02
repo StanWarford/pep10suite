@@ -21,8 +21,18 @@ static const QString macroWrongArgCount = ";ERROR: Macro %1 has wrong number of 
 static const QString opsecAfterMnemonic = ";ERROR: Operand specifier expected after mnemonic.";
 static const QString wordStringOutOfRange = ";ERROR: String operands must have length at most two.";
 static const QString wordHexOutOfRange = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
-static const QString wordDecOutOfRange = ";ERROR: Decimal constant is out of range (-32768..65535).";
+static const QString wordSignDecOutOfRange = ";ERROR: Decimal constant is out of range (-32768..65535).";
 static const QString addrssSymbolicArg = ";ERROR: .ADDRSS requires a symbolic argument.";
+static const QString badAsciiArgument = ";ERROR: .ASCII requires a string constant argument.";
+static const QString decConst248 = ";ERROR: Decimal constant is out of range (2, 4, 8).";
+static const QString badAlignArgument = ";ERROR: .ALIGN requires a decimal constant 2, 4, or 8.";
+static const QString wordUnsignDecOutOfRange = ";ERROR: Decimal constant is out of range (0..65535).";
+static const QString badBlockArgument = ";ERROR: .BLOCK requires a decimal or hex constant argument.";
+static const QString badBurnArgument = ";ERROR: .BURN requires a hex constant argument.";
+static const QString byteSignDecOutOfRange = ";ERROR: Decimal constant is out of byte range (-128..255).";
+static const QString byteHexOutOfRange = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
+static const QString byteStringOutOfRange = ";ERROR: string operands must have length one.";
+static const QString badByteArgument = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
 
 static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
     {MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER,
@@ -95,11 +105,6 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
     QList<QSharedPointer<AsmCode>> codeList;
     QString errorMessage;
     bool dotEndDetected = false;
-    // Macro modules declare the name and argument count on the first line.
-    // The assembler doesn't know how to parse it, so this line should be skipped.
-    //if(instance.prototype->moduleType == ModuleType::MACRO) {
-        //tokenBuffer->skipNextLine();
-    //}
     while(tokenBuffer->inputRemains()) {
         auto retVal = assembleLine(graph, instance, errorMessage, dotEndDetected);
 
@@ -380,6 +385,8 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
 
 bool MacroAssembler::validateSymbolName(const QStringRef &name, QString &errorMessage)
 {
+    // The only additional restriction on symbols after tokenization
+    // is that they may not have more than 8 characters.
     if (name.length() > 8) {
         errorMessage = longSymbol.arg(name);
         return false;
@@ -537,7 +544,7 @@ QSharedPointer<AsmArgument>
             }
         }
         else {
-            errorMessage = wordDecOutOfRange;
+            errorMessage = wordSignDecOutOfRange;
             return nullptr;
         }
     }
@@ -604,7 +611,7 @@ QSharedPointer<DotAscii>
         return dotAscii;
     }
     else {
-        errorMessage = ";ERROR: .ASCII requires a string constant argument.";
+        errorMessage = badAsciiArgument;
         return nullptr;
     }
 }
@@ -613,26 +620,27 @@ QSharedPointer<DotAlign>
         MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                    ModuleInstance&, QString &errorMessage)
 {
-    bool ok;
+    // ALIGN directives may only take integer arguments in (2, 4, 8).
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         QSharedPointer<DotAlign> dotAlign = QSharedPointer<DotAlign>::create();
         if(symbol.has_value()) {
             dotAlign->setSymbolEntry(optional_helper(symbol));
         }
+        bool ok;
         int value = tokenString.toInt(&ok, 10);
         if (value == 2 || value == 4 || value == 8) {
             dotAlign->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
-            // Number of bytes geberated is now calculated by linker.
+            // Number of bytes generated is now calculated by linker.
             return dotAlign;
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (2, 4, 8).";
+            errorMessage = decConst248;
             return nullptr;
         }
     }
     else {
-        errorMessage = ";ERROR: .ALIGN requires a decimal constant 2, 4, or 8.";
+        errorMessage = badAlignArgument;
         return nullptr;
     }
 }
@@ -650,17 +658,12 @@ QSharedPointer<DotBlock>
             if(symbol.has_value()) {
                 dotBlock->setSymbolEntry(optional_helper(symbol));
             }
-            if (value < 0) {
-                value += 65536; // Stored as two-byte unsigned.
-                dotBlock->setArgument(QSharedPointer<DecArgument>::create(value));
-            }
-            else {
-                dotBlock->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
-            }
+            // Argument may only be unsigned.
+            dotBlock->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             return dotBlock;
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (0..65535).";
+            errorMessage = wordUnsignDecOutOfRange;
             return nullptr;
         }
     }
@@ -678,12 +681,12 @@ QSharedPointer<DotBlock>
             return dotBlock;
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else {
-        errorMessage = ";ERROR: .BLOCK requires a decimal or hex constant argument.";
+        errorMessage = badBlockArgument;
         return nullptr;
     }
 }
@@ -703,17 +706,18 @@ QSharedPointer<DotBurn>
                 dotBurn->setSymbolEntry(optional_helper(symbol));
             }
             dotBurn->setArgument(QSharedPointer<HexArgument>::create(value));
+            // Multiple BURN directives will be detected in linker.
             instance.burnInfo.burnCount++;
             instance.burnInfo.burnArgument = value;
             return dotBurn;
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else {
-        errorMessage = ";ERROR: .BURN requires a hex constant argument.";
+        errorMessage = badBurnArgument;
         return nullptr;
     }
 }
@@ -742,7 +746,7 @@ QSharedPointer<DotByte>
             dotByte->setArgument(QSharedPointer<DecArgument>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of byte range (-128..255).";
+            errorMessage = byteSignDecOutOfRange;
             return nullptr;
         }
     }
@@ -754,20 +758,20 @@ QSharedPointer<DotByte>
             dotByte->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
+            errorMessage = byteHexOutOfRange;
             return nullptr;
         }
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 1) {
-            errorMessage = ";ERROR: .BYTE string operands must have length one.";
+            errorMessage = byteStringOutOfRange;
             return nullptr;
         }
         dotByte->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
-        errorMessage = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
+        errorMessage = badByteArgument;
         return nullptr;
     }
     return dotByte;
@@ -819,7 +823,7 @@ QSharedPointer<DotEquate>
             dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
+            errorMessage = wordSignDecOutOfRange;
             return nullptr;
         }
     }
@@ -832,14 +836,14 @@ QSharedPointer<DotEquate>
             dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 2) {
-            errorMessage = ";ERROR: .EQUATE string operand must have length at most two.";
+            errorMessage = wordStringOutOfRange;
             return nullptr;
         }
         dotEquate->setArgument(QSharedPointer<StringArgument>::create(tokenString));
@@ -869,7 +873,7 @@ QSharedPointer<DotExport>
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (tokenString.length() > 8) {
-            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            errorMessage = longSymbol.arg(tokenString);
             return nullptr;
         }
         QSharedPointer<DotExport> dotExport = QSharedPointer<DotExport>::create();
@@ -893,7 +897,7 @@ QSharedPointer<DotSycall> MacroAssembler::parseSCALL(std::optional<QSharedPointe
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (tokenString.length() > 8) {
-            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            errorMessage = longSymbol.arg(tokenString);
             return nullptr;
         }
         QSharedPointer<DotSycall> dotSycall = QSharedPointer<DotSycall>::create();
@@ -921,7 +925,7 @@ QSharedPointer<DotUSycall> MacroAssembler::parseUSCALL(std::optional<QSharedPoin
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (tokenString.length() > 8) {
-            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            errorMessage = longSymbol.arg(tokenString);
             return nullptr;
         }
         QSharedPointer<DotUSycall> dotUSycall = QSharedPointer<DotUSycall>::create();
@@ -967,7 +971,7 @@ QSharedPointer<DotWord>
             }
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
+            errorMessage = wordSignDecOutOfRange;
             return nullptr;
         }
     }
@@ -979,14 +983,14 @@ QSharedPointer<DotWord>
             dotWord->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 2) {
-            errorMessage = ";ERROR: .WORD string operands must have length at most two.";
+            errorMessage = wordStringOutOfRange;
             return nullptr;
         }
         dotWord->setArgument(QSharedPointer<StringArgument>::create(tokenString));

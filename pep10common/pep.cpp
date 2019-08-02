@@ -414,7 +414,7 @@ void Pep::initMnemonicMaps()
     initMnemMapHelper(EMnemonic::STBX, 120, false, true, false);
     initMnemMapHelper(EMnemonic::STWA, 96, false, true, false);
     initMnemMapHelper(EMnemonic::STWX, 104, false, true, false);
-    initMnemMapHelper(EMnemonic::STOP, 9, true, false, false);
+    //initMnemMapHelper(EMnemonic::STOP, 9, true, false, false);
     //initMnemMapHelper(EMnemonic::STRO, #, false, true, true);
     initMnemMapHelper(EMnemonic::SUBA, 176, false, true, false);
     initMnemMapHelper(EMnemonic::SUBX, 184, false, true, false);
@@ -524,8 +524,8 @@ void Pep::initDecoderTables()
     decodeMnemonic[6] = EMnemonic::MOVTPC; decodeAddrMode[6] = EAddrMode::NONE;
     decodeMnemonic[7] = EMnemonic::NOP; decodeAddrMode[7] = EAddrMode::NONE;
     decodeMnemonic[8] = EMnemonic::USCALL; decodeAddrMode[8] = EAddrMode::NONE;
-    decodeMnemonic[9] = EMnemonic::STOP; decodeAddrMode[9] = EAddrMode::NONE;
-    decodeMnemonic[10] = EMnemonic::MOVTA; decodeAddrMode[10] = EAddrMode::NONE;
+    //decodeMnemonic[9] = EMnemonic::STOP; decodeAddrMode[9] = EAddrMode::NONE;
+    decodeMnemonic[9] = EMnemonic::MOVTA; decodeAddrMode[9] = EAddrMode::NONE;
     //decodeMnemonic[10] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
     //decodeMnemonic[11] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
     //decodeMnemonic[12] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
@@ -623,7 +623,7 @@ void Pep::initMicroDecoderTables()
     {
         EAddrMode tempi = static_cast<EAddrMode>(metaEnum.value(it));
         if(tempi == Enu::EAddrMode::NONE) {
-            tempqs = Pep::enumToMnemonMap[Enu::EMnemonic::STOP].toLower();
+            tempqs = Pep::enumToMnemonMap[Enu::EMnemonic::RET].toLower();
         }
         else {
             tempqs = QString(metaEnum.key(it)).toLower()+"Addr";

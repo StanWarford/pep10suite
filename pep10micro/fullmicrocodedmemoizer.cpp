@@ -77,7 +77,7 @@ QString FullMicrocodedMemoizer::memoize()
 
 QString FullMicrocodedMemoizer::finalStatistics()
 {
-    Enu::EMnemonic mnemon = Enu::EMnemonic::STOP;
+    Enu::EMnemonic mnemon = Enu::EMnemonic::RET;
     QList<Enu::EMnemonic> mnemonList = QList<Enu::EMnemonic>();
     mnemonList.append(mnemon);
     QList<quint32> tally = QList<quint32>();
