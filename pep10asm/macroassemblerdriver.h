@@ -53,7 +53,7 @@ class MacroStackAnnotater;
  *  Each Macro code line contains a pointer to a module instance, and each instance contains
  *  lines of code.  After the build step, multiple macro lines may point to the same module
  *  instance object. This means there is a many-to-one mapping between code lines in the
- *  user program and code lines in macro instances. This many to one mapping causes issues
+ *  user program and code lines to macro instances. This many to one mapping causes issues
  *  when instructions generate diffrent object code based on their address, like ALIGN.
  *  During the link step, each macro line makes a deep copy of the module instance that
  *  it points to, re-establishing the one-to-one mapping between code lines.
