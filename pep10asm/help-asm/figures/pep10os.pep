@@ -50,7 +50,6 @@ callMain:LDWA    strtFlg,d  ;Reload start flags
 ;Write an arbitrary value to the power off port to shutdown the computer.
 shutdown:LDWA    0xDEAD,i
          STBA    pwrOff,d
-         ;Unused, but retained for backwards compatability with Pep9.
          
 ;
 execMain:MOVSPA              ;Preserve system stack pointer  
