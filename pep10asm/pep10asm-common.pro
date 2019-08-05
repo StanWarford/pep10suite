@@ -34,6 +34,7 @@ HEADERS += \
     macromodules.h \
     macropreprocessor.h \
     macroregistry.h \
+    macrostackannotater.h \
     macrotokenizer.h \
     macroassembler.h \
     memorycellgraphicsitem.h \
@@ -71,6 +72,7 @@ SOURCES += \
     macromodules.cpp \
     macropreprocessor.cpp \
     macroregistry.cpp \
+    macrostackannotater.cpp \
     macrotokenizer.cpp \
     macroassembler.cpp \
     memorycellgraphicsitem.cpp \

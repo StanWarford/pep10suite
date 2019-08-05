@@ -4,10 +4,11 @@
 #include "macrotokenizer.h"
 #include "macroassembler.h"
 #include "macrolinker.h"
+#include "macrostackannotater.h"
 
 MacroAssemblerDriver::MacroAssemblerDriver(QSharedPointer<MacroRegistry> registry) :  registry(registry),
     processor(new MacroPreprocessor(registry.get())), assembler(new MacroAssembler(registry.get())),
-    linker(new MacroLinker)
+    linker(new MacroLinker), annotater(new MacroStackAnnotater)
 {
 
 }
@@ -17,6 +18,7 @@ MacroAssemblerDriver::~MacroAssemblerDriver()
     delete processor;
     delete assembler;
     delete linker;
+    delete annotater;
     // We do not own the registry, so do not delete it.
     registry = nullptr;
 }
@@ -49,8 +51,11 @@ ProgramOutput MacroAssemblerDriver::assembleUserProgram(QString input,
     }
     auto rootInstance = graph.instanceMap[graph.rootModule].first();
 
-
-    annotate(*rootInstance.get());
+    if(!annotate()) {
+        output.success = false;
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
+    }
     validate(*rootInstance.get());
 
     output.program = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
@@ -88,8 +93,12 @@ ProgramOutput MacroAssemblerDriver::assembleOperatingSystem(QString input)
         return output;
     }
 
+    if(!annotate()) {
+        output.success = false;
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
+    }
 
-    annotate(*rootInstance.get());
     validate(*rootInstance.get());
     output.program = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
                                                         rootInstance->symbolTable,
@@ -158,9 +167,32 @@ bool MacroAssemblerDriver::link()
     return retVal;
 }
 
-void MacroAssemblerDriver::annotate(ModuleInstance &module)
+bool MacroAssemblerDriver::annotate()
 {
+    auto annotateResult = annotater->annotateStack(graph);
+    bool retVal = false;
+    if(annotateResult.success != AnnotationSucces::SUCCESS) {
+        for(auto error : annotateResult.warningList) {
+            qDebug().noquote() << "[STACKWARN]"
+                               << std::get<0>(error)
+                               <<": "
+                               << std::get<1>(error);
+            retVal = false;
+        }
+        for(auto error : annotateResult.errorList) {
+            qDebug().noquote() << "[STACKERR]"
+                               << std::get<0>(error)
+                               <<": "
+                               << std::get<1>(error);
+            retVal = false;
+        }
 
+    }
+    else {
+        qDebug() << "Stack annotation was successful.";
+        retVal = true;
+    }
+    return retVal;
 }
 
 void MacroAssemblerDriver::validate(ModuleInstance &module)
