@@ -45,6 +45,14 @@ void FakeMacroDriver::run()
     //"@LOOPA\n.END\n";
     QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
     auto osResult = assembler->assembleOperatingSystem(osText);
-    auto useResult = assembler->assembleUserProgram(input, osResult->getSymbolTable());
+    QSharedPointer<AsmProgram> os;
+    if(osResult.success == false) {
+        qDebug() <<"Failed to assemble OS.";
+        return;
+    }
+    else {
+        os = osResult.program;
+    }
+    auto useResult = assembler->assembleUserProgram(input, os->getSymbolTable());
 
 }

@@ -21,26 +21,31 @@ MacroAssemblerDriver::~MacroAssemblerDriver()
     registry = nullptr;
 }
 
-QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleUserProgram(QString input,
+ProgramOutput MacroAssemblerDriver::assembleUserProgram(QString input,
                                                                      QSharedPointer<const SymbolTable> osSymbol)
 {
+    ProgramOutput output;
     // Create a clean assembly graph to prevent accidental re-compiling of old code.
     this->graph = ModuleAssemblyGraph();
     auto [rootPrototype, startRootInstance] = graph.createRoot(input, ModuleType::USER_PROGRAM);
 
     if(!preprocess()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        // Report the error list of the root instance.
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
     }
     // Handle any preprocessor errors.
     if(!assembleProgram()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
     }
     this->linker->setOSSymbolTable(osSymbol);
     if(!link()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
     }
     auto rootInstance = graph.instanceMap[graph.rootModule].first();
 
@@ -48,12 +53,16 @@ QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleUserProgram(QString inp
     annotate(*rootInstance.get());
     validate(*rootInstance.get());
 
-    return QSharedPointer<AsmProgram>::create(rootInstance->codeList, rootInstance->symbolTable,
-                                              nullptr);
+    output.program = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
+                                                        rootInstance->symbolTable,
+                                                        nullptr);
+    output.success = true;
+    return output;
 }
 
-QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleOperatingSystem(QString input)
+ProgramOutput MacroAssemblerDriver::assembleOperatingSystem(QString input)
 {
+    ProgramOutput output;
     // Clear out old system calls to make way for new definitions.
     registry->clearSystemCalls();
     // Create a clean assembly graph to prevent accidental re-compiling of old code.
@@ -61,29 +70,34 @@ QSharedPointer<AsmProgram> MacroAssemblerDriver::assembleOperatingSystem(QString
     auto [rootPrototype, rootInstance] = graph.createRoot(input, ModuleType::OPERATING_SYSTEM);
 
     if(!preprocess()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        // Report the error list of the root instance.
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
     }
     // Handle any preprocessor errors.
     if(!assembleProgram()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
     }
     this->linker->clearOSSymbolTable();
     if(!link()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        return output;
     }
 
 
     annotate(*rootInstance.get());
     validate(*rootInstance.get());
-    auto os = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
-                                                 rootInstance->symbolTable,
-                                                 nullptr,
-                                                 rootInstance->burnInfo.startROMAddress,
-                                                 rootInstance->burnInfo.burnArgument);
-    return os;
+    output.program = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
+                                                        rootInstance->symbolTable,
+                                                        nullptr,
+                                                        rootInstance->burnInfo.startROMAddress,
+                                                        rootInstance->burnInfo.burnArgument);
+    output.success = true;
+    return output;
 }
 
 bool MacroAssemblerDriver::preprocess()

@@ -10,6 +10,20 @@
 #include "macromodules.h"
 #include "macropreprocessor.h"
 #include "symboltable.h"
+/*
+ * Contains result of an assembler run.
+ *
+ * If success is true, then the source file assembled with no errors,
+ * however warnings may be present. Additionally, program contains a valid pointer.
+ *
+ * If sucess is false, then errors is non-empty and describes what caused assembly to fail.
+ */
+struct ProgramOutput
+{
+    bool success;
+    QList<ErrorInfo> errors;
+    QSharedPointer<AsmProgram> program;
+};
 
 class MacroTokenizer;
 class MacroRegistry;
@@ -78,8 +92,8 @@ class MacroAssemblerDriver
 public:
     MacroAssemblerDriver(QSharedPointer<MacroRegistry>  registry);
     ~MacroAssemblerDriver();
-    QSharedPointer<AsmProgram> assembleUserProgram(QString input, QSharedPointer<const SymbolTable> osSymbol);
-    QSharedPointer<AsmProgram> assembleOperatingSystem(QString input);
+    ProgramOutput assembleUserProgram(QString input, QSharedPointer<const SymbolTable> osSymbol);
+    ProgramOutput assembleOperatingSystem(QString input);
     bool validateMacro(QString input);
 
 private:
