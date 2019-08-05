@@ -179,5 +179,6 @@
         <file>help-asm/images/osinstalledmsg.png</file>
         <file>help-asm/images/relocatedos2.png</file>
         <file>help-asm/images/relocatedos3.png</file>
+        <file>help-asm/figures/pep10os.pep</file>
     </qresource>
 </RCC>
