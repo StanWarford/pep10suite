@@ -9,9 +9,9 @@ static const QString unexpectedToken = ";ERROR: Unexpected token %1 encountered.
 static const QString unxpectedEOL = ";ERROR: Found unexpected end of line.";
 static const QString expectNewlineAfterComment = ";ERROR: \n expected after a comment";
 static const QString unexpectedSymbolDecl = ";ERROR: symbol definition must be followed by a  identifier, dot command, or macro.";
-static const QString invalidMnemonic = ";ERROR: Invalid mnemonic.";
+static const QString invalidMnemonic = ";ERROR: Invalid mnemonic \"%1\".";
 static const QString onlyInOperatingSystem = ";ERROR: Only operating systems may contain a %1.";
-static const QString invalidDotCommand = ";ERROR: Invalid dot command";
+static const QString invalidDotCommand = ";ERROR: Invalid dot command \"%1\"";
 static const QString longSymbol = ";ERROR: Symbol %1 cannot have more than eight characters.";
 static const QString missingEND = ";ERROR: Missing .END sentinel.";
 static const QString reqAddrMode = ";ERROR: Addressing mode required for this instruction.";
@@ -210,7 +210,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
 
         // If the iterator is the end of the map, then tokenString was not in the mnemonic map.
         if (iterator == Pep::mnemonToEnumMap.keyEnd()) {
-            errorMessage = invalidMnemonic;
+            errorMessage = invalidMnemonic.arg(tokenString);
             retVal.success = false;
             return retVal;
         }
@@ -312,7 +312,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         }
         else {
             retVal.success = false;
-            errorMessage = invalidDotCommand;
+            errorMessage = invalidDotCommand.arg(tokenString);
             return retVal;
         }
 
