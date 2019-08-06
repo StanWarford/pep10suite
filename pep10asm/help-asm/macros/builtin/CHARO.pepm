@@ -1,6 +1,4 @@
 @CHARO 2
-; Write a single byte from $1 using $2 as an addressing mode.
-; Uses accumulator as a temporary
 LDBA $1, $2
 STBA charOut, d
 .END
