@@ -387,9 +387,7 @@ void Pep::initMnemonicMaps()
     initMnemMapHelper(EMnemonic::MOVFLGA, 4, true, false, false);
     initMnemMapHelper(EMnemonic::MOVSPA, 2, true, false, false);
     initMnemMapHelper(EMnemonic::MOVASP, 3, true, false, false);
-    initMnemMapHelper(EMnemonic::MOVTPC, 6, true, false, false);
-#pragma message("Adjust MOVTA opcode number")
-    initMnemMapHelper(EMnemonic::MOVTA, 10, true, false, false);
+    initMnemMapHelper(EMnemonic::MOVTA, 6, true, false, false);
 
     //opCodeMap.insert(MOVAFLG, 5); isUnaryMap.insert(MOVAFLG, true); addrModeRequiredMap.insert(MOVAFLG, true); isTrapMap.insert(MOVAFLG, false);
     //opCodeMap.insert(MOVFLGA, 4); isUnaryMap.insert(MOVFLGA, true); addrModeRequiredMap.insert(MOVFLGA, true); isTrapMap.insert(MOVFLGA, false);
@@ -521,11 +519,11 @@ void Pep::initDecoderTables()
     decodeMnemonic[3] = EMnemonic::MOVASP; decodeAddrMode[3] = EAddrMode::NONE;
     decodeMnemonic[4] = EMnemonic::MOVFLGA; decodeAddrMode[4] = EAddrMode::NONE;
     decodeMnemonic[5] = EMnemonic::MOVAFLG; decodeAddrMode[5] = EAddrMode::NONE;
-    decodeMnemonic[6] = EMnemonic::MOVTPC; decodeAddrMode[6] = EAddrMode::NONE;
+    decodeMnemonic[6] = EMnemonic::MOVTA; decodeAddrMode[6] = EAddrMode::NONE;
     decodeMnemonic[7] = EMnemonic::NOP; decodeAddrMode[7] = EAddrMode::NONE;
     decodeMnemonic[8] = EMnemonic::USCALL; decodeAddrMode[8] = EAddrMode::NONE;
     //decodeMnemonic[9] = EMnemonic::STOP; decodeAddrMode[9] = EAddrMode::NONE;
-    decodeMnemonic[9] = EMnemonic::MOVTA; decodeAddrMode[9] = EAddrMode::NONE;
+    //decodeMnemonic[9] = EMnemonic::MOVTA; decodeAddrMode[9] = EAddrMode::NONE;
     //decodeMnemonic[10] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
     //decodeMnemonic[11] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;
     //decodeMnemonic[12] = EMnemonic::STOP; decodeAddrMode[0] = EAddrMode::NONE;

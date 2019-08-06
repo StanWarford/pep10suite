@@ -670,14 +670,8 @@ void IsaCpu::executeUnary(Enu::EMnemonic mnemon)
         registerBank.writeStatusBits(static_cast<quint8>(acc));
         break;
 
-    case Enu::EMnemonic::MOVTPC:
-        // Move contents of trap register to PC.
-        temp = registerBank.readRegisterWordCurrent(Enu::CPURegisters::TR);
-        registerBank.writeRegisterWord(Enu::CPURegisters::PC, temp);
-        break;
-
     case Enu::EMnemonic::MOVTA:
-        // Move contents of trap register to PC.
+        // Move contents of trap register to A.
         temp = registerBank.readRegisterWordCurrent(Enu::CPURegisters::TR);
         registerBank.writeRegisterWord(Enu::CPURegisters::A, temp);
         break;

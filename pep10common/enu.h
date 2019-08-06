@@ -102,7 +102,7 @@ namespace Enu {
     enum class EMnemonic: int
         {
             RET, SRET,
-            MOVSPA, MOVASP, MOVFLGA, MOVAFLG, MOVTPC, MOVTA,
+            MOVSPA, MOVASP, MOVFLGA, MOVAFLG, MOVTA,
             NOP,
             USCALL,
             // FAULTS
