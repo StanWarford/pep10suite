@@ -19,6 +19,6 @@ do:      LDWA    cop,d       ;cop += 25
 while:   LDWA    cop,d       ;while (cop < driver)
          CPWA    driver,d    
          BRLT    do          
-         DECO    cop,d       ;printf("%d", cop)
-         STOP                
+         @DECO   cop,d       ;printf("%d", cop)
+         RET                
          .END                  
