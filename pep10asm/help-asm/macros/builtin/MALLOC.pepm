@@ -1,7 +1,6 @@
 @MALLOC 0
-;
 ;******* malloc()
-;        Precondition: @MALLOC is the last statment before the end of the user program.
+;        Precondition: @MALLOC is the last statment before .END
 ;        Precondition: A contains number of bytes
 ;        Postcondition: X contains pointer to bytes
 malloc:  LDWX    hpPtr,d     ;returned pointer

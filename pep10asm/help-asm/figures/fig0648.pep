@@ -13,7 +13,7 @@ value:   .EQUATE 0           ;local variable #2d
 main:    SUBSP   6,i         ;push #first #p #value
          LDWA    0,i         ;first = 0
          STWA    first,s     
-         DECI    value,s     ;scanf("%d", &value);
+         @DECI   value,s     ;scanf("%d", &value);
 while:   LDWA    value,s     ;while (value != -9999)
          CPWA    -9999,i     
          BREQ    endWh       
@@ -28,7 +28,7 @@ while:   LDWA    value,s     ;while (value != -9999)
          LDWA    p,s         ;first->next = p
          LDWX    next,i      
          STWA    first,sfx   
-         DECI    value,s     ;scanf("%d", &value)
+         @DECI   value,s     ;scanf("%d", &value)
          BR      while       
 endWh:   LDWA    first,s     ;for (p = first
          STWA    p,s         
@@ -36,23 +36,13 @@ for:     LDWA    p,s         ;p != 0
          CPWA    0,i         
          BREQ    endFor      
          LDWX    data,i      ;printf("%d ", p->data)
-         DECO    p,sfx       
-         LDBA    ' ',i       
-         STBA    charOut,d   
+         @DECO   p,sfx       
+         @CHARO  ' ',i       
          LDWX    next,i      ;p = p->next)
          LDWA    p,sfx       
          STWA    p,s         
          BR      for         
 endFor:  ADDSP   6,i         ;pop #value #p #first
-         STOP                
-;
-;******* malloc()
-;        Precondition: A contains number of bytes
-;        Postcondition: X contains pointer to bytes
-malloc:  LDWX    hpPtr,d     ;returned pointer
-         ADDA    hpPtr,d     ;allocate from heap
-         STWA    hpPtr,d     ;update hpPtr
-         RET                 
-hpPtr:   .ADDRSS heap        ;address of next free byte
-heap:    .BLOCK  1           ;first byte in the heap
+         RET                
+         @MALLOC
          .END                  

@@ -36,10 +36,10 @@ order:   LDWA    x,sf        ;if (*x > *y)
 endIf:   RET                 
 ;
 ;******* main()
-main:    STRO    msg1,d      ;printf("Enter an integer: ")
-         DECI    a,d         ;scanf("%d", &a)
-         STRO    msg1,d      ;printf("Enter an integer: ")
-         DECI    b,d         ;scanf("%d", &b)
+main:    @STRO    msg1,d     ;printf("Enter an integer: ")
+         @DECI    a,d        ;scanf("%d", &a)
+         @STRO    msg1,d     ;printf("Enter an integer: ")
+         @DECI    b,d        ;scanf("%d", &b)
          LDWA    a,i         ;move &a
          STWA    -2,s        
          LDWA    b,i         ;move &b
@@ -47,13 +47,12 @@ main:    STRO    msg1,d      ;printf("Enter an integer: ")
          SUBSP   4,i         ;push #x #y
          CALL    order       ;order(&a, &b)
 ra1:     ADDSP   4,i         ;pop #y #x
-         STRO    msg2,d      ;printf("Ordered they are: %d, %d\n"
-         DECO    a,d         ;, a
-         STRO    msg3,d      
-         DECO    b,d         ;, b)
-         LDBA    '\n',i      
-         STBA    charOut,d   
-         STOP                
+         @STRO    msg2,d     ;printf("Ordered they are: %d, %d\n"
+         @DECO    a,d        ;, a
+         @STRO    msg3,d      
+         @DECO    b,d        ;, b)
+         @CHARO   '\n',i      
+         RET                
 msg1:    .ASCII  "Enter an integer: \x00"
 msg2:    .ASCII  "Ordered they are: \x00"
 msg3:    .ASCII  ", \x00"    

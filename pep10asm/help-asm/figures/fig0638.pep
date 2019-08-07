@@ -9,13 +9,13 @@ v:       .EQUATE 6           ;formal parameter #2h
 n:       .EQUATE 4           ;formal parameter #2h
 j:       .EQUATE 0           ;local variable #2d
 getVect: SUBSP   2,i         ;push #j
-         DECI    n,sf        ;scanf("%d", n)
+         @DECI   n,sf        ;scanf("%d", n)
          LDWX    0,i         ;for (j = 0
          STWX    j,s         
 for1:    CPWX    n,sf        ;j < *n
          BRGE    endFor1     
          ASLX                ;two bytes per integer
-         DECI    v,sfx       ;scanf("%d", &v[j])
+         @DECI   v,sfx       ;scanf("%d", &v[j])
          LDWX    j,s         ;j++)
          ADDX    1,i         
          STWX    j,s         
@@ -33,15 +33,14 @@ putVect: SUBSP   2,i         ;push #j2
 for2:    CPWX    n2,s        ;j < n
          BRGE    endFor2     
          ASLX                ;two bytes per integer
-         DECO    v2,sfx      ;printf("%d ", v[j])
+         @DECO   v2,sfx      ;printf("%d ", v[j])
          LDBA    ' ',i       
          STBA    charOut,d   
          LDWX    j2,s        ;j++)
          ADDX    1,i         
          STWX    j2,s        
          BR      for2        
-endFor2: LDBA    '\n',i      ;printf("\n")
-         STBA    charOut,d   
+endFor2: @CHARO  '\n',i      ;printf("\n")
          ADDSP   2,i         ;pop #j2
          RET                 
 ;
@@ -67,5 +66,5 @@ main:    SUBSP   18,i        ;push #vector #numItms
          CALL    putVect     ;putVect(vector, numItms)
          ADDSP   4,i         ;pop #n2 #v2
          ADDSP   18,i        ;pop #numItms #vector
-         STOP                
+         RET                
          .END                  

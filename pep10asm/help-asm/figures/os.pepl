@@ -1,0 +1,781 @@
+-------------------------------------------------------------------------------
+      Object
+Addr  code   Symbol   Mnemon  Operand     Comment
+-------------------------------------------------------------------------------
+             ;******* Pep/9 Operating System, 2019/03/03
+             ;
+             TRUE:    .EQUATE 1           
+             FALSE:   .EQUATE 0           
+             ;
+             ;******* Operating system RAM
+FA20         osRAM:   .BLOCK  128         ;System stack area
+                      .ALIGN  2           ;System stack at even address
+FAA0         wordTemp:.BLOCK  1           ;Temporary word storage
+FAA1         byteTemp:.BLOCK  1           ;Least significant byte of wordTemp
+FAA2         osSPTemp:.BLOCK  2           ;Store system stack pointer when calling user program.
+FAA4         addrMask:.BLOCK  2           ;Addressing mode mask
+FAA6         opAddr:  .BLOCK  2           ;Trap instruction operand address
+             ;Do not allow diskIn to be referenced in user programs.
+FAA8         diskIn:  .BLOCK  2           ;Memory-mapped input device
+                      .EXPORT charIn      ;Allow charIn to be referenced in user programs.
+FAAA         charIn:  .BLOCK  2           ;Memory-mapped input device
+                      .EXPORT charOut     ;Allow charIn to be referenced in user programs.
+FAAC         charOut: .BLOCK  2           ;Memory-mapped output device
+                      .EXPORT pwrOff      ;Allow pwroff to be referenced in user programs.
+FAAE         pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device
+                      .ALIGN  2           ;I/O ports at even addresses
+             ;******* Operating system ROM
+FAB0                  .BURN   0xFFFF      
+             ;
+             ;Place entry point flags in read-only memory, as these
+             ;  may only be modified by the simulator.
+FAB0  0003   strtFlg: .WORD   3           ;Entry point flags
+             doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk.
+             doExec:  .EQUATE 0x0002      ;System entry point will execute the program
+
+             ;
+             ;******* System Entry Point
+FAB2  480000 start:   LDWX    0,i         ;X <- 0
+FAB5  41FAB0          LDWA    strtFlg,d   ;Load start flags
+FAB8  C00001          ANDA    doLoad,i    ;Check if the start flags indicate
+FABB  22FAC1          BREQ    callMain    ;  loading is to be performed
+FABE  2EFB31          CALL    loader      ;If so, begin load
+
+FAC1  41FAB0 callMain:LDWA    strtFlg,d   ;Reload start flags
+FAC4  C00002          ANDA    doExec,i    ;Check if the start flags indicate
+FAC7  22FACD          BREQ    shutdown    ;  user program is to be run
+             ;Transfer control to method that will execute main
+             ;The system stack may be clobbered at runtime by system calls,
+             ;  so control will not be able to be returned to this point
+             ;  execMain is responsible for cleaning up the system stack
+             ;  and shutting down the machine.
+FACA  1CFAD3          BR      execMain    
+             ;
+             ;Write an arbitrary value to the power off port to shutdown the computer.
+FACD  40DEAD shutdown:LDWA    0xDEAD,i    
+FAD0  71FAAE          STBA    pwrOff,d    
+
+             ;
+FAD3  02     execMain:MOVSPA              ;Preserve system stack pointer
+FAD4  61FAA2          STWA    osSPTemp,d  
+FAD7  40FA20          LDWA    osRAM,i     ;Load address of user stack
+FADA  03              MOVASP              ;Switch to user stack
+FADB  F80002          SUBSP   2,i         ;Allocate #retVal
+FADE  400000          LDWA    0,i         ;Initialize user main return
+FAE1  630000          STWA    0,s         ;  value to zero
+FAE4  480000          LDWX    0,i         ;Initialize X to zero
+FAE7  2E0000          CALL    0x0000      ;Call main entry point
+FAEA  430000 mainCln: LDWA    0,s         ;Load return value
+FAED  24FAFA          BRNE    mainErr     ;If retval is not zero, report error
+FAF0  F00002          ADDSP   2,i         ;Deallocate main return value
+FAF3  41FAA2          LDWA    osSPTemp,d  ;Restore system stack pointer
+FAF6  03              MOVASP              ;OS Stack might be clobbered during by syscalls
+FAF7  1CFACD          BR      shutdown    ;  So branch instead of call
+             ;
+FAFA  40FB12 mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
+FAFD  63FFFE          STWA    -2,s        ;Push address of error message
+FB00  F80002          SUBSP   2,i         
+FB03  2EFFD8          CALL    prntMsg     
+FB06  F00002          ADDSP   2,i         
+             ;Return value is already on stack, no need to push additional copy.
+FB09  2EFEE1          CALL    numPrint    
+FB0C  F00002          ADDSP   2,i         ;Deallocate main return value
+FB0F  1CFACD          BR      shutdown    
+FB12  4D6169 execErr: .ASCII  "Main failed with return value \x00"
+      6E2066 
+      61696C 
+      656420 
+      776974 
+      682072 
+      657475 
+      726E20 
+      76616C 
+      756520 
+      00     
+
+
+             ;******* System Loader
+             ;Data must be in the following format:
+             ;Each hex number representing a byte must contain exactly two
+             ;characters. Each character must be in 0..9, A..F, or a..f and
+             ;must be followed by exactly one space. There must be no
+             ;leading spaces at the beginning of a line and no trailing
+             ;spaces at the end of a line. The last two characters in the
+             ;file must be lowercase zz, which is used as the terminating
+             ;sentinel by the loader.
+             ;
+FB31  480000 loader:  LDWX    0,i         ;X <- 0
+FB34  51FAA8 getChar: LDBA    diskIn,d    ;Get first hex character
+FB37  90007A          CPBA    'z',i       ;If end of file sentinel 'z'
+FB3A  22FB6B          BREQ    endLoad     ;  then exit loader routine
+FB3D  900039          CPBA    '9',i       ;If characer <= '9', assume decimal
+FB40  1EFB46          BRLE    shift       ;  and right nybble is correct digit
+FB43  A00009          ADDA    9,i         ;else convert nybble to correct digit
+FB46  14     shift:   ASLA                ;Shift left by four bits to send
+FB47  14              ASLA                ;  the digit to the most significant
+FB48  14              ASLA                ;  position in the byte
+FB49  14              ASLA                
+FB4A  71FAA1          STBA    byteTemp,d  ;Save the most significant nybble
+FB4D  51FAA8          LDBA    diskIn,d    ;Get second hex character
+FB50  900039          CPBA    '9',i       ;If characer <= '9', assume decimal
+FB53  1EFB59          BRLE    combine     ;  and right nybble is correct digit
+FB56  A00009          ADDA    9,i         ;else convert nybble to correct digit
+FB59  C0000F combine: ANDA    0x000F,i    ;Mask out the left nybble
+FB5C  D1FAA0          ORA     wordTemp,d  ;Combine both hex digits in binary
+FB5F  750000          STBA    0,x         ;Store in Mem[X]
+FB62  A80001          ADDX    1,i         ;X <- X + 1
+FB65  51FAA8          LDBA    diskIn,d    ;Skip blank or <LF>
+FB68  1CFB34          BR      getChar     ;
+             ;
+FB6B  51FAA8 endLoad: LDBA    diskIn,d    ;Consume second 'z'
+FB6E  90007A          CPBA    'z',i       ;If sentinel is not zz,
+FB71  24FB75          BRNE    loadErr     ;  then there is an error
+FB74  00              RET                 
+FB75  40FB87 loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error message.
+FB78  63FFFE          STWA    -2,s        ;Push address of error message
+FB7B  F80002          SUBSP   2,i         
+FB7E  2EFFD8          CALL    prntMsg     
+FB81  F00002          ADDSP   2,i         
+FB84  1CFACD          BR      shutdown    
+FB87  53656E ldErrMsg:.ASCII  "Sentinel value was corrupted\x00"
+      74696E 
+      656C20 
+      76616C 
+      756520 
+      776173 
+      20636F 
+      727275 
+      707465 
+      6400   
+
+             ;
+             ;******* Trap handler
+             oldIR:   .EQUATE 9           ;Stack address of IR on trap
+             oldPC:   .EQUATE 5           ;Stack address of PC on trap
+             ;
+FBA4  480000 trap:    LDWX    0,i         ;
+FBA7  5B0009          LDBX    oldIR,s     ;X <- trapped IR
+FBAA  980030          CPBX    0x0030,i    ;If X >= first nonunary trap opcode
+FBAD  26FBCC          BRGE    nonUnary    ;  trap opcode is nonunary
+             ;Unary System Call Helper
+FBB0  40FC43 unary:   LDWA    USCJT,i     
+FBB3  63FFFC          STWA    -4,s        
+FBB6  40FC45          LDWA    EUSCJT,i    
+FBB9  B0FC43          SUBA    USCJT,i     
+FBBC  63FFFE          STWA    -2,s        
+FBBF  F80004          SUBSP   4,i         
+FBC2  2EFBF1          CALL    trapFind    
+FBC5  F00004          ADDSP   4,i         
+FBC8  2FFC43          CALL    USCJT,x     
+FBCB  01              SRET                
+             ;
+             ;Nonunary System Call Helper
+FBCC  430005 nonUnary:LDWA    oldPC,s     ;Must increment program counter
+FBCF  A00002          ADDA    2,i         ;  for nonunary instructions
+FBD2  630005          STWA    oldPC,s     
+FBD5  40FC47          LDWA    SCJT,i      
+FBD8  63FFFC          STWA    -4,s        
+FBDB  40FC51          LDWA    ESCJT,i     
+FBDE  B0FC47          SUBA    SCJT,i      
+FBE1  63FFFE          STWA    -2,s        
+FBE4  F80004          SUBSP   4,i         
+FBE7  2EFBF1          CALL    trapFind    
+FBEA  F00004          ADDSP   4,i         
+FBED  2FFC47          CALL    SCJT,x      
+FBF0  01              SRET                
+             ;
+             arrDim:  .EQUATE 4           ;Stack address of the array size
+             arrAddr: .EQUATE 2           ;Stack address of the trap array
+FBF1  06     trapFind:MOVTA               
+FBF2  480000          LDWX    0,i         ;Initialize array iterator
+FBF5  8B0004 trapLoop:CPWX    arrDim,s    ;Check if iterator is at end of array
+FBF8  26FC08          BRGE    trapErr     ;Did not find T in array
+FBFB  870002          CPWA    arrAddr,sfx ;Compare A
+FBFE  22FC07          BREQ    trapFnd     
+FC01  A80002          ADDX    2,i         
+FC04  1CFBF5          BR      trapLoop    
+             ;
+FC07  00     trapFnd: RET                 
+FC08  40FC27 trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
+FC0B  63FFFE          STWA    -2,s        ;Push address of error message
+FC0E  F80002          SUBSP   2,i         
+FC11  2EFFD8          CALL    prntMsg     
+FC14  F00002          ADDSP   2,i         
+FC17  06              MOVTA               
+FC18  63FFFE          STWA    -2,s        
+FC1B  F80002          SUBSP   2,i         
+FC1E  2EFF7C          CALL    hexPrint    
+FC21  F00002          ADDSP   2,i         
+FC24  1CFACD          BR      shutdown    
+FC27  436F75 scErrMsg:.ASCII  "Could not find system call \x00"
+      6C6420 
+      6E6F74 
+      206669 
+      6E6420 
+      737973 
+      74656D 
+      206361 
+      6C6C20 
+      00     
+
+             ;
+             ;******* System Call Jump Tables
+             ;Unary System Call Jump Table
+FC43  FD44   USCJT:   .ADDRSS SYUNOP      
+FC45  FC08   EUSCJT:  .ADDRSS trapErr     
+             ;
+             ;Nonunary System Call Jump Table
+FC47  FD45   SCJT:    .ADDRSS SYNOP       
+FC49  FD4F            .ADDRSS DECI        
+FC4B  FEC5            .ADDRSS DECO        
+FC4D  FF60            .ADDRSS HEXO        
+FC4F  FFBC            .ADDRSS STRO        
+FC51  FC08   ESCJT:   .ADDRSS trapErr     
+
+             ;
+             ;******* Assert valid trap addressing mode
+             oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
+FC53  500001 assertAd:LDBA    1,i         ;A <- 1
+FC56  5B000D          LDBX    oldIR4,s    ;X <- OldIR
+FC59  C80007          ANDX    0x0007,i    ;Keep only the addressing mode bits
+FC5C  22FC66          BREQ    testAd      ;000 = immediate addressing
+FC5F  14     loop:    ASLA                ;Shift the 1 bit left
+FC60  B80001          SUBX    1,i         ;Subtract from addressing mode count
+FC63  24FC5F          BRNE    loop        ;Try next addressing mode
+FC66  C1FAA4 testAd:  ANDA    addrMask,d  ;AND the 1 bit with legal modes
+FC69  22FC6D          BREQ    addrErr     
+FC6C  00              RET                 ;Legal addressing mode, return
+FC6D  50000A addrErr: LDBA    '\n',i      
+FC70  71FAAC          STBA    charOut,d   
+FC73  40FC82          LDWA    trapMsg,i   ;Push address of error message
+FC76  63FFFE          STWA    -2,s        
+FC79  F80002          SUBSP   2,i         ;Call print subroutine
+FC7C  2EFFD8          CALL    prntMsg     
+FC7F  1CFACD          BR      shutdown    ;Halt: Fatal runtime error
+FC82  455252 trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\x00"
+      4F523A 
+      20496E 
+      76616C 
+      696420 
+      747261 
+      702061 
+      646472 
+      657373 
+      696E67 
+      206D6F 
+      64652E 
+      00     
+
+             ;
+             ;******* Set address of trap operand
+             oldX4:   .EQUATE 7           ;oldX + 4 with two return addresses
+             oldPC4:  .EQUATE 9           ;oldPC + 4 with two return address
+             oldSP4:  .EQUATE 11          ;oldSP + 4 with two return address
+FCA7  5B000D setAddr: LDBX    oldIR4,s    ;X <- old instruction register
+FCAA  C80007          ANDX    0x0007,i    ;Keep only the addressing mode bits
+FCAD  15              ASLX                ;Two bytes per address
+FCAE  1DFCB1          BR      addrJT,x    
+FCB1  FCC1   addrJT:  .ADDRSS addrI       ;Immediate addressing
+FCB3  FCCB            .ADDRSS addrD       ;Direct addressing
+FCB5  FCD8            .ADDRSS addrN       ;Indirect addressing
+FCB7  FCE8            .ADDRSS addrS       ;Stack-relative addressing
+FCB9  FCF8            .ADDRSS addrSF      ;Stack-relative deferred addressing
+FCBB  FD0B            .ADDRSS addrX       ;Indexed addressing
+FCBD  FD1B            .ADDRSS addrSX      ;Stack-indexed addressing
+FCBF  FD2E            .ADDRSS addrSFX     ;Stack-deferred indexed addressing
+             ;
+FCC1  4B0009 addrI:   LDWX    oldPC4,s    ;Immediate addressing
+FCC4  B80002          SUBX    2,i         ;Oprnd = OprndSpec
+FCC7  69FAA6          STWX    opAddr,d    
+FCCA  00              RET                 
+             ;
+FCCB  4B0009 addrD:   LDWX    oldPC4,s    ;Direct addressing
+FCCE  B80002          SUBX    2,i         ;Oprnd = Mem[OprndSpec]
+FCD1  4D0000          LDWX    0,x         
+FCD4  69FAA6          STWX    opAddr,d    
+FCD7  00              RET                 
+             ;
+FCD8  4B0009 addrN:   LDWX    oldPC4,s    ;Indirect addressing
+FCDB  B80002          SUBX    2,i         ;Oprnd = Mem[Mem[OprndSpec]]
+FCDE  4D0000          LDWX    0,x         
+FCE1  4D0000          LDWX    0,x         
+FCE4  69FAA6          STWX    opAddr,d    
+FCE7  00              RET                 
+             ;
+FCE8  4B0009 addrS:   LDWX    oldPC4,s    ;Stack-relative addressing
+FCEB  B80002          SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec]
+FCEE  4D0000          LDWX    0,x         
+FCF1  AB000B          ADDX    oldSP4,s    
+FCF4  69FAA6          STWX    opAddr,d    
+FCF7  00              RET                 
+             ;
+FCF8  4B0009 addrSF:  LDWX    oldPC4,s    ;Stack-relative deferred addressing
+FCFB  B80002          SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec]]
+FCFE  4D0000          LDWX    0,x         
+FD01  AB000B          ADDX    oldSP4,s    
+FD04  4D0000          LDWX    0,x         
+FD07  69FAA6          STWX    opAddr,d    
+FD0A  00              RET                 
+             ;
+FD0B  4B0009 addrX:   LDWX    oldPC4,s    ;Indexed addressing
+FD0E  B80002          SUBX    2,i         ;Oprnd = Mem[OprndSpec + X]
+FD11  4D0000          LDWX    0,x         
+FD14  AB0007          ADDX    oldX4,s     
+FD17  69FAA6          STWX    opAddr,d    
+FD1A  00              RET                 
+             ;
+FD1B  4B0009 addrSX:  LDWX    oldPC4,s    ;Stack-indexed addressing
+FD1E  B80002          SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec + X]
+FD21  4D0000          LDWX    0,x         
+FD24  AB0007          ADDX    oldX4,s     
+FD27  AB000B          ADDX    oldSP4,s    
+FD2A  69FAA6          STWX    opAddr,d    
+FD2D  00              RET                 
+             ;
+FD2E  4B0009 addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
+FD31  B80002          SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec] + X]
+FD34  4D0000          LDWX    0,x         
+FD37  AB000B          ADDX    oldSP4,s    
+FD3A  4D0000          LDWX    0,x         
+FD3D  AB0007          ADDX    oldX4,s     
+FD40  69FAA6          STWX    opAddr,d    
+FD43  00              RET                 
+             ;
+             ;******* SYUNOP
+             ;The unary no-operation system call.
+                      .EXPORT SYUNOP      
+                      .USCALL SYUNOP      
+FD44  00     SYUNOP:  RET                 ;Return to trap handler
+             ;
+             ;******* SYNOP
+             ;The nonunary no-operation system call.
+                      .EXPORT SYNOP       
+                      .SCALL  SYNOP       
+FD45  400001 SYNOP:   LDWA    0x0001,i    ;Assert i
+FD48  61FAA4          STWA    addrMask,d  
+FD4B  2EFC53          CALL    assertAd    
+FD4E  00              RET                 ;Return to trap handler
+             ;
+             ;******* DECI
+             ;The decimal input system call.
+             ;Input format: Any number of leading spaces or line feeds are
+             ;allowed, followed by '+', '-' or a digit as the first character,
+             ;after which digits are input until the first nondigit is
+             ;encountered. The status flags N,Z and V are set appropriately
+             ;by this DECI routine. The C status flag is not affected.
+                      .EXPORT DECI        
+                      .SCALL  DECI        
+             ;
+             oldNZVC: .EQUATE 15          ;Stack address of NZVC on interrupt
+             ;
+             total:   .EQUATE 11          ;Cumulative total of DECI number
+             asciiCh: .EQUATE 10          ;asciiCh, one byte
+             valAscii:.EQUATE 8           ;value(asciiCh)
+             isOvfl:  .EQUATE 6           ;Overflow boolean
+             isNeg:   .EQUATE 4           ;Negative boolean
+             state:   .EQUATE 2           ;State variable
+             temp:    .EQUATE 0           
+             ;
+             init:    .EQUATE 0           ;Enumerated values for state
+             sign:    .EQUATE 1           
+             digit:   .EQUATE 2           
+             ;
+FD4F  4000FE DECI:    LDWA    0x00FE,i    ;Assert d, n, s, sf, x, sx, sfx
+FD52  61FAA4          STWA    addrMask,d  
+FD55  2EFC53          CALL    assertAd    
+FD58  2EFCA7          CALL    setAddr     ;Set address of trap operand
+FD5B  F8000D          SUBSP   13,i        ;Allocate storage for locals
+FD5E  400000          LDWA    FALSE,i     ;isOvfl <- FALSE
+FD61  630006          STWA    isOvfl,s    
+FD64  400000          LDWA    init,i      ;state <- init
+FD67  630002          STWA    state,s     
+             ;
+FD6A  51FAAA do:      LDBA    charIn,d    ;Get asciiCh
+FD6D  73000A          STBA    asciiCh,s   
+FD70  C0000F          ANDA    0x000F,i    ;Set value(asciiCh)
+FD73  630008          STWA    valAscii,s  
+FD76  53000A          LDBA    asciiCh,s   ;A<low> = asciiCh throughout the loop
+FD79  4B0002          LDWX    state,s     ;switch (state)
+FD7C  15              ASLX                ;Two bytes per address
+FD7D  1DFD80          BR      stateJT,x   
+             ;
+FD80  FD86   stateJT: .ADDRSS sInit       
+FD82  FDE0            .ADDRSS sSign       
+FD84  FDFB            .ADDRSS sDigit      
+             ;
+FD86  90002B sInit:   CPBA    '+',i       ;if (asciiCh == '+')
+FD89  24FD9B          BRNE    ifMinus     
+FD8C  480000          LDWX    FALSE,i     ;isNeg <- FALSE
+FD8F  6B0004          STWX    isNeg,s     
+FD92  480001          LDWX    sign,i      ;state <- sign
+FD95  6B0002          STWX    state,s     
+FD98  1CFD6A          BR      do          
+             ;
+FD9B  90002D ifMinus: CPBA    '-',i       ;else if (asciiCh == '-')
+FD9E  24FDB0          BRNE    ifDigit     
+FDA1  480001          LDWX    TRUE,i      ;isNeg <- TRUE
+FDA4  6B0004          STWX    isNeg,s     
+FDA7  480001          LDWX    sign,i      ;state <- sign
+FDAA  6B0002          STWX    state,s     
+FDAD  1CFD6A          BR      do          
+             ;
+FDB0  900030 ifDigit: CPBA    '0',i       ;else if (asciiCh is a digit)
+FDB3  20FDD1          BRLT    ifWhite     
+FDB6  900039          CPBA    '9',i       
+FDB9  28FDD1          BRGT    ifWhite     
+FDBC  480000          LDWX    FALSE,i     ;isNeg <- FALSE
+FDBF  6B0004          STWX    isNeg,s     
+FDC2  4B0008          LDWX    valAscii,s  ;total <- value(asciiCh)
+FDC5  6B000B          STWX    total,s     
+FDC8  480002          LDWX    digit,i     ;state <- digit
+FDCB  6B0002          STWX    state,s     
+FDCE  1CFD6A          BR      do          
+             ;
+FDD1  900020 ifWhite: CPBA    ' ',i       ;else if (asciiCh is not a space
+FDD4  22FD6A          BREQ    do          
+FDD7  90000A          CPBA    '\n',i      ;or line feed)
+FDDA  24FE96          BRNE    deciErr     ;exit with DECI error
+FDDD  1CFD6A          BR      do          
+             ;
+FDE0  900030 sSign:   CPBA    '0',i       ;if asciiCh (is not a digit)
+FDE3  20FE96          BRLT    deciErr     
+FDE6  900039          CPBA    '9',i       
+FDE9  28FE96          BRGT    deciErr     ;exit with DECI error
+FDEC  4B0008          LDWX    valAscii,s  ;else total <- value(asciiCh)
+FDEF  6B000B          STWX    total,s     
+FDF2  480002          LDWX    digit,i     ;state <- digit
+FDF5  6B0002          STWX    state,s     
+FDF8  1CFD6A          BR      do          
+             ;
+FDFB  900030 sDigit:  CPBA    '0',i       ;if (asciiCh is not a digit)
+FDFE  20FE4C          BRLT    deciNorm    
+FE01  900039          CPBA    '9',i       
+FE04  28FE4C          BRGT    deciNorm    ;exit normaly
+FE07  480001          LDWX    TRUE,i      ;else X <- TRUE for later assignments
+FE0A  43000B          LDWA    total,s     ;Multiply total by 10 as follows:
+FE0D  14              ASLA                ;First, times 2
+FE0E  2AFE14          BRV     ovfl1       ;If overflow then
+FE11  1CFE17          BR      L1          
+FE14  6B0006 ovfl1:   STWX    isOvfl,s    ;isOvfl <- TRUE
+FE17  630000 L1:      STWA    temp,s      ;Save 2 * total in temp
+FE1A  14              ASLA                ;Now, 4 * total
+FE1B  2AFE21          BRV     ovfl2       ;If overflow then
+FE1E  1CFE24          BR      L2          
+FE21  6B0006 ovfl2:   STWX    isOvfl,s    ;isOvfl <- TRUE
+FE24  14     L2:      ASLA                ;Now, 8 * total
+FE25  2AFE2B          BRV     ovfl3       ;If overflow then
+FE28  1CFE2E          BR      L3          
+FE2B  6B0006 ovfl3:   STWX    isOvfl,s    ;isOvfl <- TRUE
+FE2E  A30000 L3:      ADDA    temp,s      ;Finally, 8 * total + 2 * total
+FE31  2AFE37          BRV     ovfl4       ;If overflow then
+FE34  1CFE3A          BR      L4          
+FE37  6B0006 ovfl4:   STWX    isOvfl,s    ;isOvfl <- TRUE
+FE3A  A30008 L4:      ADDA    valAscii,s  ;A <- 10 * total + valAscii
+FE3D  2AFE43          BRV     ovfl5       ;If overflow then
+FE40  1CFE46          BR      L5          
+FE43  6B0006 ovfl5:   STWX    isOvfl,s    ;isOvfl <- TRUE
+FE46  63000B L5:      STWA    total,s     ;Update total
+FE49  1CFD6A          BR      do          
+             ;
+FE4C  430004 deciNorm:LDWA    isNeg,s     ;If isNeg then
+FE4F  22FE68          BREQ    setNZ       
+FE52  43000B          LDWA    total,s     ;If total != 0x8000 then
+FE55  808000          CPWA    0x8000,i    
+FE58  22FE62          BREQ    L6          
+FE5B  12              NEGA                ;Negate total
+FE5C  63000B          STWA    total,s     
+FE5F  1CFE68          BR      setNZ       
+FE62  400000 L6:      LDWA    FALSE,i     ;else -32768 is a special case
+FE65  630006          STWA    isOvfl,s    ;isOvfl <- FALSE
+             ;
+FE68  5B000F setNZ:   LDBX    oldNZVC,s   ;Set NZ according to total result:
+FE6B  C80001          ANDX    0x0001,i    ;First initialize NZV to 000
+FE6E  43000B          LDWA    total,s     ;If total is negative then
+FE71  26FE77          BRGE    checkZ      
+FE74  D80008          ORX     0x0008,i    ;set N to 1
+FE77  800000 checkZ:  CPWA    0,i         ;If total is not zero then
+FE7A  24FE80          BRNE    setV        
+FE7D  D80004          ORX     0x0004,i    ;set Z to 1
+FE80  430006 setV:    LDWA    isOvfl,s    ;If not isOvfl then
+FE83  22FE89          BREQ    storeFl     
+FE86  D80002          ORX     0x0002,i    ;set V to 1
+FE89  7B000F storeFl: STBX    oldNZVC,s   ;Store the NZVC flags
+             ;
+FE8C  43000B exitDeci:LDWA    total,s     ;Put total in memory
+FE8F  62FAA6          STWA    opAddr,n    
+FE92  F0000D          ADDSP   13,i        ;Deallocate locals
+FE95  00              RET                 ;Return to trap handler
+             ;
+FE96  50000A deciErr: LDBA    '\n',i      
+FE99  71FAAC          STBA    charOut,d   
+FE9C  40FEAB          LDWA    deciMsg,i   ;Push address of message onto stack
+FE9F  63FFFE          STWA    -2,s        
+FEA2  F80002          SUBSP   2,i         
+FEA5  2EFFD8          CALL    prntMsg     ;and print
+FEA8  1CFACD          BR      shutdown    ;Fatal error: program terminates
+             ;
+FEAB  455252 deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
+      4F523A 
+      20496E 
+      76616C 
+      696420 
+      444543 
+      492069 
+      6E7075 
+      7400   
+
+             ;
+             ;******* DECO
+             ;The decimal output system call.
+             ;Output format: If the operand is negative, the algorithm prints
+             ;a single '-' followed by the magnitude. Otherwise it prints the
+             ;magnitude without a leading '+'. It suppresses leading zeros.
+                      .EXPORT DECO        
+                      .SCALL  DECO        
+             ;
+FEC5  4000FF DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
+FEC8  61FAA4          STWA    addrMask,d  
+FECB  2EFC53          CALL    assertAd    
+FECE  2EFCA7          CALL    setAddr     ;Set address of trap operand
+FED1  42FAA6          LDWA    opAddr,n    ;A <- oprnd
+FED4  63FFFE          STWA    -2,s        
+FED7  F80002          SUBSP   2,i         ;Allocate #toPrint
+FEDA  2EFEE1          CALL    numPrint    
+FEDD  F00002          ADDSP   2,i         ;Deallocate #toPrint
+FEE0  00              RET                 ;Return to trap handler
+             ;Print number
+             ;Expects the number to be printed stored in the accumulator.
+             remain:  .EQUATE 0           ;Remainder of value to output
+             outYet:  .EQUATE 2           ;Has a character been output yet?
+             place:   .EQUATE 4           ;Place value for division
+             toPrint: .EQUATE 8           ;Number to be printed
+FEE1  F80006 numPrint:SUBSP   6,i         ;Allocate storage for locals
+FEE4  430008          LDWA    toPrint,s   ;Load the number to print
+FEE7  800000          CPWA    0,i         ;If oprnd is negative then
+FEEA  26FEF4          BRGE    printMag    
+FEED  58002D          LDBX    '-',i       ;Print leading '-'
+FEF0  79FAAC          STBX    charOut,d   
+FEF3  12              NEGA                ;Make magnitude positive
+FEF4  630000 printMag:STWA    remain,s    ;remain <- abs(oprnd)
+FEF7  400000          LDWA    FALSE,i     ;Initialize outYet <- FALSE
+FEFA  630002          STWA    outYet,s    
+FEFD  402710          LDWA    10000,i     ;place <- 10,000
+FF00  630004          STWA    place,s     
+FF03  2EFF2E          CALL    divide      ;Write 10,000's place
+FF06  4003E8          LDWA    1000,i      ;place <- 1,000
+FF09  630004          STWA    place,s     
+FF0C  2EFF2E          CALL    divide      ;Write 1000's place
+FF0F  400064          LDWA    100,i       ;place <- 100
+FF12  630004          STWA    place,s     
+FF15  2EFF2E          CALL    divide      ;Write 100's place
+FF18  40000A          LDWA    10,i        ;place <- 10
+FF1B  630004          STWA    place,s     
+FF1E  2EFF2E          CALL    divide      ;Write 10's place
+FF21  430000          LDWA    remain,s    ;Always write 1's place
+FF24  D00030          ORA     0x0030,i    ;Convert decimal to ASCII
+FF27  71FAAC          STBA    charOut,d   ;  and output it
+FF2A  F00006          ADDSP   6,i         ;Deallocate storage for locals
+FF2D  00              RET                 
+             ;
+             ;Subroutine to print the most significant decimal digit of the
+             ;remainder. It assumes that place (place2 here) contains the
+             ;decimal place value. It updates the remainder.
+             ;
+             remain2: .EQUATE 2           ;Stack addresses while executing a
+             outYet2: .EQUATE 4           ;  subroutine are greater by two because
+             place2:  .EQUATE 6           ;  the retAddr is on the stack
+             ;
+FF2E  430002 divide:  LDWA    remain2,s   ;A <- remainder
+FF31  480000          LDWX    0,i         ;X <- 0
+FF34  B30006 divLoop: SUBA    place2,s    ;Division by repeated subtraction
+FF37  20FF43          BRLT    writeNum    ;If remainder is negative then done
+FF3A  A80001          ADDX    1,i         ;X <- X + 1
+FF3D  630002          STWA    remain2,s   ;Store the new remainder
+FF40  1CFF34          BR      divLoop     
+             ;
+FF43  880000 writeNum:CPWX    0,i         ;If X != 0 then
+FF46  22FF52          BREQ    checkOut    
+FF49  400001          LDWA    TRUE,i      ;outYet <- TRUE
+FF4C  630004          STWA    outYet2,s   
+FF4F  1CFF59          BR      printDgt    ;and branch to print this digit
+FF52  430004 checkOut:LDWA    outYet2,s   ;else if a previous char was output
+FF55  24FF59          BRNE    printDgt    ;then branch to print this zero
+FF58  00              RET                 ;else return to calling routine
+             ;
+FF59  D80030 printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
+FF5C  79FAAC          STBX    charOut,d   ;  and output it
+FF5F  00              RET                 ;return to calling routine
+             ;
+             ;******* HEXO
+             ;The hexadecimal ouput system call.
+             ;Outputs one word as four hex characters from memory.
+                      .EXPORT HEXO        
+                      .SCALL  HEXO        
+             ;
+FF60  4000FF HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
+FF63  61FAA4          STWA    addrMask,d  
+FF66  2EFC53          CALL    assertAd    
+FF69  2EFCA7          CALL    setAddr     ;Set address of trap operand
+FF6C  42FAA6          LDWA    opAddr,n    ;A <- oprnd
+FF6F  63FFFE          STWA    -2,s        
+FF72  F80002          SUBSP   2,i         
+FF75  2EFF7C          CALL    hexPrint    
+FF78  F00002          ADDSP   2,i         
+FF7B  00              RET                 
+             num:     .EQUATE 2           
+FF7C  430002 hexPrint:LDWA    num,s       
+FF7F  61FAA0          STWA    wordTemp,d  ;Save oprnd in wordTemp
+FF82  51FAA0          LDBA    wordTemp,d  ;Put high-order byte in low-order A
+                      @ASRA4              
+FF85  16              ASRA                
+FF86  16              ASRA                
+FF87  16              ASRA                
+FF88  16              ASRA                
+             ;end macro
+FF89  2EFFA3          CALL    hexOut      ;Output first hex character
+FF8C  51FAA0          LDBA    wordTemp,d  ;Put high-order byte in low-order A
+FF8F  2EFFA3          CALL    hexOut      ;Output second hex character
+FF92  51FAA1          LDBA    byteTemp,d  ;Put low-order byte in low order A
+                      @ASRA4              
+FF95  16              ASRA                
+FF96  16              ASRA                
+FF97  16              ASRA                
+FF98  16              ASRA                
+             ;end macro
+FF99  2EFFA3          CALL    hexOut      ;Output third hex character
+FF9C  51FAA1          LDBA    byteTemp,d  ;Put low-order byte in low order A
+FF9F  2EFFA3          CALL    hexOut      ;Output fourth hex character
+FFA2  00              RET                 
+             ;
+             ;Subroutine to output in hex the least significant nybble of the
+             ;accumulator.
+             ;
+FFA3  C0000F hexOut:  ANDA    0x000F,i    ;Isolate the digit value
+FFA6  900009          CPBA    9,i         ;If it is not in 0..9 then
+FFA9  1EFFB5          BRLE    prepNum     
+FFAC  B00009          SUBA    9,i         ;  convert to ASCII letter
+FFAF  D00040          ORA     0x0040,i    ;  and prefix ASCII code for letter
+FFB2  1CFFB8          BR      writeHex    
+FFB5  D00030 prepNum: ORA     0x0030,i    ;else prefix ASCII code for number
+FFB8  71FAAC writeHex:STBA    charOut,d   ;Output nybble as hex
+FFBB  00              RET                 
+             ;
+             ;******* STRO
+             ;The string output system call.
+             ;Outputs a null-terminated string from memory.
+                      .EXPORT STRO        
+                      .SCALL  STRO        
+             ;
+FFBC  40003E STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
+FFBF  61FAA4          STWA    addrMask,d  
+FFC2  2EFC53          CALL    assertAd    
+FFC5  2EFCA7          CALL    setAddr     ;Set address of trap operand
+FFC8  41FAA6          LDWA    opAddr,d    ;Push address of string to print
+FFCB  63FFFE          STWA    -2,s        
+FFCE  F80002          SUBSP   2,i         
+FFD1  2EFFD8          CALL    prntMsg     ;and print
+FFD4  F00002          ADDSP   2,i         
+FFD7  00              RET                 ;Return to trap handler
+             ;
+             ;******* Print subroutine
+             ;Prints a string of ASCII bytes until it encounters a null
+             ;byte (eight zero bits). Assumes one parameter, which
+             ;contains the address of the message.
+             ;
+             msgAddr: .EQUATE 2           ;Address of message to print
+             ;
+FFD8  480000 prntMsg: LDWX    0,i         ;X <- 0
+FFDB  400000          LDWA    0,i         ;A <- 0
+FFDE  570002 prntMore:LDBA    msgAddr,sfx ;Test next char
+FFE1  22FFED          BREQ    exitPrnt    ;If null then exit
+FFE4  71FAAC          STBA    charOut,d   ;else print
+FFE7  A80001          ADDX    1,i         ;X <- X + 1 for next character
+FFEA  1CFFDE          BR      prntMore    
+             ;
+FFED  00     exitPrnt:RET                 
+             ;
+             ;******* Vectors for system memory map
+FFEE  FA20            .ADDRSS osRAM       ;User stack pointer
+FFF0  FAA0            .ADDRSS wordTemp    ;System stack pointer
+FFF2  FAA8            .ADDRSS diskIn      ;Memory-mapped disk input device
+FFF4  FAAA            .ADDRSS charIn      ;Memory-mapped input device
+FFF6  FAAC            .ADDRSS charOut     ;Memory-mapped output device
+FFF8  FAAE            .ADDRSS pwrOff      ;Memory-mapped power off device
+FFFA  FAB2            .ADDRSS start       ;Entry point program counter
+FFFC  FB31            .ADDRSS loader      ;Loader program counter
+FFFE  FBA4            .ADDRSS trap        ;Trap program counter
+             ;
+10000                 .END                  
+-------------------------------------------------------------------------------
+
+Symbol table
+--------------------------------------
+Symbol    Value        Symbol    Value
+--------------------------------------
+DECI      FD4F         DECO      FEC5         
+ESCJT     FC51         EUSCJT    FC45         
+FALSE     0000         HEXO      FF60         
+L1        FE17         L2        FE24         
+L3        FE2E         L4        FE3A         
+L5        FE46         L6        FE62         
+SCJT      FC47         STRO      FFBC         
+SYNOP     FD45         SYUNOP    FD44         
+TRUE      0001         USCJT     FC43         
+addrD     FCCB         addrErr   FC6D         
+addrI     FCC1         addrJT    FCB1         
+addrMask  FAA4         addrN     FCD8         
+addrS     FCE8         addrSF    FCF8         
+addrSFX   FD2E         addrSX    FD1B         
+addrX     FD0B         arrAddr   0002         
+arrDim    0004         asciiCh   000A         
+assertAd  FC53         byteTemp  FAA1         
+callMain  FAC1         charIn    FAAA         
+charOut   FAAC         checkOut  FF52         
+checkZ    FE77         combine   FB59         
+deciErr   FE96         deciMsg   FEAB         
+deciNorm  FE4C         digit     0002         
+diskIn    FAA8         divLoop   FF34         
+divide    FF2E         do        FD6A         
+doExec    0002         doLoad    0001         
+endLoad   FB6B         execErr   FB12         
+execMain  FAD3         exitDeci  FE8C         
+exitPrnt  FFED         getChar   FB34         
+hexOut    FFA3         hexPrint  FF7C         
+ifDigit   FDB0         ifMinus   FD9B         
+ifWhite   FDD1         init      0000         
+isNeg     0004         isOvfl    0006         
+ldErrMsg  FB87         loadErr   FB75         
+loader    FB31         loop      FC5F         
+mainCln   FAEA         mainErr   FAFA         
+msgAddr   0002         nonUnary  FBCC         
+num       0002         numPrint  FEE1         
+oldIR     0009         oldIR4    000D         
+oldNZVC   000F         oldPC     0005         
+oldPC4    0009         oldSP4    000B         
+oldX4     0007         opAddr    FAA6         
+osRAM     FA20         osSPTemp  FAA2         
+outYet    0002         outYet2   0004         
+ovfl1     FE14         ovfl2     FE21         
+ovfl3     FE2B         ovfl4     FE37         
+ovfl5     FE43         place     0004         
+place2    0006         prepNum   FFB5         
+printDgt  FF59         printMag  FEF4         
+prntMore  FFDE         prntMsg   FFD8         
+pwrOff    FAAE         remain    0000         
+remain2   0002         sDigit    FDFB         
+sInit     FD86         sSign     FDE0         
+scErrMsg  FC27         setAddr   FCA7         
+setNZ     FE68         setV      FE80         
+shift     FB46         shutdown  FACD         
+sign      0001         start     FAB2         
+state     0002         stateJT   FD80         
+storeFl   FE89         strtFlg   FAB0         
+temp      0000         testAd    FC66         
+toPrint   0008         total     000B         
+trap      FBA4         trapErr   FC08         
+trapFind  FBF1         trapFnd   FC07         
+trapLoop  FBF5         trapMsg   FC82         
+unary     FBB0         valAscii  0008         
+wordTemp  FAA0         writeHex  FFB8         
+writeNum  FF43         
+--------------------------------------
