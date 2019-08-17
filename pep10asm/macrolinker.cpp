@@ -25,7 +25,7 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
 {
     // Reset address counter, as a linker may be reused
     nextAddress = 0;
-
+    nextSourceLine = 0;
     LinkResult result;
     result.success = true;
 
@@ -106,7 +106,9 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
     // Check each line of code in instance & assign memory addresses.
     for(int lineNum = 0 ; lineNum < instance.codeList.size(); lineNum++) {
         auto line = instance.codeList[lineNum];
-
+        // Assign the line numbers to code lines.
+        line->setSourceLineNumber(lineNum);
+        line->setListingLineNumber(nextSourceLine++);
         // Now that we are assigning addresses, we can properly deduce the number
         // of padding bytes that need to be generated.
         if(auto asAlign = dynamic_cast<DotAlign*>(line.get()); asAlign != nullptr) {

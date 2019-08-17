@@ -31,20 +31,22 @@
 #include "symbolentry.h"
 #include "symboltable.h"
 
-AsmCode::AsmCode(): sourceCodeLine(0), memAddress(0), symbolEntry(QSharedPointer<SymbolEntry>()), comment(),
-    emitObjectCode(true), hasCom(false)
+AsmCode::AsmCode(): emitObjectCode(true), hasCom(false),
+    sourceCodeLine(0), listingCodeLine(0), memAddress(0),
+    symbolEntry(QSharedPointer<SymbolEntry>()), comment()
 {
 
 }
 
 AsmCode::AsmCode(const AsmCode &other)
 {
+    this->emitObjectCode = other.emitObjectCode;
+    this->hasCom = other.hasCom;
     this->sourceCodeLine = other.sourceCodeLine;
+    this->listingCodeLine = other.listingCodeLine;
     this->memAddress = other.memAddress;
     this->symbolEntry = other.symbolEntry;
     this->comment = other.comment;
-    this->emitObjectCode = other.emitObjectCode;
-    this->hasCom = other.hasCom;
 }
 
 UnaryInstruction::UnaryInstruction(const UnaryInstruction &other) : AsmCode(other)
@@ -235,6 +237,7 @@ QString AsmCode::getComment() const
 void AsmCode::setComment(QString comment)
 {
     this->comment = comment;
+    this->hasCom = !this->comment.isEmpty();
 }
 
 int AsmCode::getMemoryAddress() const
@@ -253,6 +256,26 @@ void AsmCode::adjustMemAddress(int addressDelta)
     // have a real address (like comments), so they can't
     // be relocated.
     if(memAddress >=0) memAddress += addressDelta;
+}
+
+int AsmCode::getSourceLineNumber() const
+{
+    return sourceCodeLine;
+}
+
+void AsmCode::setSourceLineNumber(quint32 lineNumber)
+{
+    this->sourceCodeLine = lineNumber;
+}
+
+int AsmCode::getListingLineNumber() const
+{
+    return listingCodeLine;
+}
+
+void AsmCode::setListingLineNumber(quint32 lineNumber)
+{
+    this->listingCodeLine = lineNumber;
 }
 
 AsmCode *UnaryInstruction::cloneAsmCode() const

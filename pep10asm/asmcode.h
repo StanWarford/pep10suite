@@ -73,6 +73,13 @@ public:
     void setMemoryAddress(quint16 address);
     virtual void adjustMemAddress(int addressDelta);
 
+    // The line number (0 indexed) of the line of code in the source program.
+    virtual int getSourceLineNumber() const;
+    void setSourceLineNumber(quint32 lineNumber);
+
+    // The line number (0 indexed) of the line of code in the listing.
+    virtual int getListingLineNumber() const;
+    void setListingLineNumber(quint32 lineNumber);
 
     // Get the assembler listing, which is memaddress + object code + sourceLine.
     virtual QString getAssemblerListing() const = 0;
@@ -97,10 +104,10 @@ public:
     }
 
 protected:
-    int sourceCodeLine, memAddress =-1;
+    bool emitObjectCode, hasCom;
+    int sourceCodeLine, listingCodeLine, memAddress =-1;
     QSharedPointer<SymbolEntry> symbolEntry;
     QString comment;
-    bool emitObjectCode, hasCom;
 };
 
 // Concrete code classes

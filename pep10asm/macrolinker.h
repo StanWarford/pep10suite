@@ -39,6 +39,7 @@ private:
     // Adjust the addresses of all code lines to allow for burning in of operating system.
     bool shiftForBURN(ModuleAssemblyGraph& graph);
 
+    quint32 nextSourceLine;
     quint32 nextAddress;
     bool forceBurn0xFFFF;
     std::optional<QSharedPointer<const SymbolTable>> osSymbolTable;
