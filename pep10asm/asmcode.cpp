@@ -33,7 +33,8 @@
 
 AsmCode::AsmCode(): emitObjectCode(true), hasCom(false),
     sourceCodeLine(0), listingCodeLine(0), memAddress(0),
-    symbolEntry(QSharedPointer<SymbolEntry>()), comment()
+    symbolEntry(QSharedPointer<SymbolEntry>()), comment(),
+    trace()
 {
 
 }
@@ -47,6 +48,7 @@ AsmCode::AsmCode(const AsmCode &other)
     this->memAddress = other.memAddress;
     this->symbolEntry = other.symbolEntry;
     this->comment = other.comment;
+    this->trace = other.trace;
 }
 
 UnaryInstruction::UnaryInstruction(const UnaryInstruction &other) : AsmCode(other)
@@ -238,6 +240,16 @@ void AsmCode::setComment(QString comment)
 {
     this->comment = comment;
     this->hasCom = !this->comment.isEmpty();
+}
+
+TraceData AsmCode::getTraceData() const
+{
+    return trace;
+}
+
+void AsmCode::setTraceData(TraceData trace)
+{
+    this->trace = trace;
 }
 
 int AsmCode::getMemoryAddress() const

@@ -23,6 +23,7 @@
 #define ASMCODE_H
 
 #include "pep.h"
+#include "tracedata.h"
 #include <QSharedPointer>
 #include <QSet>
 class AsmArgument; // Forward declaration for attributes of code classes.
@@ -36,7 +37,6 @@ struct ModuleInstance;
  * It assists the memory trace pane's stack frames with trace tag processing.
  * It also provides default implementations for most functions to reduce code reuse in subclasses.
  */
-
 class AsmCode
 {
     friend class IsaAsm;
@@ -67,6 +67,10 @@ public:
     // Can this line have trace tags?
     virtual bool tracksTraceTags() const {return false;}
 
+    // Detailed information about how the instruction interacts with the memory trace.
+    TraceData getTraceData() const;
+    void setTraceData(TraceData trace);
+
     virtual void appendObjectCode(QList<int> &) const { return; }
 
     virtual int getMemoryAddress() const;
@@ -95,12 +99,15 @@ public:
     friend void swap(AsmCode& first, AsmCode& second)
     {
         using std::swap;
+        swap(first.emitObjectCode, second.emitObjectCode);
+        swap(first.hasCom, second.hasCom);
         swap(first.sourceCodeLine, second.sourceCodeLine);
+        swap(first.listingCodeLine, second.listingCodeLine);
         swap(first.memAddress, second.memAddress);
         swap(first.symbolEntry, second.symbolEntry);
         swap(first.comment, second.comment);
-        swap(first.emitObjectCode, second.emitObjectCode);
-        swap(first.hasCom, second.hasCom);
+        swap(first.trace, second.trace);
+
     }
 
 protected:
@@ -108,6 +115,8 @@ protected:
     int sourceCodeLine, listingCodeLine, memAddress =-1;
     QSharedPointer<SymbolEntry> symbolEntry;
     QString comment;
+    // Information collected during assembly to enable memory tracing features.
+    TraceData trace;
 };
 
 // Concrete code classes
