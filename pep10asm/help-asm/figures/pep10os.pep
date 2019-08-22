@@ -183,19 +183,6 @@ trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
          ADDSP   2,i
          BR      shutdown
 scErrMsg:.ASCII "Could not find system call \x00"
-;
-;******* System Call Jump Tables
-;Unary System Call Jump Table
-USCJT:   .ADDRSS SYUNOP
-EUSCJT:  .ADDRSS trapErr
-;
-;Nonunary System Call Jump Table
-SCJT:    .ADDRSS SYNOP
-         .ADDRSS DECI
-         .ADDRSS DECO
-         .ADDRSS HEXO
-         .ADDRSS STRO
-ESCJT:   .ADDRSS trapErr
 
 ;
 ;******* Assert valid trap addressing mode
@@ -292,6 +279,19 @@ addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
          ADDX    oldX4,s     
          STWX    opAddr,d    
          RET                               
+;
+;******* System Call Jump Tables
+;Unary System Call Jump Table
+USCJT:   .ADDRSS SYUNOP
+EUSCJT:  .ADDRSS trapErr
+;
+;Nonunary System Call Jump Table
+SCJT:    .ADDRSS SYNOP
+         .ADDRSS DECI
+         .ADDRSS DECO
+         .ADDRSS HEXO
+         .ADDRSS STRO
+ESCJT:   .ADDRSS trapErr
 ;
 ;******* SYUNOP
 ;The unary no-operation system call.
