@@ -1,59 +1,52 @@
 #include "tracedata.h"
-
-TraceData::TraceData(): modifySP(false), hint(StackHint::EMPTY_HINT),
-    operandType(nullptr), declareType(nullptr)
+TraceCommand::TraceCommand(): action(TraceAction::NOP), frame(FrameTarget::NONE),
+    trace(TraceTarget::NONE), tag(std::nullopt)
 {
 
 }
 
-TraceData::TraceData(const TraceData &other): modifySP(other.modifySP), hint(other.hint),
-    operandType(other.operandType), declareType(other.declareType)
+TraceCommand::TraceCommand(TraceAction action, FrameTarget frame, TraceTarget trace):
+    action(action), frame(frame), trace(trace), tag(std::nullopt)
 {
 
 }
 
-TraceData &TraceData::operator=(TraceData rhs)
+TraceCommand::TraceCommand(TraceAction action, FrameTarget frame, TraceTarget trace, QSharedPointer<AType> tag):
+    action(action), frame(frame), trace(trace), tag(tag)
 {
-    swap(*this, rhs);
+
+}
+
+TraceCommand::TraceCommand(const TraceCommand &other)
+{
+    this->action = other.action;
+    this->frame = other.frame;
+    this->trace = other.trace;
+    this->tag = other.tag;
+}
+
+TraceCommand &TraceCommand::operator=(TraceCommand other)
+{
+    swap(*this, other);
     return *this;
 }
 
-bool TraceData::getModifySP() const
+TraceAction TraceCommand::getAction() const
 {
-    return modifySP;
+    return action;
 }
 
-void TraceData::setModifySP(bool value)
+FrameTarget TraceCommand::getFrame() const
 {
-    this->modifySP = value;
+    return frame;
 }
 
-StackHint TraceData::getStackHint() const
+TraceTarget TraceCommand::getTrace() const
 {
-    return hint;
+    return trace;
 }
 
-void TraceData::setStackHint(StackHint hint)
+std::optional<QSharedPointer<const AType>> TraceCommand::getTag() const
 {
-    this->hint = hint;
-}
-
-QSharedPointer<AType> TraceData::getOperandType() const
-{
-    return operandType;
-}
-
-void TraceData::setOperandType(QSharedPointer<AType> data)
-{
-    this->operandType = data;
-}
-
-QSharedPointer<AType> TraceData::getDeclaredType() const
-{
-    return declareType;
-}
-
-void TraceData::setDeclaredType(QSharedPointer<AType> data)
-{
-    this->declareType = data;
+    return tag;
 }

@@ -1,72 +1,81 @@
 #ifndef TRACEDATA_H
 #define TRACEDATA_H
 
-#include "typetags.h"
+#include <optional>
 
-enum class StackHint
+#include "optional_helper.h"
+#include "typetags.h"
+enum class TraceAction
 {
-    PARAMS,
-    LOCALS,
-    EMPTY_HINT,
+    PUSH,      //Add elements to a stack.
+    POP,       //Remove elements from a stack.
+    SETFRAME,  //Move the current frame forwards or backwards.
+    SWAPTRACE, //Exchange the active globals-stack-heap for a new one.
+    NOP,       //No operation is performed.
+};
+enum class FrameTarget
+{
+    NEXT,     //Perform the operation on the frame above the frame pointer.
+    CURRENT,  //Perform the operation on the frame at the frame pointer.
+    PREVIOUS, //Perform the operation on the frame below the frame pointer.
+    DEDUCED,  //Allow the debugger to "guess" which frame to insert into.
+    NONE,     //The action does not modify the frame pointer.
 };
 
+enum class TraceTarget
+{
+    GLOBALS, //Perform the action in the globals memory trace.
+    STACK,   //Perform the action in the stack memory trace.
+    HEAP,    //Perform the action in the heap memory trace.
+    SWAP,    //The action will exhange which set of memory traces are active.
+    NONE,    //The action does not effect the memory trace visualization.
+};
 /*
- * Helper class to collect memory trace information at assembly time
- * instead of during the simulation.
+ * A TraceComman represents a single expression in the memory debugger
+ * embedded domain language. It fully encapsulates one step, telling the debugger
+ * what to do, which stack frame to modify, in which memory tace, and what
+ * symbol is to be modified (if any). It is an improvement over the old Pep9 debugger,
+ * since it moves the bulk of the stack debugging checks from runtime to compile time.
+ *
+ * For example PUSH NEXT STACK retAddr, would instruct the the debugger to push
+ * a symbol named retAddr onto the current frame in the stack. For more details, see
+ * the design documentation in docs/trace-debugger.
  */
-class TraceData
+class TraceCommand
 {
 public:
-    TraceData();
-    TraceData(const TraceData& other);
-    TraceData& operator=(TraceData rhs);
+    // Create a NOP trace command by default.
+    TraceCommand();
+    // Create a trace command with an empty symbol.
+    TraceCommand(TraceAction action, FrameTarget frame, TraceTarget trace);
+    // Create a trace command with a present symbol.
+    TraceCommand(TraceAction action, FrameTarget frame, TraceTarget trace, QSharedPointer<AType> tag);
+    TraceCommand(const TraceCommand& other);
+    // Move & dtor are trivial due to RAII.
+    TraceCommand(TraceCommand&& other) = default;
+    ~TraceCommand() = default;
+    // Assign by value to take advantage of copy-swap.
+    TraceCommand& operator=(TraceCommand other);
 
-    // Does the code line modify the stack pointer?
-    // This is limited to MOVASP, ADDSP, SUBSP,
-    // CALL, RET, SCALL, and SRET.
-    // If false, no additional stack checks need be performed.
-    bool getModifySP() const;
-    void setModifySP(bool value);
+    // Return data
+    TraceAction getAction() const;
+    FrameTarget getFrame() const;
+    TraceTarget getTrace() const;
+    std::optional<QSharedPointer<const AType>> getTag() const;
 
-    // For stack modifying instructions ADDSP, and SUBSP,
-    // should values be treated as a locals allocation
-    // (allocate in the current stack frame) or a parameters
-    // allocation (allocate above the current frame).
-    StackHint getStackHint() const;
-    void setStackHint(StackHint hint);
-
-    // The data type of an instructions operand.
-    // For example in the instruction ADDSP 8,i #2d4a,
-    // the operand type is a class representing 2D4A.
-    // The instruction .WORD 65 ;#2d has no operand type,
-    // since .WORD is a declaration, not an instruction modifying
-    // the stack.
-    QSharedPointer<AType> getOperandType() const;
-    void setOperandType(QSharedPointer<AType> data);
-
-    // The data type of an instructions operand.
-    // For example in the instruction ADDSP 8,i #2d4a,
-    // the declared type is empty, since the instruction
-    // modifes the stack instead of providing a type definition.
-    // The instruction .WORD 65 ;#2d has a declaration type of
-    // #2d.
-    QSharedPointer<AType> getDeclaredType() const;
-    void setDeclaredType(QSharedPointer<AType> data);
-
-    friend void swap(TraceData& first, TraceData& second)
-    {
+    // Needed to implement copy-swap idiom.
+    friend void swap(TraceCommand& first, TraceCommand& second){
         using std::swap;
-        swap(first.modifySP, second.modifySP);
-        swap(first.hint, second.hint);
-        swap(first.operandType, second.operandType);
-        swap(first.declareType, second.declareType);
+        swap(first.action, second.action);
+        swap(first.frame, second.frame);
+        swap(first.trace, second.trace);
+        swap(first.tag, second.tag);
     }
-
 private:
-    bool modifySP;
-    StackHint hint;
-    QSharedPointer<AType> operandType;
-    QSharedPointer<AType> declareType;
+    TraceAction action;
+    FrameTarget frame;
+    TraceTarget trace;
+    std::optional<QSharedPointer<AType>> tag;
 };
 
 #endif // TRACEDATA_H

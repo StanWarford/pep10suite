@@ -44,6 +44,7 @@ HEADERS += \
     ngraph_prune.h \
     pepasmhighlighter.h \
     setops.hpp \
+    tracedata.h \
     typetags.h \
     stacktrace.h \
     asmcpupane.h \
@@ -78,6 +79,7 @@ SOURCES += \
     memorycellgraphicsitem.cpp \
     memorytracepane.cpp \
     pepasmhighlighter.cpp \
+    tracedata.cpp \
     typetags.cpp \
     stacktrace.cpp \
     asmcpupane.cpp \

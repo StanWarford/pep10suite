@@ -68,8 +68,8 @@ public:
     virtual bool tracksTraceTags() const {return false;}
 
     // Detailed information about how the instruction interacts with the memory trace.
-    TraceData getTraceData() const;
-    void setTraceData(TraceData trace);
+    QList<TraceCommand> getTraceData() const;
+    void setTraceData(QList<TraceCommand> trace);
 
     virtual void appendObjectCode(QList<int> &) const { return; }
 
@@ -116,7 +116,7 @@ protected:
     QSharedPointer<SymbolEntry> symbolEntry;
     QString comment;
     // Information collected during assembly to enable memory tracing features.
-    TraceData trace;
+    QList<TraceCommand> trace;
 };
 
 // Concrete code classes

@@ -242,14 +242,14 @@ void AsmCode::setComment(QString comment)
     this->hasCom = !this->comment.isEmpty();
 }
 
-TraceData AsmCode::getTraceData() const
+QList<TraceCommand> AsmCode::getTraceData() const
 {
     return trace;
 }
 
-void AsmCode::setTraceData(TraceData trace)
+void AsmCode::setTraceData(QList<TraceCommand> trace)
 {
-    this->trace = trace;
+  this->trace = trace;
 }
 
 int AsmCode::getMemoryAddress() const
