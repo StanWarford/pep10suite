@@ -1,5 +1,17 @@
 #include "macrostackannotater.h"
+#include "optional_helper.h"
+#include "symbolentry.h"
 
+
+static const QString noHint = ";ERROR: A .%1 may not contain a stack hint.";
+static const QString noSymbol = ";WARNING: An .%1 must define a symbol to have format tags.";
+static const QString neSymbol = ";WARNING: Looked up a symbol that does not exist: %1";
+static const QString noEquate = ";WARNING: Looked for existing symbol not defined in .EQUATE: %1";
+static const QString badHint = ";ERROR: Only ADDSP, SUBSP may define a stack hint";
+static const QString badStruct = ";Warning: invalid struct definition.";
+static const QString bytesAllocMismatch = ";WARNING: Number of bytes allocated (%1) not equal to number of bytes listed in trace tag (%2).";
+static const QString noSymbolTag = ";WARNING: .%1 may not specify a symbol trace tag.";
+static const QString noArrayTag = ";WARNING: .%1 may not specify an array trace tag.";
 MacroStackAnnotater::MacroStackAnnotater()
 {
 
@@ -12,30 +24,103 @@ MacroStackAnnotater::~MacroStackAnnotater()
 
 StackAnnotationResult MacroStackAnnotater::annotateStack(ModuleAssemblyGraph &graph)
 {
+    // Clean any state from previous runs.
+    globalLines.clear();
+    codeLines.clear();
+    equateLines.clear();
+    dynamicSymbols.clear();
+    staticSymbols.clear();
+    resultCache = {};
+
+    // Begin extracting symbol data recursively from root module.
     auto rootInstance = graph.instanceMap[graph.rootModule].first();
+    symbolTable = rootInstance->symbolTable;
     discoverLines(*rootInstance);
+    parseEquateLines();
+    resolveGlobals();
+    resolveCodeLines();
     return {};
 }
 
-void *MacroStackAnnotater::containsHint(...) const
+bool MacroStackAnnotater::containsStackHint(QString comment)
 {
-    return nullptr;
+    return localsHint.match(comment).hasMatch() ||
+           paramsHint.match(comment).hasMatch();
 }
 
-void *MacroStackAnnotater::containsTypeTag(...) const
+bool MacroStackAnnotater::containsFormatTag(QString comment)
 {
-    return nullptr;
+    if(comment.isEmpty()) {
+        return false;
+    }
+    return containsArrayType(comment) || containsPrimitiveType(comment);
 }
 
-void *MacroStackAnnotater::containsSymbolTag(...) const
+bool MacroStackAnnotater::containsSymbolTag(QString comment)
 {
-    return nullptr;
+    return symbolTag.match(comment).hasMatch();
+}
+
+bool MacroStackAnnotater::containsArrayType(QString comment)
+{
+    return arrayTag.match(comment).hasMatch();
+}
+
+bool MacroStackAnnotater::containsPrimitiveType(QString comment)
+{
+    // A primitive type matches any integral type, but not arrays.
+    return formatTag.match(comment).hasMatch();
+}
+
+QString MacroStackAnnotater::extractTypeTags(QString comment)
+{
+    if(auto arrayMatch = arrayTag.match(comment);
+            arrayMatch.hasMatch()) {
+        return arrayMatch.captured();
+    }
+    else if(auto formatMatch = formatTag.match(comment);
+            formatMatch.hasMatch()) {
+               return formatMatch.captured();
+           }
+    return "";
+}
+
+Enu::ESymbolFormat MacroStackAnnotater::primitiveType(QString formatTag)
+{
+    if (formatTag.startsWith("#1c", Qt::CaseInsensitive)) return Enu::ESymbolFormat::F_1C;
+    if (formatTag.startsWith("#1d", Qt::CaseInsensitive)) return Enu::ESymbolFormat::F_1D;
+    if (formatTag.startsWith("#2d", Qt::CaseInsensitive)) return Enu::ESymbolFormat::F_2D;
+    if (formatTag.startsWith("#1h", Qt::CaseInsensitive)) return Enu::ESymbolFormat::F_1H;
+    if (formatTag.startsWith("#2h", Qt::CaseInsensitive)) return Enu::ESymbolFormat::F_2H;
+    return Enu::ESymbolFormat::F_NONE;
+}
+
+QPair<Enu::ESymbolFormat, quint8> MacroStackAnnotater::arrayType(QString formatTag)
+{
+    auto type = primitiveType(formatTag);
+    auto match = arrayMultiplier.match(formatTag);
+    QString text = match.captured(0);
+    text.chop(1); // Drop the a at the end.
+    int size = text.toInt();
+    return {type, static_cast<quint8>(size)};
+}
+
+QStringList MacroStackAnnotater::extractTagList(QString comment)
+{
+    auto items = symbolTag.globalMatch(comment);
+    QStringList out;
+    while(items.hasNext()) {
+        QString match = items.next().captured(0);
+        match = match.mid(1);
+        out.append(match);
+    }
+    return out;
 }
 
 void MacroStackAnnotater::discoverLines(ModuleInstance &instance)
 {
     for(auto line : instance.codeList) {
-        StackModifyingLine modifying;
+
         // Recursively discover submodules.
         if(MacroInvoke* asMacro = dynamic_cast<MacroInvoke*>(line.get());
            asMacro != nullptr) {
@@ -46,44 +131,47 @@ void MacroStackAnnotater::discoverLines(ModuleInstance &instance)
         // Tags are always optional.
         else if(DotBlock* asBlock = dynamic_cast<DotBlock*>(line.get());
                 asBlock != nullptr) {
-            if(containsTypeTag(asBlock) || containsSymbolTag(asBlock)) {
-                modifying.line = line;
-                // Must calculate root index.
-                modifying.rootLineIdx = -1;
-                unresolvedModifyingLines.append(modifying);
+            if(containsFormatTag(asBlock->getComment()) ||
+               containsSymbolTag(asBlock->getComment()) ||
+               containsStackHint(asBlock->getComment())) {
+                // Trace tags on any line make them required throughout the rest of the program.
+                hadAnyTraceTags = true;
+                globalLines.append(asBlock);
             }
         }
         // .BYTE may be a(n) 1) integral type.
         // Tags are always optional.
         else if(DotByte* asByte = dynamic_cast<DotByte*>(line.get());
                 asByte != nullptr) {
-            if(containsTypeTag(asByte) || containsSymbolTag(asByte)) {
-                modifying.line = line;
-                // Must calculate root index.
-                modifying.rootLineIdx = -1;
-                unresolvedModifyingLines.append(modifying);
+            if(containsFormatTag(asByte->getComment()) ||
+               containsSymbolTag(asByte->getComment()) ||
+               containsStackHint(asByte->getComment())) {
+                // Trace tags on any line make them required throughout the rest of the program.
+                hadAnyTraceTags = true;
+                globalLines.append(asByte);
             }
         }
-        // .EQUATE may be a(n) 1) integral type.
+        // .EQUATE may be a(n) 1) integral type 2) array of integral types, 3) a struct, or 4) nothing.
         // Tags are always optional.
         else if(DotEquate* asEquate = dynamic_cast<DotEquate*>(line.get());
                 asEquate != nullptr) {
-            if(containsTypeTag(asEquate) || containsSymbolTag(asEquate)) {
-                modifying.line = line;
-                // Must calculate root index.
-                modifying.rootLineIdx = -1;
-                unresolvedModifyingLines.append(modifying);
+            if(containsFormatTag(asEquate->getComment()) ||
+               containsSymbolTag(asEquate->getComment()) ||
+               containsStackHint(asEquate->getComment())) {
+                hadAnyTraceTags = true;
+                equateLines.append(asEquate);
             }
         }
         // .WORD may be a(n) 1) integral type, 2) array of 2 characters.
         // Tags are always optional.
         else if(DotWord* asWord = dynamic_cast<DotWord*>(line.get());
                 asWord != nullptr) {
-            if(containsTypeTag(asWord) || containsSymbolTag(asWord)) {
-                modifying.line = line;
-                // Must calculate root index.
-                modifying.rootLineIdx = -1;
-                unresolvedModifyingLines.append(modifying);
+            if(containsFormatTag(asWord->getComment()) ||
+               containsSymbolTag(asWord->getComment()) ||
+               containsStackHint(asWord->getComment())) {
+                // Trace tags on any line make them required throughout the rest of the program.
+                hadAnyTraceTags = true;
+                globalLines.append(asWord);
             }
         }
         // Unary instructions do not require tags.
@@ -97,10 +185,7 @@ void MacroStackAnnotater::discoverLines(ModuleInstance &instance)
                 // SRET, USCALL modify stack via context switch.
                 // MOVASP modifies stack setting SP to an arbitrary value.
                 // A new "stack frame" should be created anytime MOVASP is called.
-                modifying.line = line;
-                // Must calculate root index.
-                modifying.rootLineIdx = -1;
-                unresolvedModifyingLines.append(modifying);
+                codeLines.append(asUnary);
             }
         }
         // Non-unary instructions may require tags.
@@ -116,108 +201,309 @@ void MacroStackAnnotater::discoverLines(ModuleInstance &instance)
                 // ADDSP, SUBSP modify stack pointer via arithmatic.
                 // CALL modifies stack via pushing RETADDR.
                 // SCALL modifies stack via context switch.
-                modifying.line = line;
-                // Must calculate root index.
-                modifying.rootLineIdx = -1;
-                unresolvedModifyingLines.append(modifying);
+                codeLines.append(asNonunary);
             }
         }
     }
 }
 
-void MacroStackAnnotater::resolveLines()
+void MacroStackAnnotater::resolveGlobals()
 {
-    quint16 oldSize = 0;
-    quint16 newSize = unresolvedModifyingLines.size();
+    // All error checking is done inside of the parse*(...) methods.
+    for(auto line : this->globalLines) {
+        // .BLOCK may be a(n) 1) integral type, 2) array of integral types, or 3) a struct, or 4) nothing.
+        // Tags are always optional.
+        // Since the structs declared by .BLOCK cannot be used as part of other stucts
+        // the recursive checks are no longer needed.
+        if(DotBlock* asBlock = dynamic_cast<DotBlock*>(line);
+                asBlock != nullptr) {
+            parseBlock(asBlock);
+        }
+        // .BYTE may be a(n) 1) integral type or 2) nothing.
+        // Tags are always optional.
+        else if(DotByte* asByte = dynamic_cast<DotByte*>(line);
+                asByte != nullptr) {
+            parseByte(asByte);
+        }
+        // .WORD may be a(n) 1) integral type, 2) array of two 1 byte integrals or 3) nothing.
+        // Tags are always optional.
+        else if(DotWord* asWord = dynamic_cast<DotWord*>(line);
+                asWord != nullptr) {
+            parseWord(asWord);
+        }
+    }
+}
+
+void MacroStackAnnotater::resolveCodeLines()
+{
+    for(auto line : this->codeLines) {
+        // Unary instructions do not require tags.
+        if(UnaryInstruction* asUnary = dynamic_cast<UnaryInstruction*>(line);
+                asUnary != nullptr) {
+        }
+        // Non-unary instructions may require tags.
+        // If any ADDSP and SUBSP has a tag, then all must have tags.
+        // CALL may have a tag if it is calling MALLOC.
+        else if(NonUnaryInstruction* asNonunary = dynamic_cast<NonUnaryInstruction*>(line);
+                asNonunary != nullptr) {
+        }
+    }
+}
+
+void MacroStackAnnotater::parseEquateLines()
+{
+    // EQUATE's that participate in struct lookups.
+    QList<DotEquate*> structLines;
+    // For each EQUATE line, parse any primitive, array of primitive, or empty types.
+    for(auto dotEquate : equateLines) {
+        // Trace tags are optional for EQUATE, so absent comment means succesful parse.
+        if(dotEquate->getComment().isEmpty()) {
+            continue;
+        }
+        // EQUATE must not define a stack direction hint.
+        else if(containsStackHint(dotEquate->getComment())) {
+            this->resultCache.warningList.append({dotEquate->getListingLineNumber(), noHint});
+        }
+        // EQUATE may define a symbol tag.
+        else if(containsSymbolTag(dotEquate->getComment())) {
+            // Flag this equate as needing extra parsing work.
+            structLines.append(dotEquate);
+        }
+        // EQUATE may contain a format tag.
+        else if(containsFormatTag(dotEquate->getComment())) {
+            // If a format tag is present, the line must declare a symbol.
+            if(!dotEquate->hasSymbolEntry()) {
+                this->resultCache.warningList.append({dotEquate->getListingLineNumber(),
+                                                      noSymbol.arg("EQUATE")});
+            }
+            auto symbol = dotEquate->getSymbolEntry();
+            QSharedPointer<AType> formatTag;
+
+            // If there is an array, create a type tag representing it.
+            if(containsArrayType(dotEquate->getComment())) {
+                hadAnyTraceTags = true;
+                auto [type, size] = arrayType(extractTypeTags(dotEquate->getComment()));
+                formatTag = QSharedPointer<ArrayType>::create(dotEquate->getSymbolEntry(), type, size);
+            }
+            //Otherwise if there is an integral primitve, create a type tag.
+            else if(containsPrimitiveType(dotEquate->getComment())) {
+                hadAnyTraceTags = true;
+                Enu::ESymbolFormat type = primitiveType(extractTypeTags(dotEquate->getComment()));
+                formatTag = QSharedPointer<PrimitiveType>::create(dotEquate->getSymbolEntry(), type);
+            }
+            // Should be impossible, but compiler warns on unitialized formatTag.
+            else {
+                assert(false && "Contradictory format tags on EQUATE.");
+            }
+            dynamicSymbols.insert(symbol->getName(), {symbol, formatTag});
+        }
+        // Otherwise there is a non-empty comment that does not declare any debugging information.
+    }
+
+    /*
+     *  Handle struct declarations.
+     */
+    quint16 oldSize = 0, newSize = structLines.size();
+    // Iterate over the list of structs, attempting to parse their definitions
+    // until the list is empty or until errors prevent further parsing.
+    // Since structs can recurse(eg struct A can contain a struct B),
+    // more complicated handling is needed.
     do {
-        // If there are no elements, give up.
-        if(newSize == 0) {
-            break;
-        }
-        // Attempt to parse a given line.
-        for(int it=0; it< unresolvedModifyingLines.size(); it++) {
-            bool success = parseLine(unresolvedModifyingLines[it]);
-            // If the line parsed successfully, move the line from
-            // in-progress list to finished list.
-            if(success) {
-                resolvedModifyingLines.append(unresolvedModifyingLines.takeAt(it));
-                it--;
+        for(QMutableListIterator<DotEquate*> it(structLines); it.hasNext();) {
+            auto line = it.next();
+            QString name = line->getSymbolEntry()->getName();
+            QStringList symbols = extractTagList(line->getComment());
+            auto [ptr, errMessage] = parseStruct(name, symbols);
+            // If there was an error, give up on parsing the struct this iteration.
+            if(!errMessage.isEmpty()) {
+                continue;
             }
+            // If parsing was sucessful, then add it to the list of defined structs,
+            // and renove it from the list of structs to parse.
+            it.remove();
+            dynamicSymbols.insert(name, {line->getSymbolEntry(), ptr});
         }
+        // Update loop variables with new sizes.
         oldSize = newSize;
-        newSize = unresolvedModifyingLines.size();
-    } while((oldSize != newSize));
+        newSize = structLines.size();
+    } while(oldSize != newSize);
 
-}
-
-bool MacroStackAnnotater::parseLine(StackModifyingLine line)
-{
-    // .BLOCK may be a(n) 1) integral type, 2) array of integral types, or 3) a struct, or 4) nothing.
-    // Tags are always optional.
-    if(DotBlock* asBlock = dynamic_cast<DotBlock*>(line.line.get());
-            asBlock != nullptr) {
-        return parseBlock(asBlock);
+    // Propogate any remaining error messages.
+    if(newSize != 0) {
+        // Any remaining lines could not be parsed, and therefor are warnings.
+        for(auto badLine : structLines) {
+            QString name = badLine->getSymbolEntry()->getName();
+            QStringList symbols = extractTagList(badLine->getComment());
+            QString errMessage = parseStruct(name, symbols).second;
+            // Propogate struct parsing error to the error list.
+            resultCache.warningList.append({badLine->getListingLineNumber(), errMessage});
+        }
     }
-    // .BYTE may be a(n) 1) integral type.
-    // Tags are always optional.
-    else if(DotByte* asByte = dynamic_cast<DotByte*>(line.line.get());
-            asByte != nullptr) {
-        return parseByte(asByte);
+}
+
+void MacroStackAnnotater::parseBlock(DotBlock * dotBlock)
+{
+
+}
+
+void MacroStackAnnotater::parseByte(DotByte * dotByte)
+{
+    QString comment = dotByte->getComment();
+    QList<QSharedPointer<AType>> formatTags;
+    // If line has a @params @locals hint, it is malformed.
+    if(containsStackHint(comment)) {
+        resultCache.errorList.append({dotByte->getListingLineNumber(), badHint});
     }
-    // .EQUATE may be a(n) 1) integral type.
-    // Tags are always optional.
-    else if(DotEquate* asEquate = dynamic_cast<DotEquate*>(line.line.get());
-            asEquate != nullptr) {
-        return parseEquate(asEquate);
+    // Lines with a trace tag but no symbol definition are malformed.
+    else if((containsFormatTag(comment) || containsSymbolTag(comment)) &&
+            !dotByte->hasSymbolEntry()) {
+        resultCache.warningList.append({dotByte->getListingLineNumber(), noSymbol.arg("BYTE")});
     }
-    // .WORD may be a(n) 1) integral type, 2) array of 2 characters.
-    // Tags are always optional.
-    else if(DotWord* asWord = dynamic_cast<DotWord*>(line.line.get());
-            asWord != nullptr) {
-        return parseWord(asWord);
+    // BYTE may only specify a integral type trace tag {1c 1d 1h}.
+    else if(containsPrimitiveType(comment)) {
+        QSharedPointer<SymbolEntry> symbol = dotByte->getSymbolEntry();
+        Enu::ESymbolFormat type = primitiveType(extractTypeTags(comment));
+        int tagWidth = Enu::tagNumBytes(type);
+        // Verify that the size of the trace tag matches the size number of bytes allocated.
+        if(tagWidth != 1) {
+            resultCache.warningList.append({dotByte->getListingLineNumber(),
+                                            bytesAllocMismatch.arg(1).arg(tagWidth)});
+        }
+        else {
+            // Create format trace tag for the line.
+            auto formatTag = QSharedPointer<PrimitiveType>::create(dotByte->getSymbolEntry(), type);
+            staticSymbols.insert(symbol->getName(), {symbol, formatTag});
+
+            // Create frame entry in global memory trace.
+            pushGlobalHelper(dotByte, {formatTag});
+
+        }
     }
-    // Unary instructions do not require tags.
-    else if(UnaryInstruction* asUnary = dynamic_cast<UnaryInstruction*>(line.line.get());
-            asUnary != nullptr) {
-        return parseUnary(asUnary);
+    // Arrays or struct definitions may not appear on a .BYTE instruction.
+    else if(containsArrayType(comment)) {
+        resultCache.warningList.append({dotByte->getListingLineNumber(),
+                                        noArrayTag.arg("BYTE")});
     }
-    // Non-unary instructions may require tags.
-    // If any ADDSP and SUBSP has a tag, then all must have tags.
-    // CALL may have a tag if it is calling MALLOC.
-    else if(NonUnaryInstruction* asNonunary = dynamic_cast<NonUnaryInstruction*>(line.line.get());
-            asNonunary != nullptr) {
-        return parseNonunary(asNonunary);
+    else if(containsSymbolTag(comment)) {
+        resultCache.warningList.append({dotByte->getListingLineNumber(),
+                                        noSymbolTag.arg("BYTE")});
     }
-    return true;
 }
 
-bool MacroStackAnnotater::parseBlock(void *)
+void MacroStackAnnotater::parseWord(DotWord *dotWord)
 {
-    return true;
+    QString comment = dotWord->getComment();
+    // If line has a @params @locals hint, it is malformed.
+    if(containsStackHint(comment)) {
+        resultCache.errorList.append({dotWord->getListingLineNumber(), badHint});
+    }
+    // Lines with a trace tag but no symbol definition are malformed.
+    else if((containsFormatTag(comment) || containsSymbolTag(comment)) &&
+            !dotWord->hasSymbolEntry()) {
+        resultCache.warningList.append({dotWord->getListingLineNumber(), noSymbol.arg("WORD")});
+    }
+    // WORD may specify integrals of type {#2d 2h}.
+    else if(containsPrimitiveType(comment)) {
+        QSharedPointer<SymbolEntry> symbol = dotWord->getSymbolEntry();
+        Enu::ESymbolFormat type = primitiveType(extractTypeTags(comment));
+        int tagWidth = Enu::tagNumBytes(type);
+        // Verify that the size of the trace tag matches the size number of bytes allocated.
+        if(tagWidth != 2) {
+            resultCache.warningList.append({dotWord->getListingLineNumber(),
+                                            bytesAllocMismatch.arg(2).arg(tagWidth)});
+        }
+        else {
+            // Create format trace tag for the line.
+            auto formatTag = QSharedPointer<PrimitiveType>::create(dotWord->getSymbolEntry(), type);
+            staticSymbols.insert(symbol->getName(), {symbol, formatTag});
+
+            // Create frame entry in global memory trace.
+            pushGlobalHelper(dotWord, {formatTag});
+        }
+    }
+    // WORD may specify an array of length 2 integrals of type {1c 1d 1h}.
+    // Technically, an array of length 1 of types {2d 2h} will be allowed,
+    // but this array seems pointless enough that it is not worth finding.
+    else if(containsArrayType(comment)) {
+        QSharedPointer<SymbolEntry> symbol = dotWord->getSymbolEntry();
+        auto [type, count] = arrayType(extractTypeTags(comment));
+        int tagWidth = count * Enu::tagNumBytes(type);
+        // Verify that the size of the trace tag matches the size number of bytes allocated.
+        if(tagWidth != 2) {
+            resultCache.warningList.append({dotWord->getListingLineNumber(),
+                                            bytesAllocMismatch.arg(2).arg(tagWidth)});
+        }
+        else {
+            // Create format trace tag for the line.
+            auto formatTag = QSharedPointer<ArrayType>::create(dotWord->getSymbolEntry(), type, count);
+            staticSymbols.insert(symbol->getName(), {symbol, formatTag});
+
+            // Create frame entry in global memory trace.
+            pushGlobalHelper(dotWord, {formatTag});
+        }
+    }
+    // WORD may also be a struct of size 2.
+    else if(containsSymbolTag(comment)) {
+        QSharedPointer<SymbolEntry> symbol = dotWord->getSymbolEntry();
+        // Create symbol trace tag (sturct) for the line.
+        auto symbolTraceList = this->extractTagList(comment);
+        auto [structPtr, errMessage] = parseStruct(symbol->getName(), symbolTraceList);
+
+        // Validate parsing of struct, if there is an errory, we must stop.
+        if(!errMessage.isEmpty() || structPtr.isNull()) {
+            resultCache.warningList.append({dotWord->getListingLineNumber(), errMessage});
+        }
+        // If the struct is larger than 2 bytes, it may not be contained in a WORD.
+        else if(structPtr->size() != 2) {
+            resultCache.warningList.append({dotWord->getListingLineNumber(),
+                                            bytesAllocMismatch.arg(2).arg(structPtr->size())});
+        }
+        // Otherwise, struct was succesfully allocated, and we may push it onto the globals stack.
+        else {
+            staticSymbols.insert(symbol->getName(), {symbol, structPtr});
+            pushGlobalHelper(dotWord, {structPtr});
+        }
+
+    }
 }
 
-bool MacroStackAnnotater::parseByte(void *)
+void MacroStackAnnotater::pushGlobalHelper(AsmCode * globalLine, QList<QSharedPointer<AType> > items)
 {
-    return true;
+    // Push the format tag onto the globals "stack", and create a new stack frame.
+    QList<TraceCommand> actions;
+    for(auto formatTag : items) {
+        actions << TraceCommand(TraceAction::PUSH, FrameTarget::NEXT,
+                                TraceTarget::GLOBALS, formatTag);
+    }
+    actions << TraceCommand(TraceAction::SETFRAME, FrameTarget::NEXT,
+                            TraceTarget::GLOBALS);
+    globalLine->setTraceData(actions);
 }
 
-bool MacroStackAnnotater::parseEquate(void *)
+QPair<QSharedPointer<StructType>, QString> MacroStackAnnotater::parseStruct(QString name,
+                                               QStringList symbols)
 {
-    return true;
+    // If there is no symbol associated with the struct-to-be, then assembly should fail.
+    if(!symbolTable->exists(name)) return {nullptr, neSymbol.arg(name)};
+    else {
+        auto namePtr = symbolTable->getValue(name);
+        QList<QSharedPointer<AType>> structList;
+        // For every symbol tag in the tag list:
+        for(auto string: symbols) {
+            // If there is no symbol by that name, error.
+            if(!symbolTable->exists(string)) {
+                this->resultCache.success = AnnotationSucces::SUCCESS_WITH_WARNINGS;
+                return {nullptr, neSymbol.arg(string)};
+            }
+            // If there is no non-static storage space associated with that symbol
+            // then it cannot appear in a struct. So error.
+            else if(!dynamicSymbols.contains(string)) {
+                this->resultCache.success = AnnotationSucces::SUCCESS_WITH_WARNINGS;
+                return {nullptr, noEquate.arg(string)};
+            }
+            else structList.append(dynamicSymbols[string].second);
+        }
+        // Otherwise create the struct, and return no error message.
+        return {QSharedPointer<StructType>::create(namePtr, structList),""};
+    }
 }
-
-bool MacroStackAnnotater::parseWord(void *)
-{
-    return true;
-}
-
-bool MacroStackAnnotater::parseUnary(void *)
-{
-    return true;
-}
-
-bool MacroStackAnnotater::parseNonunary(void *)
-{
-    return true;
-}
-
