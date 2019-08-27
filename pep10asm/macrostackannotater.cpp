@@ -1,6 +1,7 @@
 #include "macrostackannotater.h"
 #include "optional_helper.h"
 #include "symbolentry.h"
+#include "asmargument.h"
 
 
 static const QString noHint = ";ERROR: A .%1 may not contain a stack hint.";
@@ -12,8 +13,30 @@ static const QString badStruct = ";Warning: invalid struct definition.";
 static const QString bytesAllocMismatch = ";WARNING: Number of bytes allocated (%1) not equal to number of bytes listed in trace tag (%2).";
 static const QString noSymbolTag = ";WARNING: .%1 may not specify a symbol trace tag.";
 static const QString noArrayTag = ";WARNING: .%1 may not specify an array trace tag.";
+static const QString onlyIAddress = ";WARNING: Stack trace not possible unless immediate addressing is specified.";
 MacroStackAnnotater::MacroStackAnnotater()
 {
+    auto retSymbol = helperSymTable.define(retAddrName);
+    helpTypes.insert(retAddrName, QSharedPointer<PrimitiveType>::create(retSymbol ,Enu::ESymbolFormat::F_2H));
+
+    auto irSymbol = helperSymTable.define(oldIRName);
+    helpTypes.insert(oldIRName, QSharedPointer<PrimitiveType>::create(irSymbol ,Enu::ESymbolFormat::F_2H));
+
+    auto spSymbol =helperSymTable.define(oldSPName);
+    helpTypes.insert(oldSPName, QSharedPointer<PrimitiveType>::create(spSymbol ,Enu::ESymbolFormat::F_2H));
+
+    auto pcSymbol = helperSymTable.define(oldPCName);
+    helpTypes.insert(oldPCName, QSharedPointer<PrimitiveType>::create(pcSymbol ,Enu::ESymbolFormat::F_2H));
+
+    auto xSymbol = helperSymTable.define(oldXName);
+    helpTypes.insert(oldXName, QSharedPointer<PrimitiveType>::create(xSymbol ,Enu::ESymbolFormat::F_2H));
+
+    auto aSymbol = helperSymTable.define(oldAName);
+    helpTypes.insert(oldAName, QSharedPointer<PrimitiveType>::create(aSymbol ,Enu::ESymbolFormat::F_2H));
+
+    auto nzvcSymbol = helperSymTable.define(oldNZVCName);
+    helpTypes.insert(oldNZVCName, QSharedPointer<PrimitiveType>::create(nzvcSymbol ,Enu::ESymbolFormat::F_1H));
+
 
 }
 
@@ -262,7 +285,7 @@ void MacroStackAnnotater::resolveGlobals()
             else {
                 // Create format trace tag for the line.
                 auto formatTag = QSharedPointer<PrimitiveType>::create(line->getSymbolEntry(), type);
-                staticSymbols.insert(symbol->getName(), {symbol, formatTag});
+                staticSymbols.insert(symbol->getName(), formatTag);
 
                 // Create frame entry in global memory trace.
                 pushGlobalHelper(line, {formatTag});
@@ -282,7 +305,7 @@ void MacroStackAnnotater::resolveGlobals()
             else {
                 // Create format trace tag for the line.
                 auto formatTag = QSharedPointer<ArrayType>::create(line->getSymbolEntry(), type, count);
-                staticSymbols.insert(symbol->getName(), {symbol, formatTag});
+                staticSymbols.insert(symbol->getName(), formatTag);
 
                 // Create frame entry in global memory trace.
                 pushGlobalHelper(line, {formatTag});
@@ -306,7 +329,7 @@ void MacroStackAnnotater::resolveGlobals()
             }
             // Otherwise, struct was succesfully allocated, and we may push it onto the globals stack.
             else {
-                staticSymbols.insert(symbol->getName(), {symbol, structPtr});
+                staticSymbols.insert(symbol->getName(), structPtr);
 
                 pushGlobalHelper(line, {structPtr});
             }
@@ -317,19 +340,57 @@ void MacroStackAnnotater::resolveGlobals()
 
 void MacroStackAnnotater::resolveCodeLines()
 {
+    // Compiler is complains when mnemnoic is unitialzied, so
+    // assign a garbage value that doesn't modify the stack.
+    Enu::EMnemonic mnemonic = Enu::EMnemonic::NOP;
     for(auto line : this->codeLines) {
         // Unary instructions do not require tags.
         if(UnaryInstruction* asUnary = dynamic_cast<UnaryInstruction*>(line);
                 asUnary != nullptr) {
-            // TODO
+            mnemonic = asUnary->getMnemonic();
         }
         // Non-unary instructions may require tags.
         // If any ADDSP and SUBSP has a tag, then all must have tags.
         // CALL may have a tag if it is calling MALLOC.
         else if(NonUnaryInstruction* asNonunary = dynamic_cast<NonUnaryInstruction*>(line);
                 asNonunary != nullptr) {
-            // TODO
+            mnemonic = asUnary->getMnemonic();
         }
+        switch(mnemonic) {
+        // Stack set instruction
+        case Enu::EMnemonic::MOVASP:
+            // MOVASP does not
+            parseMOVASP(line);
+            break;
+        // Call / return pair.
+        case Enu::EMnemonic::RET:
+            parseRET(static_cast<UnaryInstruction*>(line));
+            break;
+        case Enu::EMnemonic::CALL:
+            parseCALL(static_cast<NonUnaryInstruction*>(line));
+            break;
+        // System call return instruction.
+        case Enu::EMnemonic::SRET:
+            parseSRET(static_cast<UnaryInstruction*>(line));
+            break;
+        // System call enter instructions.
+        case Enu::EMnemonic::USCALL:
+            [[fallthrough]];
+        case Enu::EMnemonic::SCALL:
+            parseSystemCALL(line);
+            break;
+        // Allocate / deallocate objects from the stack.
+        case Enu::EMnemonic::SUBSP:
+            parseSUBSP(static_cast<NonUnaryInstruction*>(line));
+            break;
+        case Enu::EMnemonic::ADDSP:
+            parseADDSP(static_cast<NonUnaryInstruction*>(line));
+            break;
+        // Ignore any other instructions.
+        default:
+            break;
+        }
+
     }
 }
 
@@ -378,7 +439,7 @@ void MacroStackAnnotater::parseEquateLines()
             else {
                 assert(false && "Contradictory format tags on EQUATE.");
             }
-            dynamicSymbols.insert(symbol->getName(), {symbol, formatTag});
+            dynamicSymbols.insert(symbol->getName(), formatTag);
         }
         // Otherwise there is a non-empty comment that does not declare any debugging information.
     }
@@ -404,7 +465,7 @@ void MacroStackAnnotater::parseEquateLines()
             // If parsing was sucessful, then add it to the list of defined structs,
             // and renove it from the list of structs to parse.
             it.remove();
-            dynamicSymbols.insert(name, {line->getSymbolEntry(), ptr});
+            dynamicSymbols.insert(name, ptr);
         }
         // Update loop variables with new sizes.
         oldSize = newSize;
@@ -422,6 +483,238 @@ void MacroStackAnnotater::parseEquateLines()
             resultCache.warningList.append({badLine->getListingLineNumber(), errMessage});
         }
     }
+}
+
+void MacroStackAnnotater::parseMOVASP(AsmCode *line)
+{
+    // MOVASP only needs to signal that a stack is being switched.
+    // Any (erroneous) stack hints or trace tags will be ignored.
+    QList<TraceCommand> commandList;
+    commandList << TraceCommand(TraceAction::SWAPTRACE, FrameTarget::NONE, TraceTarget::SWAP);
+    line->setTraceData(commandList);
+}
+
+void MacroStackAnnotater::parseRET(UnaryInstruction *line)
+{
+    // Any (erroneous) stack hints or trace tags will be ignored.
+    QList<TraceCommand> commandList;
+    // Get the trace tag for the return address.
+    auto retType = helpTypes[retAddrName];
+    // Pop return address from stack, then pop stack frame.
+    commandList << TraceCommand(TraceAction::POP, FrameTarget::CURRENT, TraceTarget::STACK, retType)
+                << TraceCommand(TraceAction::SETFRAME, FrameTarget::PREVIOUS, TraceTarget::STACK);
+    line->setTraceData(commandList);
+}
+
+void MacroStackAnnotater::parseCALL(NonUnaryInstruction *line)
+{
+    // Any (erroneous) stack hints or trace tags will be ignored.
+    QList<TraceCommand> commandList;
+    // Get the trace tag for the return address.
+    auto retType = helpTypes[retAddrName];
+    // Push return address into next stack frame, then enter next stack frame.
+    commandList << TraceCommand(TraceAction::PUSH, FrameTarget::NEXT, TraceTarget::STACK, retType)
+                << TraceCommand(TraceAction::SETFRAME, FrameTarget::NEXT, TraceTarget::STACK);
+
+    // If the call targets malloc, then additional parsing must be done for heap allocations.
+    // The size of the allocation must be validated at runtime, since that depends on the contents
+    // of the accumulator at runtime.
+    if(line->hasSymbolicOperand() && line->getSymbolicOperand()->getName() == "malloc") {
+        QString comment = line->getComment();
+        QList<QSharedPointer<AType>> heapPushList;
+        // Generate heap push for array.
+        if(containsArrayType(comment)) {
+            auto [type, count] = arrayType(extractTypeTags(comment));
+            heapPushList << QSharedPointer<ArrayType>::create(line->getSymbolEntry(), type, count);
+        }
+        // Generate heap push form integral primitive.
+        else if(containsPrimitiveType(comment)) {
+            Enu::ESymbolFormat type = primitiveType(extractTypeTags(comment));
+            heapPushList << QSharedPointer<PrimitiveType>::create(line->getSymbolEntry(), type);
+        }
+        // Generate heap push for list of symbols or structs.
+        else if(containsSymbolTag(comment)) {
+            // Validate struct arguments.
+            auto symbolTraceList = this->extractTagList(comment);
+            for(auto symbolName : symbolTraceList) {
+                // If the symbol has not been previously defined in an equate,
+                // it may not be used and a warning is generated.
+                if(!dynamicSymbols.contains(symbolName)) {
+                    resultCache.warningList.append({line->getListingLineNumber(), neSymbol.arg(symbolName)});
+                    break;
+                }
+                heapPushList << dynamicSymbols[symbolName];
+            }
+
+        } else {
+            qDebug() << "Malformed trace tag on malloc. See " << __FILE__ << "@" << __LINE__;
+        }
+        // Push all allocated items onto the heap, followed by a new frame.
+        for(auto tag : heapPushList) {
+            commandList << TraceCommand(TraceAction::PUSH, FrameTarget::NEXT,
+                                    TraceTarget::HEAP, tag);
+        }
+        commandList << TraceCommand(TraceAction::SETFRAME, FrameTarget::NEXT,
+                                TraceTarget::HEAP);
+    }
+    line->setTraceData(commandList);
+}
+
+void MacroStackAnnotater::parseSRET(UnaryInstruction *line)
+{
+    // Any (erroneous) stack hints or trace tags will be ignored.
+    QList<TraceCommand> commandList;
+    // Enter the PCB frame, pop all entries from PCB, then switch to user stack.
+    commandList << TraceCommand(TraceAction::SETFRAME, FrameTarget::PREVIOUS, TraceTarget::STACK)
+                << TraceCommand(TraceAction::POP, FrameTarget::CURRENT,
+                                TraceTarget::STACK, helpTypes[oldNZVCName])
+                << TraceCommand(TraceAction::POP, FrameTarget::CURRENT,
+                                TraceTarget::STACK, helpTypes[oldAName])
+                << TraceCommand(TraceAction::POP, FrameTarget::CURRENT,
+                                TraceTarget::STACK, helpTypes[oldXName])
+                << TraceCommand(TraceAction::POP, FrameTarget::CURRENT,
+                                TraceTarget::STACK, helpTypes[oldPCName])
+                << TraceCommand(TraceAction::POP, FrameTarget::CURRENT,
+                                TraceTarget::STACK, helpTypes[oldSPName])
+                << TraceCommand(TraceAction::POP, FrameTarget::CURRENT,
+                                TraceTarget::STACK, helpTypes[oldIRName])
+                << TraceCommand(TraceAction::SWAPTRACE, FrameTarget::NONE, TraceTarget::SWAP);
+    line->setTraceData(commandList);
+}
+
+void MacroStackAnnotater::parseSystemCALL(AsmCode *line)
+{
+    // Any (erroneous) stack hints or trace tags will be ignored.
+    QList<TraceCommand> commandList;
+    // Swap to OS stack, push on entries for PCB, then push a new stack frame.
+    commandList << TraceCommand(TraceAction::SWAPTRACE, FrameTarget::NONE, TraceTarget::SWAP)
+                << TraceCommand(TraceAction::PUSH, FrameTarget::CURRENT,
+                               TraceTarget::STACK, helpTypes[oldIRName])
+                << TraceCommand(TraceAction::PUSH, FrameTarget::CURRENT,
+                               TraceTarget::STACK, helpTypes[oldSPName])
+                << TraceCommand(TraceAction::PUSH, FrameTarget::CURRENT,
+                               TraceTarget::STACK, helpTypes[oldPCName])
+                << TraceCommand(TraceAction::PUSH, FrameTarget::CURRENT,
+                               TraceTarget::STACK, helpTypes[oldXName])
+                << TraceCommand(TraceAction::PUSH, FrameTarget::CURRENT,
+                               TraceTarget::STACK, helpTypes[oldAName])
+                << TraceCommand(TraceAction::PUSH, FrameTarget::CURRENT,
+                               TraceTarget::STACK, helpTypes[oldNZVCName])
+                << TraceCommand(TraceAction::SETFRAME, FrameTarget::NEXT, TraceTarget::STACK);
+    line->setTraceData(commandList);
+}
+
+void MacroStackAnnotater::parseSUBSP(NonUnaryInstruction *line)
+{
+    // If the instruction does not use immediate addressing, then no further parsing may take place.
+    if(line->getAddressingMode() != Enu::EAddrMode::I) {
+        resultCache.warningList.append({line->getListingLineNumber(), onlyIAddress});
+        return;
+    }
+
+    QString comment = line->getComment();
+    // Default to deduced frame insertion if no stack hint is present.
+    FrameTarget which = FrameTarget::DEDUCED;
+    // Handle stack hints.
+    if(paramsHint.match(comment).hasMatch()) {
+        which = FrameTarget::NEXT;
+    }
+    else if(localsHint.match(comment).hasMatch()) {
+        which = FrameTarget::CURRENT;
+    }
+
+    QList<TraceCommand> commandList;
+    QList<QSharedPointer<AType>> stackPushList;
+    // Do not allow pushing anonymous primitives or arrays to the stack.
+    if(containsArrayType(comment) || containsPrimitiveType(comment)) {
+    }
+    else if(containsSymbolTag(comment)) {
+        // Validate struct arguments.
+        auto symbolTraceList = this->extractTagList(comment);
+        for(auto symbolName : symbolTraceList) {
+            // If the symbol has not been previously defined in an equate,
+            // it may not be used and a warning is generated.
+            if(!dynamicSymbols.contains(symbolName)) {
+                resultCache.warningList.append({line->getListingLineNumber(), neSymbol.arg(symbolName)});
+                break;
+            }
+            stackPushList << dynamicSymbols[symbolName];
+        }
+
+    }
+    else {
+
+        qDebug() << "Malformed trace tag on SUBSP. See " << __FILE__ << "@" << __LINE__;
+    }
+    // Push all allocated items onto the stack. Do not follow with a new frame,
+    // this is handled by CALL / RET instructions
+    int traceTagSize = 0;
+    for(auto tag : stackPushList) {
+        traceTagSize += tag->size();
+        commandList << TraceCommand(TraceAction::PUSH, which,
+                                TraceTarget::STACK, tag);
+    }
+    // Only emit trace tag size error warning if trace tags are otherwise present in the program.
+    // Validate that number of allocated bytes matches the size of the trace tags.
+    if(hadAnyTraceTags && traceTagSize != line->getArgument()->getArgumentValue()) {
+        resultCache.errorList.append({line->getListingLineNumber(), bytesAllocMismatch
+                                      .arg(line->getArgument()->getArgumentValue())
+                                      .arg(traceTagSize)});
+    }
+    line->setTraceData(commandList);
+}
+
+void MacroStackAnnotater::parseADDSP(NonUnaryInstruction *line)
+{
+    // If the instruction does not use immediate addressing, then no further parsing may take place.
+    if(line->getAddressingMode() != Enu::EAddrMode::I) {
+        resultCache.warningList.append({line->getListingLineNumber(), onlyIAddress});
+        return;
+    }
+
+    QString comment = line->getComment();
+
+    QList<TraceCommand> commandList;
+    QList<QSharedPointer<AType>> stackPushList;
+    // Do not allow pushing anonymous primitives or arrays to the stack.
+    if(containsArrayType(comment) || containsPrimitiveType(comment)) {
+    }
+    else if(containsSymbolTag(comment)) {
+        // Validate struct arguments.
+        auto symbolTraceList = this->extractTagList(comment);
+        for(auto symbolName : symbolTraceList) {
+            // If the symbol has not been previously defined in an equate,
+            // it may not be used and a warning is generated.
+            if(!dynamicSymbols.contains(symbolName)) {
+                resultCache.warningList.append({line->getListingLineNumber(), neSymbol.arg(symbolName)});
+                break;
+            }
+            stackPushList << dynamicSymbols[symbolName];
+        }
+
+    }
+    else {
+
+        qDebug() << "Malformed trace tag on ADDSP. See " << __FILE__ << "@" << __LINE__;
+    }
+    // Push all allocated items onto the stack. Do not follow with a new frame,
+    // this is handled by CALL / RET instructions
+    int traceTagSize = 0;
+    for(auto tag : stackPushList) {
+        traceTagSize += tag->size();
+        // Always automatically deduce the target frame on pops, as a pop
+        // may span multiple frames.
+        commandList << TraceCommand(TraceAction::POP, FrameTarget::DEDUCED,
+                                TraceTarget::STACK, tag);
+    }
+    // Only emit trace tag size error warning if trace tags are otherwise present in the program.
+    // Validate that number of allocated bytes matches the size of the trace tags.
+    if(hadAnyTraceTags && traceTagSize != line->getArgument()->getArgumentValue()) {
+        resultCache.errorList.append({line->getListingLineNumber(), bytesAllocMismatch
+                                      .arg(line->getArgument()->getArgumentValue())
+                                      .arg(traceTagSize)});
+    }
+    line->setTraceData(commandList);
 }
 
 void MacroStackAnnotater::pushGlobalHelper(AsmCode * globalLine, QList<QSharedPointer<AType> > items)
@@ -458,7 +751,7 @@ QPair<QSharedPointer<StructType>, QString> MacroStackAnnotater::parseStruct(QStr
                 this->resultCache.success = AnnotationSucces::SUCCESS_WITH_WARNINGS;
                 return {nullptr, noEquate.arg(string)};
             }
-            else structList.append(dynamicSymbols[string].second);
+            else structList.append(dynamicSymbols[string]);
         }
         // Otherwise create the struct, and return no error message.
         return {QSharedPointer<StructType>::create(namePtr, structList),""};

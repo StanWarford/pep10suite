@@ -36,7 +36,7 @@ struct StackAnnotationResult
 
 class MacroStackAnnotater
 {
-    typedef QMap<QString, QPair<QSharedPointer<const SymbolEntry>, QSharedPointer<AType>>> TypeMap;
+    typedef QMap<QString, QSharedPointer<AType>> TypeMap;
     QSharedPointer<SymbolTable> symbolTable;
     // Global lines are BYTE, BLOCK, or WORD lines.
     // Codelines are any asm instruction that modifies the stack,
@@ -92,14 +92,34 @@ private:
     void resolveGlobals();
     void resolveCodeLines();
     void parseEquateLines();
+    void parseMOVASP(AsmCode* line);
+    void parseRET(UnaryInstruction* line);
+    void parseCALL(NonUnaryInstruction* line);
+    void parseSRET(UnaryInstruction* line);
+    // Handler for both USCALL and SCALL.
+    void parseSystemCALL(AsmCode* line);
+    void parseSUBSP(NonUnaryInstruction* line);
+    void parseADDSP(NonUnaryInstruction* line);
     // Helper that generates TraceCommands for pushing elements onto the global stack,
     // and then annotates the line of code with the list of commands.
     void pushGlobalHelper(AsmCode* globalLine, QList<QSharedPointer<AType>> items);
-    QPair<QSharedPointer<StructType>,QString> parseStruct(QString name, QStringList symbols);
     // Attempt to create a type definition for a struct from a list of symbol tags.
     // Returns a pointer (possibly null) and an error message.
-    // In the case of successful parsing, the pointer will be non-non, and the string will be empty.
+    // In the case of successful parsing, the pointer will be non-null, and the string will be empty.
     // If the pointer is null, then there exists an error message.
+    QPair<QSharedPointer<StructType>,QString> parseStruct(QString name, QStringList symbols);
+
+    // A helper symbol table to contain symbols that we do not want to expose to the user program,
+    // such as retAddr, oldIR, etc.
+    SymbolTable helperSymTable;
+    TypeMap helpTypes;
+    static const inline QString retAddrName = "retAddr";
+    static const inline QString oldIRName = "oldIR";
+    static const inline QString oldSPName = "oldSP";
+    static const inline QString oldPCName = "oldPC";
+    static const inline QString oldXName = "oldX";
+    static const inline QString oldAName = "oldA";
+    static const inline QString oldNZVCName = "oldNZVC";
 };
 
 #endif // MACROSTACKANNOTATER_H
