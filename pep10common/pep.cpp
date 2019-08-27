@@ -394,7 +394,7 @@ void Pep::initMnemonicMaps()
     //opCodeMap.insert(MOVSPA, 3); isUnaryMap.insert(MOVSPA, true); addrModeRequiredMap.insert(MOVSPA, true); isTrapMap.insert(MOVSPA, false);
     initMnemMapHelper(EMnemonic::NEGA, 18, true, false, false);
     initMnemMapHelper(EMnemonic::NEGX, 19, true, false, false);
-    initMnemMapHelper(EMnemonic::NOP, 7, false, true, false);
+    initMnemMapHelper(EMnemonic::NOP, 7, true, false, false);
     //initMnemMapHelper(EMnemonic::NOP1, #, true, false, true);
     initMnemMapHelper(EMnemonic::NOTA, 16, true, false, false);
     initMnemMapHelper(EMnemonic::NOTX, 17, true, false, false);
