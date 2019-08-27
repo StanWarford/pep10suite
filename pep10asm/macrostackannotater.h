@@ -62,13 +62,23 @@ public:
     // If the result is successful, then every line of code in every module instance
     // has had its symbols checked and is prepared for code generation.
     StackAnnotationResult annotateStack(ModuleAssemblyGraph& graph);
+    // Stack hints (like @locals) indicate which stack frame an allocation is made in.
+    // They must only appear on ADDSP or SUBSP.
     static bool containsStackHint(QString comment);
+    // A format trace tag indicates a simple type, which is an integral primitive (#1c, #2h),
+    // or an array of integral primitives (#2d4a).
     static bool containsFormatTag(QString comment);
+    // A symbol trace tag references a previously defined format trace tag or symbol trace tag.
+    // It allows for struct types and for pushing named values onto the stack.
     static bool containsSymbolTag(QString comment);
+    // Helper function to find arrays of integral primitives,
     static bool containsArrayType(QString comment);
+    // Helper function to find integral primitive that does not match an array-style tag.
     static bool containsPrimitiveType(QString comment);
     // Return the string representation of a present primitive / array type tag.
+    // It does so by removing all extraneous characters outside of the trace tag.
     static QString extractTypeTags(QString comment);
+    // Return the integral of an extracted trace tag.
     static Enu::ESymbolFormat primitiveType(QString formatTag);
     // Pre: formatTag is a valid format trace tag.
     // Post: Returns the enumerated trace tag format type.
@@ -82,9 +92,6 @@ private:
     void resolveGlobals();
     void resolveCodeLines();
     void parseEquateLines();
-    void parseBlock(DotBlock*);
-    void parseByte(DotByte*);
-    void parseWord(DotWord*);
     // Helper that generates TraceCommands for pushing elements onto the global stack,
     // and then annotates the line of code with the list of commands.
     void pushGlobalHelper(AsmCode* globalLine, QList<QSharedPointer<AType>> items);

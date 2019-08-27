@@ -74,6 +74,9 @@ bool MacroStackAnnotater::containsPrimitiveType(QString comment)
 
 QString MacroStackAnnotater::extractTypeTags(QString comment)
 {
+    // Even though array tags are less common, check array tags first.
+    // Normal (primitive) format tags look almost identical to array tags,
+    // so checking arrays first prevents for a false positive on the primitive tag.
     if(auto arrayMatch = arrayTag.match(comment);
             arrayMatch.hasMatch()) {
         return arrayMatch.captured();
@@ -209,7 +212,8 @@ void MacroStackAnnotater::discoverLines(ModuleInstance &instance)
 
 void MacroStackAnnotater::resolveGlobals()
 {
-    // All error checking is done inside of the parse*(...) methods.
+    QString instrText;
+    // No need to set hadTraceTag flag, as this was handled in discoverLines(...).
     for(auto line : this->globalLines) {
         // .BLOCK may be a(n) 1) integral type, 2) array of integral types, or 3) a struct, or 4) nothing.
         // Tags are always optional.
@@ -217,19 +221,96 @@ void MacroStackAnnotater::resolveGlobals()
         // the recursive checks are no longer needed.
         if(DotBlock* asBlock = dynamic_cast<DotBlock*>(line);
                 asBlock != nullptr) {
-            parseBlock(asBlock);
+            instrText = "BLOCK";
         }
         // .BYTE may be a(n) 1) integral type or 2) nothing.
+        // It is also allowed to be a struct of size 1 or of type #1c1a, but
+        // these types are rather useless.
         // Tags are always optional.
         else if(DotByte* asByte = dynamic_cast<DotByte*>(line);
                 asByte != nullptr) {
-            parseByte(asByte);
+            instrText = "BYTE";
         }
         // .WORD may be a(n) 1) integral type, 2) array of two 1 byte integrals or 3) nothing.
         // Tags are always optional.
         else if(DotWord* asWord = dynamic_cast<DotWord*>(line);
                 asWord != nullptr) {
-            parseWord(asWord);
+            instrText = "WORD";
+        }
+
+        QString comment = line->getComment();
+        int bytesAllocated = line->objectCodeLength();
+        // If line has a @params @locals hint, it is malformed.
+        if(containsStackHint(comment)) {
+            resultCache.errorList.append({line->getListingLineNumber(), badHint});
+        }
+        // Lines with a trace tag but no symbol definition are malformed.
+        else if((containsFormatTag(comment) || containsSymbolTag(comment)) &&
+                !line->hasSymbolEntry()) {
+            resultCache.warningList.append({line->getListingLineNumber(), noSymbol.arg(instrText)});
+        }
+        // Primitive integral size must match number of bytes allocated.
+        else if(containsPrimitiveType(comment)) {
+            QSharedPointer<SymbolEntry> symbol = line->getSymbolEntry();
+            Enu::ESymbolFormat type = primitiveType(extractTypeTags(comment));
+            int tagWidth = Enu::tagNumBytes(type);
+            // Verify that the size of the trace tag matches the size number of bytes allocated by the BLOCK.
+            if(tagWidth != bytesAllocated) {
+                resultCache.warningList.append({line->getListingLineNumber(),
+                                                bytesAllocMismatch.arg(bytesAllocated).arg(tagWidth)});
+            }
+            else {
+                // Create format trace tag for the line.
+                auto formatTag = QSharedPointer<PrimitiveType>::create(line->getSymbolEntry(), type);
+                staticSymbols.insert(symbol->getName(), {symbol, formatTag});
+
+                // Create frame entry in global memory trace.
+                pushGlobalHelper(line, {formatTag});
+            }
+        }
+        // Number of bytes allocated must exactly match the product of the
+        // array lenght times the size of the primitive type.
+        else if(containsArrayType(comment)) {
+            QSharedPointer<SymbolEntry> symbol = line->getSymbolEntry();
+            auto [type, count] = arrayType(extractTypeTags(comment));
+            int tagWidth = count * Enu::tagNumBytes(type);
+            // Verify that the size of the trace tag matches the size number of bytes allocated.
+            if(tagWidth != bytesAllocated) {
+                resultCache.warningList.append({line->getListingLineNumber(),
+                                                bytesAllocMismatch.arg(bytesAllocated).arg(tagWidth)});
+            }
+            else {
+                // Create format trace tag for the line.
+                auto formatTag = QSharedPointer<ArrayType>::create(line->getSymbolEntry(), type, count);
+                staticSymbols.insert(symbol->getName(), {symbol, formatTag});
+
+                // Create frame entry in global memory trace.
+                pushGlobalHelper(line, {formatTag});
+            }
+        }
+        // BLOCK may also be a struct of size N.
+        else if(containsSymbolTag(comment)) {
+            QSharedPointer<SymbolEntry> symbol = line->getSymbolEntry();
+            // Create symbol trace tag (sturct) for the line.
+            auto symbolTraceList = this->extractTagList(comment);
+            auto [structPtr, errMessage] = parseStruct(symbol->getName(), symbolTraceList);
+
+            // Validate parsing of struct, if there is an errory, we must stop.
+            if(!errMessage.isEmpty() || structPtr.isNull()) {
+                resultCache.warningList.append({line->getListingLineNumber(), errMessage});
+            }
+            // If sizeof(struct) exceeds the number of bytes allocated, there is an allocation error.
+            else if(structPtr->size() != bytesAllocated) {
+                resultCache.warningList.append({line->getListingLineNumber(),
+                                                bytesAllocMismatch.arg(bytesAllocated).arg(structPtr->size())});
+            }
+            // Otherwise, struct was succesfully allocated, and we may push it onto the globals stack.
+            else {
+                staticSymbols.insert(symbol->getName(), {symbol, structPtr});
+
+                pushGlobalHelper(line, {structPtr});
+            }
+
         }
     }
 }
@@ -240,12 +321,14 @@ void MacroStackAnnotater::resolveCodeLines()
         // Unary instructions do not require tags.
         if(UnaryInstruction* asUnary = dynamic_cast<UnaryInstruction*>(line);
                 asUnary != nullptr) {
+            // TODO
         }
         // Non-unary instructions may require tags.
         // If any ADDSP and SUBSP has a tag, then all must have tags.
         // CALL may have a tag if it is calling MALLOC.
         else if(NonUnaryInstruction* asNonunary = dynamic_cast<NonUnaryInstruction*>(line);
                 asNonunary != nullptr) {
+            // TODO
         }
     }
 }
@@ -338,132 +421,6 @@ void MacroStackAnnotater::parseEquateLines()
             // Propogate struct parsing error to the error list.
             resultCache.warningList.append({badLine->getListingLineNumber(), errMessage});
         }
-    }
-}
-
-void MacroStackAnnotater::parseBlock(DotBlock * dotBlock)
-{
-
-}
-
-void MacroStackAnnotater::parseByte(DotByte * dotByte)
-{
-    QString comment = dotByte->getComment();
-    QList<QSharedPointer<AType>> formatTags;
-    // If line has a @params @locals hint, it is malformed.
-    if(containsStackHint(comment)) {
-        resultCache.errorList.append({dotByte->getListingLineNumber(), badHint});
-    }
-    // Lines with a trace tag but no symbol definition are malformed.
-    else if((containsFormatTag(comment) || containsSymbolTag(comment)) &&
-            !dotByte->hasSymbolEntry()) {
-        resultCache.warningList.append({dotByte->getListingLineNumber(), noSymbol.arg("BYTE")});
-    }
-    // BYTE may only specify a integral type trace tag {1c 1d 1h}.
-    else if(containsPrimitiveType(comment)) {
-        QSharedPointer<SymbolEntry> symbol = dotByte->getSymbolEntry();
-        Enu::ESymbolFormat type = primitiveType(extractTypeTags(comment));
-        int tagWidth = Enu::tagNumBytes(type);
-        // Verify that the size of the trace tag matches the size number of bytes allocated.
-        if(tagWidth != 1) {
-            resultCache.warningList.append({dotByte->getListingLineNumber(),
-                                            bytesAllocMismatch.arg(1).arg(tagWidth)});
-        }
-        else {
-            // Create format trace tag for the line.
-            auto formatTag = QSharedPointer<PrimitiveType>::create(dotByte->getSymbolEntry(), type);
-            staticSymbols.insert(symbol->getName(), {symbol, formatTag});
-
-            // Create frame entry in global memory trace.
-            pushGlobalHelper(dotByte, {formatTag});
-
-        }
-    }
-    // Arrays or struct definitions may not appear on a .BYTE instruction.
-    else if(containsArrayType(comment)) {
-        resultCache.warningList.append({dotByte->getListingLineNumber(),
-                                        noArrayTag.arg("BYTE")});
-    }
-    else if(containsSymbolTag(comment)) {
-        resultCache.warningList.append({dotByte->getListingLineNumber(),
-                                        noSymbolTag.arg("BYTE")});
-    }
-}
-
-void MacroStackAnnotater::parseWord(DotWord *dotWord)
-{
-    QString comment = dotWord->getComment();
-    // If line has a @params @locals hint, it is malformed.
-    if(containsStackHint(comment)) {
-        resultCache.errorList.append({dotWord->getListingLineNumber(), badHint});
-    }
-    // Lines with a trace tag but no symbol definition are malformed.
-    else if((containsFormatTag(comment) || containsSymbolTag(comment)) &&
-            !dotWord->hasSymbolEntry()) {
-        resultCache.warningList.append({dotWord->getListingLineNumber(), noSymbol.arg("WORD")});
-    }
-    // WORD may specify integrals of type {#2d 2h}.
-    else if(containsPrimitiveType(comment)) {
-        QSharedPointer<SymbolEntry> symbol = dotWord->getSymbolEntry();
-        Enu::ESymbolFormat type = primitiveType(extractTypeTags(comment));
-        int tagWidth = Enu::tagNumBytes(type);
-        // Verify that the size of the trace tag matches the size number of bytes allocated.
-        if(tagWidth != 2) {
-            resultCache.warningList.append({dotWord->getListingLineNumber(),
-                                            bytesAllocMismatch.arg(2).arg(tagWidth)});
-        }
-        else {
-            // Create format trace tag for the line.
-            auto formatTag = QSharedPointer<PrimitiveType>::create(dotWord->getSymbolEntry(), type);
-            staticSymbols.insert(symbol->getName(), {symbol, formatTag});
-
-            // Create frame entry in global memory trace.
-            pushGlobalHelper(dotWord, {formatTag});
-        }
-    }
-    // WORD may specify an array of length 2 integrals of type {1c 1d 1h}.
-    // Technically, an array of length 1 of types {2d 2h} will be allowed,
-    // but this array seems pointless enough that it is not worth finding.
-    else if(containsArrayType(comment)) {
-        QSharedPointer<SymbolEntry> symbol = dotWord->getSymbolEntry();
-        auto [type, count] = arrayType(extractTypeTags(comment));
-        int tagWidth = count * Enu::tagNumBytes(type);
-        // Verify that the size of the trace tag matches the size number of bytes allocated.
-        if(tagWidth != 2) {
-            resultCache.warningList.append({dotWord->getListingLineNumber(),
-                                            bytesAllocMismatch.arg(2).arg(tagWidth)});
-        }
-        else {
-            // Create format trace tag for the line.
-            auto formatTag = QSharedPointer<ArrayType>::create(dotWord->getSymbolEntry(), type, count);
-            staticSymbols.insert(symbol->getName(), {symbol, formatTag});
-
-            // Create frame entry in global memory trace.
-            pushGlobalHelper(dotWord, {formatTag});
-        }
-    }
-    // WORD may also be a struct of size 2.
-    else if(containsSymbolTag(comment)) {
-        QSharedPointer<SymbolEntry> symbol = dotWord->getSymbolEntry();
-        // Create symbol trace tag (sturct) for the line.
-        auto symbolTraceList = this->extractTagList(comment);
-        auto [structPtr, errMessage] = parseStruct(symbol->getName(), symbolTraceList);
-
-        // Validate parsing of struct, if there is an errory, we must stop.
-        if(!errMessage.isEmpty() || structPtr.isNull()) {
-            resultCache.warningList.append({dotWord->getListingLineNumber(), errMessage});
-        }
-        // If the struct is larger than 2 bytes, it may not be contained in a WORD.
-        else if(structPtr->size() != 2) {
-            resultCache.warningList.append({dotWord->getListingLineNumber(),
-                                            bytesAllocMismatch.arg(2).arg(structPtr->size())});
-        }
-        // Otherwise, struct was succesfully allocated, and we may push it onto the globals stack.
-        else {
-            staticSymbols.insert(symbol->getName(), {symbol, structPtr});
-            pushGlobalHelper(dotWord, {structPtr});
-        }
-
     }
 }
 
