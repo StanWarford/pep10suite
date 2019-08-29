@@ -18,7 +18,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+//Force annotation of commands to be added to program listing.
+//Not recommended for deploying the application.
+#define ForceShowAnnotation true
 #include <QRegExp>
 #include <QSharedPointer>
 
@@ -544,6 +546,11 @@ QString UnaryInstruction::getAssemblerListing() const
                       .arg(memStr, -6, QLatin1Char(' '))
                       .arg(codeStr, -7, QLatin1Char(' '))
                       .arg(getAssemblerSource());
+    if(ForceShowAnnotation) {
+        for(auto command : getTraceData()) {
+            lineStr.append(QString(" %1").arg(command.toString()));
+        }
+    }
     return lineStr;
 }
 
@@ -583,6 +590,11 @@ QString NonUnaryInstruction::getAssemblerListing() const
                       .arg(codeStr, -2)
                       .arg(oprndNumStr, -5, QLatin1Char(' '))
                       .arg(getAssemblerSource(), -29);
+    if(ForceShowAnnotation) {
+        for(auto command : getTraceData()) {
+            lineStr.append(QString(" %1").arg(command.toString()));
+        }
+    }
     return lineStr;
 }
 
@@ -772,6 +784,11 @@ QString DotBlock::getAssemblerListing() const
             .arg(dotStr, -8, QLatin1Char(' '))
             .arg(oprndStr, -12)
             .arg(comment);
+    if(ForceShowAnnotation) {
+        for(auto command : getTraceData()) {
+            lineStr.append(QString(" %1").arg(command.toString()));
+        }
+    }
     while (emitObjectCode && numBytes > 0) {
         codeStr = "";
         while ((numBytes > 0) && (codeStr.length() < 6)) {
@@ -858,6 +875,11 @@ QString DotByte::getAssemblerListing() const
             .arg(memStr, -6, QLatin1Char(' '))
             .arg(codeStr, -7, QLatin1Char(' '))
             .arg(getAssemblerSource());
+    if(ForceShowAnnotation) {
+        for(auto command : getTraceData()) {
+            lineStr.append(QString(" %1").arg(command.toString()));
+        }
+    }
     return lineStr;
 }
 
@@ -962,6 +984,11 @@ QString DotWord::getAssemblerListing() const
             .arg(memStr, -6, QLatin1Char(' '))
             .arg(codeStr, -7, QLatin1Char(' '))
             .arg(getAssemblerSource());
+    if(ForceShowAnnotation) {
+        for(auto command : getTraceData()) {
+            lineStr.append(QString(" %1").arg(command.toString()));
+        }
+    }
     return lineStr;
 }
 
