@@ -182,6 +182,10 @@ QString SymbolTable::getSymbolTableListing() const
     QList<QSharedPointer<SymbolEntry>> list = getSymbolEntries();
     std::sort(list.begin(),list.end(), SymbolAlphabeticComparator);
 
+    // Don't generate an empty symbol table.
+    if(list.isEmpty()) {
+        return "";
+    }
     for(auto it = list.begin(); it != list.end(); ++it) {
         if(it + 1 ==list.end()) {
             QString hexString = QString("%1").arg((*it)->getValue(), 4, 16, QLatin1Char('0')).toUpper();

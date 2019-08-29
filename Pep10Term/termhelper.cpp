@@ -369,7 +369,10 @@ bool BuildHelper::buildProgram()
             QTextStream listingStream(&listingFile);
             listingStream << program->getProgramListing();
             listingStream << "\n";
-            listingStream << program->getSymbolTable()->getSymbolTableListing();
+            if(auto string =  program->getSymbolTable()->getSymbolTableListing();
+                    !string.isEmpty()) {
+                listingStream << string;
+            }
             listingFile.close();
         }
     }
