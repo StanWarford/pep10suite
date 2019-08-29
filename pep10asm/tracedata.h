@@ -71,6 +71,11 @@ public:
         swap(first.trace, second.trace);
         swap(first.tag, second.tag);
     }
+    // Helper function to express command as a string.
+    QString toString() const;
+    // Helper function that truncates each part of the command to two characters,
+    // except for the symbol which retains its full length.
+    QString toShortString() const;
 private:
     TraceAction action;
     FrameTarget frame;
@@ -78,4 +83,11 @@ private:
     std::optional<QSharedPointer<AType>> tag;
 };
 
+// Helper functions needed by TraceCommand's toString methods.
+QString toString(TraceAction);
+QString toShortString(TraceAction);
+QString toString(FrameTarget);
+QString toShortString(FrameTarget);
+QString toString(TraceTarget);
+QString toShortString(TraceTarget);
 #endif // TRACEDATA_H
