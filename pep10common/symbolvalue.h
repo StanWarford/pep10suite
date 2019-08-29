@@ -60,11 +60,11 @@ public AbstractSymbolValue
 {
 public:
     SymbolValueEmpty();
-    virtual ~SymbolValueEmpty() override;
+    ~SymbolValueEmpty() override;
     
     // Inherited via AbstractSymbolValue
-    virtual qint32 getValue() const override;
-    virtual SymbolType getSymbolType() const override;
+    qint32 getValue() const override;
+    SymbolType getSymbolType() const override;
 };
 
 /*
@@ -73,14 +73,15 @@ public:
 class SymbolValueNumeric :
 public AbstractSymbolValue
 {
-    quint16 value;
 public:
     explicit SymbolValueNumeric(quint16 value);
-    virtual ~SymbolValueNumeric() override;
+    ~SymbolValueNumeric() override;
     void setValue(quint16 value);
     // Inherited via AbstractSymbolValue
-    virtual qint32 getValue() const override;
-    virtual SymbolType getSymbolType() const override;
+    qint32 getValue() const override;
+    SymbolType getSymbolType() const override;
+private:
+    quint16 value;
 };
 
 /*
@@ -93,18 +94,19 @@ public:
 class SymbolValueLocation :
 public AbstractSymbolValue
 {
-    quint16 base, offset;
 public:
     explicit SymbolValueLocation(quint16 value);
-    virtual ~SymbolValueLocation() override; 
+    ~SymbolValueLocation() override;
     void setBase(quint16 value);
     void setOffset(quint16 value);
     // Inherited via AbstractSymbolValue
-    virtual qint32 getValue() const override;
-    virtual SymbolType getSymbolType() const override;
-    virtual bool canRelocate() const override;
+    qint32 getValue() const override;
+    SymbolType getSymbolType() const override;
+    bool canRelocate() const override;
     quint16 getOffset() const;
     quint16 getBase() const;
+private:
+    quint16 base, offset;
 };
 
 /*
@@ -116,17 +118,18 @@ public:
 class SymbolValueExternal :
 public AbstractSymbolValue
 {
-    QSharedPointer<const SymbolEntry> symbol;
 public:
     explicit SymbolValueExternal(QSharedPointer<const SymbolEntry>);
-    virtual ~SymbolValueExternal() override;
+    ~SymbolValueExternal() override;
     // Inherited via AbstractSymbolValue
-    virtual qint32 getValue() const override;
-    virtual SymbolType getSymbolType() const override;
-    virtual bool canRelocate() const override;
+    qint32 getValue() const override;
+    SymbolType getSymbolType() const override;
+    bool canRelocate() const override;
     // Since we are pointing to a symbol in another table,
     // don't allow the symbol to be modified here.
     QSharedPointer<const SymbolEntry> getSymbolValue();
+private:
+        QSharedPointer<const SymbolEntry> symbol;
 
 };
 

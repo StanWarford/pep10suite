@@ -1,6 +1,6 @@
 #include "interrupthandler.h"
 
-InterruptHandler::InterruptHandler(QObject *parent) : QObject(parent), handlerMap(), interruptList()
+InterruptHandler::InterruptHandler(QObject *parent) : QObject(parent)
 {
 
 }

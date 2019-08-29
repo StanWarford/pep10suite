@@ -36,7 +36,7 @@ class AsmArgument
 {
     friend class IsaAsm;
 public:
-    virtual ~AsmArgument();
+    virtual ~AsmArgument() = default;
     virtual int getArgumentValue() const = 0;
     virtual QString getArgumentString() const = 0;
 };
@@ -49,9 +49,9 @@ private:
     QString charValue;
 public:
     explicit CharArgument(QString cValue);
-    virtual ~CharArgument() override = default;
-    virtual int getArgumentValue() const override;
-    virtual QString getArgumentString() const override;
+    ~CharArgument() override = default;
+    int getArgumentValue() const override;
+    QString getArgumentString() const override;
 };
 
 class DecArgument: public AsmArgument
@@ -60,9 +60,9 @@ private:
     int decValue;
 public:
     explicit DecArgument(int dValue);
-    virtual ~DecArgument() override = default;
-    virtual int getArgumentValue() const override;
-    virtual QString getArgumentString() const override;
+    ~DecArgument() override = default;
+    int getArgumentValue() const override;
+    QString getArgumentString() const override;
 };
 
 class UnsignedDecArgument: public AsmArgument
@@ -71,9 +71,9 @@ private:
     int decValue;
 public:
     explicit UnsignedDecArgument(int dValue);
-    virtual ~UnsignedDecArgument() override = default;
-    virtual int getArgumentValue() const override;
-    virtual QString getArgumentString() const override;
+    ~UnsignedDecArgument() override = default;
+    int getArgumentValue() const override;
+    QString getArgumentString() const override;
 };
 
 class HexArgument: public AsmArgument
@@ -82,9 +82,9 @@ private:
     int hexValue;
 public:
     explicit HexArgument(int hValue);
-    virtual ~HexArgument() override = default;
-    virtual int getArgumentValue() const override;
-    virtual QString getArgumentString() const override;
+    ~HexArgument() override = default;
+    int getArgumentValue() const override;
+    QString getArgumentString() const override;
 };
 
 class StringArgument: public AsmArgument
@@ -93,9 +93,9 @@ private:
     QString stringValue;
 public:
     explicit StringArgument(QString sValue);
-    virtual ~StringArgument() override = default;
-    virtual int getArgumentValue() const override;
-    virtual QString getArgumentString() const override;
+    ~StringArgument() override = default;
+    int getArgumentValue() const override;
+    QString getArgumentString() const override;
 };
 
 class SymbolRefArgument: public AsmArgument
@@ -104,9 +104,9 @@ private:
     QSharedPointer<SymbolEntry> symbolRefValue;
 public:
     explicit SymbolRefArgument(QSharedPointer<SymbolEntry> sRefValue);
-    virtual ~SymbolRefArgument() override = default;
-    virtual int getArgumentValue() const override;
-    virtual QString getArgumentString() const override;
+    ~SymbolRefArgument() override = default;
+    int getArgumentValue() const override;
+    QString getArgumentString() const override;
     QSharedPointer<SymbolEntry> getSymbolValue();
 
 };

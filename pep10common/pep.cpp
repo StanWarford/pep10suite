@@ -327,7 +327,7 @@ void Pep::initEnumMnemonMaps()
     QString tempqs;
     for(int it = 0; it < metaEnum.keyCount(); it++)
     {
-        EMnemonic tempi = static_cast<EMnemonic>(metaEnum.value(it));
+        auto tempi = static_cast<EMnemonic>(metaEnum.value(it));
         tempqs = QString(metaEnum.key(it)).toUpper();
         enumToMnemonMap.insert(tempi, tempqs); mnemonToEnumMap.insert(tempqs, tempi);
     }
@@ -601,7 +601,7 @@ void Pep::initMicroDecoderTables()
     QString tempqs;
     for(int it = 0; it < metaEnum.keyCount(); it++)
     {
-        EMnemonic tempi = static_cast<EMnemonic>(metaEnum.value(it));
+        auto tempi = static_cast<EMnemonic>(metaEnum.value(it));
         tempqs = QString(metaEnum.key(it)).toUpper();
         defaultEnumToMicrocodeInstrSymbol.insert(tempi, tempqs);
     }
@@ -619,7 +619,7 @@ void Pep::initMicroDecoderTables()
     metaEnum = meta.enumerator(meta.indexOfEnumerator("EAddrMode"));
     for(int it = 0; it < metaEnum.keyCount(); it++)
     {
-        EAddrMode tempi = static_cast<EAddrMode>(metaEnum.value(it));
+        auto tempi = static_cast<EAddrMode>(metaEnum.value(it));
         if(tempi == Enu::EAddrMode::NONE) {
             tempqs = Pep::enumToMnemonMap[Enu::EMnemonic::RET].toLower();
         }

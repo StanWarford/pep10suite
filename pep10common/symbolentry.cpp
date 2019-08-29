@@ -21,24 +21,23 @@
 */
 
 #include "symbolentry.h"
+
+#include <utility>
 #include "symbolvalue.h"
 
-SymbolEntry::SymbolEntry(SymbolTable* parent, SymbolTable::SymbolID symbolID, QString name):symbolID(symbolID), name(name),
+SymbolEntry::SymbolEntry(SymbolTable* parent, SymbolTable::SymbolID symbolID, QString name):symbolID(std::move(symbolID)), name(std::move(name)),
 symbolValue(QSharedPointer<SymbolValueEmpty>::create()), definedState(DefStates::UNDEFINED), parent(parent)
 {
 }
 
 SymbolEntry::SymbolEntry(SymbolTable* parent, SymbolTable::SymbolID symbolID, QString name,
-                         SymbolTable::AbstractSymbolValuePtr value): symbolID(symbolID), name(name),
-    symbolValue(nullptr), parent(parent)
+                         SymbolTable::AbstractSymbolValuePtr value): symbolID(std::move(symbolID)), name(std::move(name)),
+    symbolValue(nullptr), definedState(DefStates::UNDEFINED), parent(parent)
 {
-    setValue(value);
+    setValue(std::move(value));
 }
 
-SymbolEntry::~SymbolEntry()
-{
-
-}
+SymbolEntry::~SymbolEntry() = default;
 
 const SymbolTable* SymbolEntry::getParentTable() const
 {

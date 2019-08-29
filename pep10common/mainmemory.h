@@ -67,7 +67,7 @@ class MainMemory : public AMemoryDevice
 
 public:
     explicit MainMemory(QObject* parent = nullptr) noexcept;
-    virtual ~MainMemory() override;
+    ~MainMemory() override;
 
     // AMemoryDevice interface
     quint32 maxAddress() const noexcept override;

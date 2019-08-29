@@ -34,7 +34,7 @@ class InputPane : public QWidget {
     Q_DISABLE_COPY(InputPane)
 public:
     explicit InputPane(QWidget *parent = nullptr);
-    virtual ~InputPane();
+    ~InputPane() override;
 
     QString toPlainText();
     // Post: input text edit text is returned
@@ -80,7 +80,7 @@ public slots:
 private:
     Ui::InputPane *ui;
 
-    void mouseReleaseEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *) override;
 
 signals:
     void undoAvailable(bool);

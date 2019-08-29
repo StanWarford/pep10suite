@@ -24,9 +24,9 @@
 #include "symbolentry.h"
 #include "symbolvalue.h"
 
-typedef QAtomicInt SymbolID;
-typedef QSharedPointer<SymbolEntry> SymbolEntryPtr;
-typedef QSharedPointer<AbstractSymbolValue> AbstractSymbolValuePtr;
+using SymbolID = QAtomicInt;
+using SymbolEntryPtr = QSharedPointer<SymbolEntry>;
+using AbstractSymbolValuePtr = QSharedPointer<AbstractSymbolValue>;
 SymbolID SymbolTable::nextUserSymbolID = 0;
 
 SymbolID SymbolTable::getNextUserSymbolID()
@@ -35,13 +35,11 @@ SymbolID SymbolTable::getNextUserSymbolID()
 	return newSymbolID;
 }
 
-SymbolTable::SymbolTable():symbolDictionary(), symbolLookup()
+SymbolTable::SymbolTable()
 {
 }
 
-SymbolTable::~SymbolTable()
-{
-}
+SymbolTable::~SymbolTable() = default;
 
 SymbolEntryPtr SymbolTable::getValue(SymbolID symbolID) const
 {

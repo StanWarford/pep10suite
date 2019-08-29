@@ -32,7 +32,7 @@ class ConstChip : public AMemoryChip {
     Q_OBJECT
 public:
     explicit ConstChip(quint32 size, quint16 baseAddress, QObject *parent = nullptr);
-    virtual ~ConstChip() override;
+    ~ConstChip() override;
 
     // AMemoryChip interface
     IOFunctions getIOFunctions() const noexcept override;
@@ -53,7 +53,7 @@ class NilChip: public AMemoryChip {
     Q_OBJECT
 public:
     explicit NilChip(quint32 size, quint16 baseAddress, QObject *parent = nullptr);
-    virtual ~NilChip() override;
+    ~NilChip() override;
 
     // AMemoryChip interface
     IOFunctions getIOFunctions() const noexcept override;
@@ -79,7 +79,7 @@ class InputChip : public AMemoryChip {
     static constexpr quint8 errorChar = 0x04;
 public:
     explicit InputChip(quint32 size, quint16 baseAddress, QObject *parent = nullptr);
-    virtual ~InputChip() override;
+    ~InputChip() override;
 
     // AMemoryChip interface
     void resize(quint32) noexcept override;
@@ -114,7 +114,7 @@ class OutputChip : public AMemoryChip {
     QVector<quint8> memory;
 public:
     explicit OutputChip(quint32 size, quint16 baseAddress, QObject *parent = nullptr);
-    virtual ~OutputChip() override;
+    ~OutputChip() override;
 
     // AMemoryChip interface
     void resize(quint32 newSize) noexcept override;
@@ -140,7 +140,7 @@ class RAMChip : public AMemoryChip {
     QVector<quint8> memory;
 public:
     explicit RAMChip(quint32 size, quint16 baseAddress, QObject *parent = nullptr);
-    virtual ~RAMChip() override;
+    ~RAMChip() override;
 
     // AMemoryChip interface
     void resize(quint32 newSize) noexcept override;
@@ -162,7 +162,7 @@ class ROMChip : public AMemoryChip {
     QVector<quint8> memory;
 public:
     explicit ROMChip(quint32 size, quint16 baseAddress, QObject *parent = nullptr);
-    virtual ~ROMChip() override;
+    ~ROMChip() override;
 
     // AMemoryChip interface
     void resize(quint32 newSize) noexcept override;

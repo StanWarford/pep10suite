@@ -40,10 +40,10 @@ class SymbolTable
 public:
     // This type uniquely identifies a SymbolEntry within a symbol table.
     // It is not gaurenteed to be unique across runs or between multiple SymbolTable instances at runtime.
-    typedef QAtomicInt SymbolID;
+    using SymbolID = QAtomicInt;
     // Convenience typdefs of commonly used templated types to reduce code verbosity.
-    typedef QSharedPointer<SymbolEntry> SymbolEntryPtr;
-    typedef QSharedPointer<AbstractSymbolValue> AbstractSymbolValuePtr;
+    using SymbolEntryPtr = QSharedPointer<SymbolEntry>;
+    using AbstractSymbolValuePtr = QSharedPointer<AbstractSymbolValue>;
 
 private:
     static SymbolID nextUserSymbolID;

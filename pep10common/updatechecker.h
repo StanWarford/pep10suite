@@ -33,7 +33,7 @@ class UpdateChecker : public QObject
     Q_OBJECT
 public:
     explicit UpdateChecker(QObject *parent=nullptr);
-    virtual ~UpdateChecker();
+    ~UpdateChecker() override;
 signals:
     void updateInformation(int key);
 public slots:

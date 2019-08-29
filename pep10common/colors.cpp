@@ -31,8 +31,8 @@ const PepColors::Colors PepColors::initDark()
     retVal.arrowColorOff = QColor(Qt::gray); //Used to be Qt:gray
     retVal.textColor = retVal.arrowColorOn;
     retVal.backgroundFill= QColor(0x31363b);
-    retVal.arrowImageOn=(":/images/arrowhead_dark.png");
-    retVal.arrowImageOff=(":/images/arrowhead_gray.png");
+    retVal.arrowImageOn=QString(":/images/arrowhead_dark.png");
+    retVal.arrowImageOff=QString(":/images/arrowhead_gray.png");
 
     retVal.memoryHighlightSP = QColor("Magenta");
     retVal.memoryHighlightPC = QColor("skyblue");

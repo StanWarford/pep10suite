@@ -35,7 +35,7 @@ class TerminalPane : public QWidget {
     Q_DISABLE_COPY(TerminalPane)
 public:
     explicit TerminalPane(QWidget *parent = nullptr);
-    virtual ~TerminalPane();
+    ~TerminalPane() override;
 
     void cancelWaiting();
     // Post: if the terminal was waiting for input, cancel the wait
@@ -78,10 +78,10 @@ private:
 
     void displayTerminal();
     
-    bool eventFilter(QObject *, QEvent *event);
+    bool eventFilter(QObject *, QEvent *event) override;
 
 private slots:
-    void mouseReleaseEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *) override;
 
 signals:
     void undoAvailable(bool);

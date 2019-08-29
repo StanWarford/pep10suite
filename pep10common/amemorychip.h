@@ -37,7 +37,7 @@ public:
     explicit bad_chip_write (const char* what_arg): runtime_error(what_arg){
     }
     // Define this method out-of-line, so that this class's vtable is not in every translation unit.
-    virtual ~bad_chip_write();
+    ~bad_chip_write() override;
 };
 
 class io_aborted: public std::runtime_error{
@@ -47,7 +47,7 @@ public:
     explicit io_aborted (const char* what_arg): runtime_error(what_arg){
     }
     // Define this method out-of-line, so that this class's vtable is not in every translation unit.
-    virtual ~io_aborted();
+    ~io_aborted() override;
 };
 
 /*

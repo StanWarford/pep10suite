@@ -37,7 +37,7 @@ class RegisterFile
     // more valuable.
     std::array<quint8, Enu::maxRegisterNumber + 1> registersStart, registersCurrent;
     // Allocate storage for |'ed together bit flags, and provide a way to cahce the instruction register./
-    quint8 statusBitsStart, statusBitsCurrent, irCache;
+    quint8 statusBitsStart{0}, statusBitsCurrent{0}, irCache{0};
     // Given a quint8 that contains several status bits, mask out the value of the desired bit.
     bool crackStatusBit(quint8 statusBits, Enu::EStatusBit bit);
 public:

@@ -27,10 +27,7 @@ UpdateChecker::UpdateChecker(QObject *parent): QObject(parent)
 
 }
 
-UpdateChecker::~UpdateChecker()
-{
-
-}
+UpdateChecker::~UpdateChecker() = default;
 
 void UpdateChecker::beginUpdateCheck()
 {

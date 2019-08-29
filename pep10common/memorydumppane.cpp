@@ -40,7 +40,7 @@ static QString space = "   ";
 
 MemoryDumpPane::MemoryDumpPane(QWidget *parent) :
     QWidget(parent), ui(new Ui::MemoryDumpPane), data(new QStandardItemModel(this)), lineSize(500), memDevice(nullptr),
-    cpu(nullptr), delegate(nullptr), colors(&PepColors::lightMode), highlightedData(), modifiedBytes(), lastModifiedBytes(),
+    cpu(nullptr), delegate(nullptr), colors(&PepColors::lightMode),
     delayLastStepClear(false), inSimulation(false), highlightPC(true)
 {
     ui->setupUi(this);

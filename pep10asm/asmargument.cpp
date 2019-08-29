@@ -28,11 +28,6 @@
 #include "symbolentry.h"
 #include "symbolvalue.h"
 
-AsmArgument::~AsmArgument()
-{
-
-}
-
 SymbolRefArgument::SymbolRefArgument(QSharedPointer<SymbolEntry> sRefValue): symbolRefValue(sRefValue)
 {
 

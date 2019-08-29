@@ -57,7 +57,7 @@ public:
     // By default, this title is visible.
     void showTitleLabel(bool showLabel = true);
 
-    virtual ~MemoryDumpPane() override;
+    ~MemoryDumpPane() override;
 
     void refreshMemory();
     // Post: the entire memory pane is refreshed
