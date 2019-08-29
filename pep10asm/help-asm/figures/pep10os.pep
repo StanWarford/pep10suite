@@ -6,19 +6,19 @@ FALSE:   .EQUATE 0
 ;******* Operating system RAM
 osRAM:   .BLOCK  128         ;System stack area
          .ALIGN  2           ;System stack at even address
-wordTemp:.BLOCK  1           ;Temporary word storage
-byteTemp:.BLOCK  1           ;Least significant byte of wordTemp
-osSPTemp:.BLOCK  2           ;Store system stack pointer when calling user program.
-addrMask:.BLOCK  2           ;Addressing mode mask
-opAddr:  .BLOCK  2           ;Trap instruction operand address
+wordTemp:.BLOCK  1           ;Temporary word storage #1h
+byteTemp:.BLOCK  1           ;Least significant byte of wordTemp #1h
+osSPTemp:.BLOCK  2           ;Store system stack pointer when calling user program #2h.
+addrMask:.BLOCK  2           ;Addressing mode mask #2h.
+opAddr:  .BLOCK  2           ;Trap instruction operand address #2h.
 ;Do not allow diskIn to be referenced in user programs.
-diskIn:  .BLOCK  2           ;Memory-mapped input device
+diskIn:  .BLOCK  2           ;Memory-mapped input device #2h.
          .EXPORT charIn      ;Allow charIn to be referenced in user programs.
-charIn:  .BLOCK  2           ;Memory-mapped input device
+charIn:  .BLOCK  2           ;Memory-mapped input device #2h.
          .EXPORT charOut     ;Allow charIn to be referenced in user programs.
-charOut: .BLOCK  2           ;Memory-mapped output device
+charOut: .BLOCK  2           ;Memory-mapped output device #2h.
          .EXPORT pwrOff      ;Allow pwroff to be referenced in user programs.
-pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device
+pwrOff:  .BLOCK  2           ;Memory-mapped shutdown device #2h.
          .ALIGN  2           ;I/O ports at even addresses
 ;******* Operating system ROM
          .BURN   0xFFFF      
@@ -52,30 +52,31 @@ shutdown:LDWA    0xDEAD,i
          STBA    pwrOff,d
          
 ;
+retVal:  .EQUATE 0           ;Main return value #2d
 execMain:MOVSPA              ;Preserve system stack pointer  
          STWA    osSPTemp,d  
          LDWA    osRAM,i     ;Load address of user stack
          MOVASP              ;Switch to user stack
-         SUBSP   2,i         ;Allocate #retVal
+         SUBSP   2,i         ;Allocate @param #retVal
          LDWA    0,i         ;Initialize user main return
          STWA    0,s         ;  value to zero
          LDWX    0,i         ;Initialize X to zero
          CALL    0x0000      ;Call main entry point
 mainCln: LDWA    0,s         ;Load return value
          BRNE    mainErr     ;If retval is not zero, report error
-         ADDSP   2,i         ;Deallocate main return value
+         ADDSP   2,i         ;Deallocate @param #retVal
          LDWA    osSPTemp,d  ;Restore system stack pointer
          MOVASP              ;OS Stack might be clobbered during by syscalls
          BR      shutdown    ;  So branch instead of call
 ;
 mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
          STWA    -2,s        ;Push address of error message
-         SUBSP   2,i
+         SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg
-         ADDSP   2,i
+         ADDSP   2,i         ;Allocate @param #msgAddr
 ;Return value is already on stack, no need to push additional copy.
          CALL    numPrint
-         ADDSP   2,i         ;Deallocate main return value
+         ADDSP   2,i         ;Deallocate @param #retVal
          BR      shutdown
 execErr: .ASCII "Main failed with return value \x00"
 
@@ -89,7 +90,7 @@ execErr: .ASCII "Main failed with return value \x00"
 ;file must be lowercase zz, which is used as the terminating
 ;sentinel by the loader.
 ;
-loader: LDWX    0,i          ;X <- 0
+loader:  LDWX    0,i          ;X <- 0
 getChar: LDBA    diskIn,d    ;Get first hex character
          CPBA    'z',i       ;If end of file sentinel 'z'
          BREQ    endLoad     ;  then exit loader routine
@@ -118,9 +119,9 @@ endLoad: LDBA    diskIn,d    ;Consume second 'z'
          RET
 loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error message.
          STWA    -2,s        ;Push address of error message
-         SUBSP   2,i
+         SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg
-         ADDSP   2,i
+         ADDSP   2,i         ;Deallocate @param #msgAddr
          BR      shutdown
 ldErrMsg:.ASCII "Sentinel value was corrupted\x00"
 ;
@@ -138,9 +139,9 @@ unary:   LDWA    USCJT,i
          LDWA    EUSCJT,i
          SUBA    USCJT,i
          STWA    -2,s
-         SUBSP   4,i
+         SUBSP   4,i        ;Allocate @param #arrAddr#arrDim
          CALL    trapFind
-         ADDSP   4,i
+         ADDSP   4,i        ;Deallocate @param #arrDim#arrAddr
          CALL    USCJT, x
          SRET
 ;
@@ -153,14 +154,14 @@ nonUnary:LDWA    oldPC,s     ;Must increment program counter
          LDWA    ESCJT,i
          SUBA    SCJT,i
          STWA    -2,s
-         SUBSP   4,i
+         SUBSP   4,i        ;Allocate @param #arrAddr#arrDim
          CALL    trapFind
-         ADDSP   4,i
+         ADDSP   4,i        ;Deallocate @param #arrDim#arrAddr
          CALL    SCJT, x
          SRET
 ;
-arrDim: .EQUATE 4           ;Stack address of the array size
-arrAddr: .EQUATE 2          ;Stack address of the trap array
+arrDim:  .EQUATE 4          ;#2d Stack address of the array size
+arrAddr: .EQUATE 2          ;#2h Stack address of the trap array
 trapFind: MOVTA
           LDWX   0,i         ;Initialize array iterator
 trapLoop: CPWX   arrDim,s    ;Check if iterator is at end of array
@@ -173,14 +174,14 @@ trapLoop: CPWX   arrDim,s    ;Check if iterator is at end of array
 trapFnd:RET   
 trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
          STWA    -2,s        ;Push address of error message
-         SUBSP   2,i
+         SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg
-         ADDSP   2,i
+         ADDSP   2,i         ;Deallocate @param #msgAddr
          MOVTA
          STWA    -2,s
-         SUBSP   2,i
+         SUBSP   2,i         ;Allocate @param #num
          CALL    hexPrint
-         ADDSP   2,i
+         ADDSP   2,i         ;Allocate @param #num
          BR      shutdown
 scErrMsg:.ASCII "Could not find system call \x00"
 
@@ -201,8 +202,9 @@ addrErr: LDBA    '\n',i
          STBA    charOut,d   
          LDWA    trapMsg,i   ;Push address of error message
          STWA    -2,s        
-         SUBSP   2,i         ;Call print subroutine
-         CALL    prntMsg     
+         SUBSP   2,i         ;Allocate @param #msgAddr
+         CALL    prntMsg     ;Call print subroutine
+         ADDSP   2,i         ;Deallocate @param #msgAddr
          BR      shutdown    ;Halt: Fatal runtime error
 trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\x00"
 ;
@@ -320,13 +322,13 @@ SYNOP:   LDWA    0x0001,i    ;Assert i
 ;
 oldNZVC: .EQUATE 15          ;Stack address of NZVC on interrupt
 ;
-total:   .EQUATE 11          ;Cumulative total of DECI number
-asciiCh: .EQUATE 10          ;asciiCh, one byte
-valAscii:.EQUATE 8           ;value(asciiCh)
-isOvfl:  .EQUATE 6           ;Overflow boolean
-isNeg:   .EQUATE 4           ;Negative boolean
-state:   .EQUATE 2           ;State variable
-temp:    .EQUATE 0           
+total:   .EQUATE 11          ;#2d Cumulative total of DECI number
+asciiCh: .EQUATE 10          ;#1c asciiCh, one byte
+valAscii:.EQUATE 8           ;#2d value(asciiCh)
+isOvfl:  .EQUATE 6           ;#2d Overflow boolean
+isNeg:   .EQUATE 4           ;#2d Negative boolean
+state:   .EQUATE 2           ;#2d State variable
+temp:    .EQUATE 0           ;#2d
 ;
 init:    .EQUATE 0           ;Enumerated values for state
 sign:    .EQUATE 1           
@@ -336,7 +338,7 @@ DECI:    LDWA    0x00FE,i    ;Assert d, n, s, sf, x, sx, sfx
          STWA    addrMask,d  
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
-         SUBSP   13,i        ;Allocate storage for locals
+         SUBSP   13,i        ;@locals#total#asciiCh#valAscii#isOvfl#isNeg#state#temp
          LDWA    FALSE,i     ;isOvfl <- FALSE
          STWA    isOvfl,s    
          LDWA    init,i      ;state <- init
@@ -455,15 +457,16 @@ storeFl: STBX    oldNZVC,s   ;Store the NZVC flags
 ;
 exitDeci:LDWA    total,s     ;Put total in memory
          STWA    opAddr,n    
-         ADDSP   13,i        ;Deallocate locals
+         ADDSP   13,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#total
          RET                 ;Return to trap handler
 ;
 deciErr: LDBA    '\n',i      
          STBA    charOut,d   
          LDWA    deciMsg,i   ;Push address of message onto stack
          STWA    -2,s        
-         SUBSP   2,i         
+         SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg     ;and print
+         ADDSP   2,i         ;Deallocate @param #msgAddr
          BR      shutdown    ;Fatal error: program terminates
 ;
 deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
@@ -482,17 +485,17 @@ DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          CALL    setAddr     ;Set address of trap operand
          LDWA    opAddr,n    ;A <- oprnd
          STWA    -2,s
-         SUBSP   2,i         ;Allocate #toPrint
+         SUBSP   2,i         ;Allocate @param #toPrint
          CALL    numPrint
-         ADDSP   2,i         ;Deallocate #toPrint
+         ADDSP   2,i         ;Deallocate @param #toPrint
          RET                 ;Return to trap handler
 ;Print number
 ;Expects the number to be printed stored in the accumulator.
-remain:  .EQUATE 0           ;Remainder of value to output
-outYet:  .EQUATE 2           ;Has a character been output yet?
-place:   .EQUATE 4           ;Place value for division
-toPrint: .EQUATE 8           ;Number to be printed
-numPrint:SUBSP   6,i         ;Allocate storage for locals
+remain:  .EQUATE 0           ;#2d Remainder of value to output
+outYet:  .EQUATE 2           ;#2d Has a character been output yet?
+place:   .EQUATE 4           ;#2d Place value for division
+toPrint: .EQUATE 8           ;#2d Number to be printed
+numPrint:SUBSP   6,i         ;Allocate @locals #remain#outYet#place
          LDWA    toPrint,s   ;Load the number to print
          CPWA    0,i         ;If oprnd is negative then
          BRGE    printMag    
@@ -517,7 +520,7 @@ printMag:STWA    remain,s    ;remain <- abs(oprnd)
          LDWA    remain,s    ;Always write 1's place
          ORA     0x0030,i    ;Convert decimal to ASCII
          STBA    charOut,d   ;  and output it
-         ADDSP   6,i         ;Deallocate storage for locals
+         ADDSP   6,i         ;Deallocate @locals #place#outYet#remain
          RET                 
 ;
 ;Subroutine to print the most significant decimal digit of the
@@ -561,11 +564,11 @@ HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          CALL    setAddr     ;Set address of trap operand
          LDWA    opAddr,n    ;A <- oprnd
          STWA    -2,s
-         SUBSP   2,i
+         SUBSP   2,i         ;Allocate @param #num
          CALL    hexPrint
-         ADDSP   2,i
+         ADDSP   2,i         ;Deallocate @param #num
          RET
-num:             .EQUATE 2
+num:             .EQUATE 2   ;#2h
 hexPrint:LDWA    num,s 
          STWA    wordTemp,d  ;Save oprnd in wordTemp
          LDBA    wordTemp,d  ;Put high-order byte in low-order A
@@ -605,9 +608,9 @@ STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
          CALL    setAddr     ;Set address of trap operand
          LDWA    opAddr,d    ;Push address of string to print
          STWA    -2,s        
-         SUBSP   2,i         
+         SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg     ;and print
-         ADDSP   2,i         
+         ADDSP   2,i         ;Deallocate @param #msgAddr
          RET                 ;Return to trap handler                
 ;
 ;******* Print subroutine
@@ -615,7 +618,7 @@ STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
 ;byte (eight zero bits). Assumes one parameter, which
 ;contains the address of the message.
 ;
-msgAddr: .EQUATE 2           ;Address of message to print
+msgAddr: .EQUATE 2           ;#2h Address of message to print
 ;
 prntMsg: LDWX    0,i         ;X <- 0
          LDWA    0,i         ;A <- 0
