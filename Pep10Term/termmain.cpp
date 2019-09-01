@@ -193,15 +193,15 @@ Run pep9term 'mode' --help for more options.");
     else if(command == "macros") {
         QStringList macroNames;
         macroNames << "Builtins:";
-        for(auto builtin : registry->getCoreMacros()) {
+        for(const auto& builtin : registry->getCoreMacros()) {
             macroNames << QString("\t%1").arg(builtin->macroName);
         }
         macroNames << "Syscalls:";
-        for(auto syscall : registry->getSytemCalls()) {
+        for(const auto& syscall : registry->getSytemCalls()) {
             macroNames << QString("\t%1").arg(syscall->macroName);
         }
         macroNames << "User Defined Macros:";
-        for(auto udm : registry->getCustomMacros()) {
+        for(const auto& udm : registry->getCustomMacros()) {
             macroNames << QString("\t%1").arg(udm->macroName);
         }
         qDebug().noquote().nospace() << "Available Macros\n" << macroNames.join("\n");

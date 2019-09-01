@@ -15,7 +15,7 @@ bool operator==(const std::set<T> &A, const std::set<T> &B)
 
   // both set are of equal size.
   // check element by element
-  typedef typename std::set<T>::const_iterator set_iter;
+  using set_iter = typename std::set<T>::const_iterator;
 
   set_iter pA = A.begin();
   set_iter pB = B.begin();

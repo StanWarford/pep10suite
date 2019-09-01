@@ -34,7 +34,7 @@ class SymbolTable;
 
 struct BURNInfo
 {
-    int startROMAddress, burnValue, burnAddress, burnCount = 0;
+    int startROMAddress{}, burnValue{}, burnAddress{}, burnCount = 0;
 };
 
 namespace IsaParserHelper

@@ -166,10 +166,10 @@ class StackFrame::iterator {
     StackFrame * frame;
     int idx;
 public:
-    typedef typename std::allocator<MemTag>::difference_type difference_type;
-    typedef typename std::allocator<MemTag>::value_type value_type;
-    typedef typename std::allocator<MemTag>::reference reference;
-    typedef typename std::allocator<MemTag>::pointer pointer;
+    using difference_type = typename std::allocator<MemTag>::difference_type;
+    using value_type = typename std::allocator<MemTag>::value_type;
+    using reference = typename std::allocator<MemTag>::reference;
+    using pointer = typename std::allocator<MemTag>::pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     iterator(StackFrame&);
@@ -197,10 +197,10 @@ class StackFrame::reverse_iterator{
     StackFrame * frame;
     int idx;
 public:
-    typedef typename std::allocator<MemTag>::difference_type difference_type;
-    typedef typename std::allocator<MemTag>::value_type value_type;
-    typedef typename std::allocator<MemTag>::reference reference;
-    typedef typename std::allocator<MemTag>::pointer pointer;
+    using difference_type = typename std::allocator<MemTag>::difference_type;
+    using value_type = typename std::allocator<MemTag>::value_type;
+    using reference = typename std::allocator<MemTag>::reference;
+    using pointer = typename std::allocator<MemTag>::pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     reverse_iterator(StackFrame&);
@@ -228,10 +228,10 @@ class StackFrame::const_iterator {
     const StackFrame * frame;
     int idx;
 public:
-    typedef const typename std::allocator<MemTag>::difference_type difference_type;
-    typedef const typename std::allocator<MemTag>::value_type value_type;
-    typedef typename std::allocator<MemTag>::const_reference reference;
-    typedef typename std::allocator<MemTag>::const_pointer pointer;
+    using difference_type = const typename std::allocator<MemTag>::difference_type;
+    using value_type = const typename std::allocator<MemTag>::value_type;
+    using reference = typename std::allocator<MemTag>::const_reference;
+    using pointer = typename std::allocator<MemTag>::const_pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     const_iterator(const StackFrame&);
@@ -259,10 +259,10 @@ class StackFrame::const_reverse_iterator {
     const StackFrame * frame;
     int idx;
 public:
-    typedef const typename std::allocator<MemTag>::difference_type difference_type;
-    typedef const typename std::allocator<MemTag>::value_type value_type;
-    typedef typename std::allocator<MemTag>::const_reference reference;
-    typedef typename std::allocator<MemTag>::const_pointer pointer;
+    using difference_type = const typename std::allocator<MemTag>::difference_type;
+    using value_type = const typename std::allocator<MemTag>::value_type;
+    using reference = typename std::allocator<MemTag>::const_reference;
+    using pointer = typename std::allocator<MemTag>::const_pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     const_reverse_iterator(const StackFrame&);
@@ -290,10 +290,10 @@ class StackTrace::iterator {
     StackTrace * trace;
     int idx;
 public:
-    typedef typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::reference reference;
-    typedef typename std::allocator<StackFrame>::pointer pointer;
+    using difference_type = typename std::allocator<StackFrame>::difference_type;
+    using value_type = typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::reference;
+    using pointer = typename std::allocator<StackFrame>::pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     iterator(StackTrace&);
@@ -321,10 +321,10 @@ class StackTrace::reverse_iterator {
     StackTrace * trace;
     int idx;
 public:
-    typedef typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::reference reference;
-    typedef typename std::allocator<StackFrame>::pointer pointer;
+    using difference_type = typename std::allocator<StackFrame>::difference_type;
+    using value_type = typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::reference;
+    using pointer = typename std::allocator<StackFrame>::pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     reverse_iterator(StackTrace&);
@@ -352,10 +352,10 @@ class StackTrace::const_iterator {
     const StackTrace * trace;
     int idx;
 public:
-    typedef const typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef const typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::const_reference reference;
-    typedef typename std::allocator<StackFrame>::const_pointer pointer;
+    using difference_type = const typename std::allocator<StackFrame>::difference_type;
+    using value_type = const typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::const_reference;
+    using pointer = typename std::allocator<StackFrame>::const_pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     const_iterator(const StackTrace&);
@@ -383,10 +383,10 @@ class StackTrace::const_reverse_iterator {
     const StackTrace * trace;
     int idx;
 public:
-    typedef const typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef const typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::const_reference reference;
-    typedef typename std::allocator<StackFrame>::const_pointer pointer;
+    using difference_type = const typename std::allocator<StackFrame>::difference_type;
+    using value_type = const typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::const_reference;
+    using pointer = typename std::allocator<StackFrame>::const_pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     const_reverse_iterator(const StackTrace&);
@@ -414,10 +414,10 @@ class HeapTrace::iterator {
     HeapTrace * trace;
     int idx;
 public:
-    typedef typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::reference reference;
-    typedef typename std::allocator<StackFrame>::pointer pointer;
+    using difference_type = typename std::allocator<StackFrame>::difference_type;
+    using value_type = typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::reference;
+    using pointer = typename std::allocator<StackFrame>::pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     iterator(HeapTrace&);
@@ -445,10 +445,10 @@ class HeapTrace::reverse_iterator {
     HeapTrace * trace;
     int idx;
 public:
-    typedef typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::reference reference;
-    typedef typename std::allocator<StackFrame>::pointer pointer;
+    using difference_type = typename std::allocator<StackFrame>::difference_type;
+    using value_type = typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::reference;
+    using pointer = typename std::allocator<StackFrame>::pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     reverse_iterator(HeapTrace&);
@@ -476,10 +476,10 @@ class HeapTrace::const_iterator {
     const HeapTrace * trace;
     int idx;
 public:
-    typedef const typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef const typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::const_reference reference;
-    typedef typename std::allocator<StackFrame>::const_pointer pointer;
+    using difference_type = const typename std::allocator<StackFrame>::difference_type;
+    using value_type = const typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::const_reference;
+    using pointer = typename std::allocator<StackFrame>::const_pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     const_iterator(const HeapTrace&);
@@ -507,10 +507,10 @@ class HeapTrace::const_reverse_iterator {
     const HeapTrace * trace;
     int idx;
 public:
-    typedef const typename std::allocator<StackFrame>::difference_type difference_type;
-    typedef const typename std::allocator<StackFrame>::value_type value_type;
-    typedef typename std::allocator<StackFrame>::const_reference reference;
-    typedef typename std::allocator<StackFrame>::const_pointer pointer;
+    using difference_type = const typename std::allocator<StackFrame>::difference_type;
+    using value_type = const typename std::allocator<StackFrame>::value_type;
+    using reference = typename std::allocator<StackFrame>::const_reference;
+    using pointer = typename std::allocator<StackFrame>::const_pointer;
     //typedef std::random_access_iterator_tag iterator_category; //or another tag
 
     const_reverse_iterator(const HeapTrace&);

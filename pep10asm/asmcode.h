@@ -128,23 +128,23 @@ private:
     bool breakpoint = false;
 public:
     UnaryInstruction() = default;
-    virtual ~UnaryInstruction() override = default;
+    ~UnaryInstruction() override = default;
     UnaryInstruction(const UnaryInstruction& other);
     UnaryInstruction& operator=(UnaryInstruction other);
     AsmCode *cloneAsmCode() const override;
 
 
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 //    NO LONGER WITH PEP/9. FOR RET1, RET2, ..., RET7
 //    bool processSymbolTraceTags(int &sourceLine, QString &errorString);
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
-    virtual bool hasBreakpoint() const override;
-    virtual void setBreakpoint(bool b) override;
+    bool hasBreakpoint() const override;
+    void setBreakpoint(bool b) override;
 
     Enu::EMnemonic getMnemonic() const;
     void setMnemonic(Enu::EMnemonic);
@@ -170,20 +170,20 @@ private:
     bool breakpoint = false;
 public:
     NonUnaryInstruction() = default;
-    virtual ~NonUnaryInstruction() override = default;
+     ~NonUnaryInstruction() override = default;
     NonUnaryInstruction(const NonUnaryInstruction& other);
     NonUnaryInstruction& operator=(NonUnaryInstruction other);
     AsmCode *cloneAsmCode() const override;
     // ~NonUnaryInstruction() { delete argument; }
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
-    virtual bool hasBreakpoint() const override;
-    virtual void setBreakpoint(bool b) override;
+    bool hasBreakpoint() const override;
+    void setBreakpoint(bool b) override;
 
     Enu::EMnemonic getMnemonic() const;
     void setMnemonic(Enu::EMnemonic);
@@ -216,16 +216,16 @@ private:
     QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotAddrss() = default;
-    virtual ~DotAddrss() override = default;
+    ~DotAddrss() override = default;
     DotAddrss(const DotAddrss& other);
     DotAddrss& operator=(DotAddrss other);
     AsmCode *cloneAsmCode() const override;
-     virtual void appendObjectCode(QList<int> &objectCode) const override;
+     void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     bool hasSymbolicOperand() const override;
     QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
@@ -252,12 +252,12 @@ public:
     DotAlign(const DotAlign& other);
     DotAlign& operator=(DotAlign other);
     AsmCode *cloneAsmCode() const override;
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
@@ -282,15 +282,15 @@ private:
     QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotAscii() = default;
-    virtual ~DotAscii() override = default;
+    ~DotAscii() override = default;
     DotAscii(const DotAscii& other);
     DotAscii& operator=(DotAscii other);
     AsmCode *cloneAsmCode() const override;
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
     virtual quint16 objectCodeLength() const override;
 
     QSharedPointer<AsmArgument> getArgument() const;
@@ -311,16 +311,16 @@ private:
     QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotBlock() = default;
-    virtual ~DotBlock() override = default;
+    ~DotBlock() override = default;
     DotBlock(const DotBlock& other);
     DotBlock& operator=(DotBlock other);
     AsmCode *cloneAsmCode() const override;
 
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
@@ -349,8 +349,8 @@ public:
     AsmCode *cloneAsmCode() const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
 
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
@@ -371,16 +371,16 @@ private:
 
 public:
     DotByte() = default;
-    virtual ~DotByte() override = default;
+    ~DotByte() override = default;
     DotByte(const DotByte& other);
     DotByte& operator=(DotByte other);
     AsmCode *cloneAsmCode() const override;
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
@@ -400,13 +400,13 @@ class DotEnd: public AsmCode
     friend class IsaAsm;
 public:
     DotEnd() = default;
-    virtual ~DotEnd() override = default;
+    ~DotEnd() override = default;
     DotEnd(const DotEnd& other);
     DotEnd& operator=(DotEnd other);
     AsmCode *cloneAsmCode() const override;
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
 
     friend void swap(DotEnd& first, DotEnd& second)
     {
@@ -422,14 +422,14 @@ private:
     QSharedPointer<AsmArgument> argument = nullptr;
 public:
     DotEquate() = default;
-    virtual ~DotEquate() override = default;
+    ~DotEquate() override = default;
     DotEquate(const DotEquate& other);
     DotEquate& operator=(DotEquate other);
     AsmCode *cloneAsmCode() const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
 
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
@@ -449,16 +449,16 @@ class DotExport: public AsmCode
     QSharedPointer<SymbolRefArgument> argument = nullptr;
 public:
     DotExport() = default;
-    virtual ~DotExport() override = default;
+    ~DotExport() override = default;
     DotExport(const DotExport& other);
     DotExport& operator=(DotExport other);
     AsmCode *cloneAsmCode() const override;
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     bool hasSymbolicOperand() const override;
     QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
@@ -478,16 +478,16 @@ class DotSycall: public AsmCode
     QSharedPointer<SymbolRefArgument> argument = nullptr;
 public:
     DotSycall() = default;
-    virtual ~DotSycall() override = default;
+    ~DotSycall() override = default;
     DotSycall(const DotSycall& other);
     DotSycall& operator=(DotSycall other);
     AsmCode *cloneAsmCode() const override;
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     bool hasSymbolicOperand() const override;
     QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
@@ -507,16 +507,16 @@ class DotUSycall: public AsmCode
     QSharedPointer<SymbolRefArgument> argument = nullptr;
 public:
     DotUSycall() = default;
-    virtual ~DotUSycall() override = default;
+    ~DotUSycall() override = default;
     DotUSycall(const DotUSycall& other);
     DotUSycall& operator=(DotUSycall other);
     AsmCode *cloneAsmCode() const override;
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     bool hasSymbolicOperand() const override;
     QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
@@ -543,12 +543,12 @@ public:
     DotWord& operator=(DotWord other);
     AsmCode *cloneAsmCode() const override;
 
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
 
     // AsmCode interface
     virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     QSharedPointer<AsmArgument> getArgument() const;
     void setArgument(QSharedPointer<AsmArgument>);
@@ -568,14 +568,14 @@ class CommentOnly: public AsmCode
     friend class IsaAsm;
 public:
     CommentOnly() = default;
-    virtual ~CommentOnly() override = default;
+    ~CommentOnly() override = default;
     CommentOnly(const CommentOnly& other);
     CommentOnly& operator=(CommentOnly other);
     AsmCode *cloneAsmCode() const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
 
     friend void swap(CommentOnly& first, CommentOnly& second)
     {
@@ -589,14 +589,14 @@ class BlankLine: public AsmCode
     friend class IsaAsm;
 public:
     BlankLine() = default;
-    virtual ~BlankLine() override = default;
+    ~BlankLine() override = default;
     BlankLine(const BlankLine& other);
     BlankLine& operator=(BlankLine other);
     AsmCode *cloneAsmCode() const override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
 
     friend void swap(BlankLine& first, BlankLine& second)
     {
@@ -612,17 +612,17 @@ private:
     QSharedPointer<ModuleInstance> macroInstance;
 public:
     MacroInvoke() = default;
-    virtual ~MacroInvoke() override = default;
+    ~MacroInvoke() override = default;
     MacroInvoke(const MacroInvoke& other);
     MacroInvoke& operator=(MacroInvoke other);
     AsmCode *cloneAsmCode() const override;
-    virtual void appendObjectCode(QList<int> &objectCode) const override;
+    void appendObjectCode(QList<int> &objectCode) const override;
     void adjustMemAddress(int addressDelta) override;
 
     // AsmCode interface
-    virtual QString getAssemblerListing() const override;
-    virtual QString getAssemblerSource() const override;
-    virtual quint16 objectCodeLength() const override;
+    QString getAssemblerListing() const override;
+    QString getAssemblerSource() const override;
+    quint16 objectCodeLength() const override;
 
     QStringList getArgumentList() const;
     void setArgumentList(QStringList);

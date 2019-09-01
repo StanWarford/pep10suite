@@ -8,7 +8,7 @@
 #include "asmcode.h"
 
 // Track the line number an contents of an error message.
-typedef std::tuple<int /*line*/, QString /*errMessage*/> ErrorInfo;
+using ErrorInfo = std::tuple<int /*line*/, QString /*errMessage*/> ;
 
 /*
  * Different file types allow for differnt compiling options,
@@ -166,7 +166,7 @@ struct ModuleAssemblyGraph
     // Map the ID of a vertex to its prototype.
     QMap<quint16, QSharedPointer<ModulePrototype>> prototypeMap;
     // For a given ID, log every separate instance of the prototype.
-    typedef QMap<quint16, QList<QSharedPointer<ModuleInstance>>> InstanceMap;
+    using InstanceMap = QMap<quint16, QList<QSharedPointer<ModuleInstance>>>;
     InstanceMap instanceMap;
     // By convention the root module is 0, but it would be best to have
     // it be an explicit field.

@@ -89,7 +89,7 @@ public:
     };
 
     explicit AMemoryChip(quint32 size, quint16 baseAddress, QObject *parent = nullptr) noexcept;
-    virtual ~AMemoryChip();
+    ~AMemoryChip() override;
 
     // Change the baseAddress of the chip to newAddress
     void setBaseAddress(quint16 newAddress);
