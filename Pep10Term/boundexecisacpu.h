@@ -29,7 +29,7 @@ class BoundExecIsaCpu : public IsaCpu
 public:
     explicit BoundExecIsaCpu(quint64 stepCount,const AsmProgramManager* manager,
                      QSharedPointer<AMemoryDevice> memDevice, QObject* parent = nullptr);
-    virtual ~BoundExecIsaCpu() override;
+    ~BoundExecIsaCpu() override;
 
     static quint64 getDefaultMaxSteps();
 

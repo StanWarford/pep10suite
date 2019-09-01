@@ -24,17 +24,14 @@
 #include <QCoreApplication>
 BoundExecIsaCpu::BoundExecIsaCpu(quint64 stepCount, const AsmProgramManager *manager,
                                    QSharedPointer<AMemoryDevice> memDevice, QObject *parent):
-    IsaCpu(manager, memDevice, parent), maxSteps(stepCount)
+    IsaCpu(manager, std::move(memDevice), parent), maxSteps(stepCount)
 
 {
     // This version of the CPU does not respond to breakpoints, and as such
     // does not register any handlers with the InterruptHandler.
 }
 
-BoundExecIsaCpu::~BoundExecIsaCpu()
-{
-
-}
+BoundExecIsaCpu::~BoundExecIsaCpu() = default;
 
 quint64 BoundExecIsaCpu::getDefaultMaxSteps()
 {

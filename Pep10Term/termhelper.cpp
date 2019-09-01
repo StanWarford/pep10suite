@@ -19,6 +19,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "termhelper.h"
+
+#include <utility>
+
+#include <utility>
 #include "amemorychip.h"
 #include "amemorydevice.h"
 #include "asmprogrammanager.h"
@@ -46,7 +50,7 @@ QVector<quint8> convertObjectCodeToIntArray(QString program)
     quint8 temp;
     QVector<quint8> output;
     program.replace(QRegExp("\n")," ");
-    for(QString byte : program.split(" ")) {
+    for(const QString& byte : program.split(" ")) {
         // toShort(...) should never throw any errors, so there should be no concerns if byte is not a hex constant.
         temp = static_cast<quint8>(byte.toShort(&ok, 16));
         // There could be a loss in precision if given text outside the range of an uchar but in range of a ushort.
@@ -63,7 +67,7 @@ void buildDefaultOperatingSystem(AsmProgramManager &manager, QSharedPointer<Macr
     if(!defaultOSText.isEmpty()) {
         QSharedPointer<AsmProgram> prog;
         auto elist = QList<QPair<int, QString>>();
-        MacroAssemblerDriver assembler(registry);
+        MacroAssemblerDriver assembler(std::move(registry));
         auto asmResult = assembler.assembleOperatingSystem(defaultOSText);
         if(!asmResult.success) {
             qDebug() << "Failed to assemble OS.";
@@ -78,7 +82,7 @@ void buildDefaultOperatingSystem(AsmProgramManager &manager, QSharedPointer<Macr
         else {
             qDebug() << "OS failed to assemble.";
             auto textList = defaultOSText.split("\n");
-            for(auto errorPair : elist) {
+            for(const auto& errorPair : elist) {
                 qDebug() << textList[errorPair.first] << errorPair.second << endl;
             }
             throw std::logic_error("The default operating system failed to assemble.");
@@ -274,16 +278,14 @@ BuildHelper::BuildHelper(const QString source, QFileInfo objFileInfo,
                          AsmProgramManager &manager, QSharedPointer<MacroRegistry> registry,
                          QObject *parent): QObject(parent),
     QRunnable(), source(source), objFileInfo(objFileInfo),
-    manager(manager), registry(registry)
+    manager(manager), registry(std::move(std::move(registry)))
 {
 
 }
 
-BuildHelper::~BuildHelper()
-{
-    // All of our memory is owned by sharedpointers, so we
-    // should not attempt to delete anything ourselves.
-}
+// All of our memory is owned by sharedpointers, so we
+// should not attempt to delete anything ourselves.
+BuildHelper::~BuildHelper() = default;
 
 void BuildHelper::run()
 {

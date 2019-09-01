@@ -65,11 +65,11 @@ class RunHelper: public QObject, public QRunnable {
     // Potentially multiple output sources, but don't take time to simulate now.
     QFile* outputFile;
     // Addresses of the disk input port.
-    quint16 diskIn;
+    quint16 diskIn{};
     // Addresses of the character input / character output ports.
-    quint16 charIn, charOut;
+    quint16 charIn{}, charOut{};
     // Addresses of the power off output port.
-    quint16 powerOff;
+    quint16 powerOff{};
     // Maximum number of steps the simulator should execute before force quitting.
     quint64 maxSimSteps;
 
