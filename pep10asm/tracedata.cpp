@@ -56,8 +56,8 @@ QString TraceCommand::toString() const
 {
     QString out = QString("%1 %2 %3")
             .arg(::toString(this->getAction()))
-            .arg(::toString(this->getFrame()))
-            .arg(::toString(this->getTrace()));
+            .arg(::toString(this->getTrace()))
+            .arg(::toString(this->getFrame()));
     if(tag.has_value()) {
         out.append(QString(" %1").arg(optional_helper(tag)->toString()));
     }
@@ -67,8 +67,8 @@ QString TraceCommand::toShortString() const
 {
     QString out = QString("%1 %2 %3")
             .arg(::toShortString(this->getAction()))
-            .arg(::toShortString(this->getFrame()))
-            .arg(::toShortString(this->getTrace()));
+            .arg(::toShortString(this->getTrace()))
+            .arg(::toShortString(this->getFrame()));
     if(tag.has_value()) {
         out.append(QString(" %1").arg(optional_helper(tag)->toString()));
     }

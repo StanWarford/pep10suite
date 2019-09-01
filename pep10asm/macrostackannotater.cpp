@@ -236,6 +236,7 @@ void MacroStackAnnotater::discoverLines(ModuleInstance &instance)
 void MacroStackAnnotater::resolveGlobals()
 {
     QString instrText;
+    int bytesAllocated;
     // No need to set hadTraceTag flag, as this was handled in discoverLines(...).
     for(auto line : this->globalLines) {
         // .BLOCK may be a(n) 1) integral type, 2) array of integral types, or 3) a struct, or 4) nothing.
@@ -245,6 +246,7 @@ void MacroStackAnnotater::resolveGlobals()
         if(DotBlock* asBlock = dynamic_cast<DotBlock*>(line);
                 asBlock != nullptr) {
             instrText = "BLOCK";
+            bytesAllocated = asBlock->getArgument()->getArgumentValue();
         }
         // .BYTE may be a(n) 1) integral type or 2) nothing.
         // It is also allowed to be a struct of size 1 or of type #1c1a, but
@@ -253,16 +255,17 @@ void MacroStackAnnotater::resolveGlobals()
         else if(DotByte* asByte = dynamic_cast<DotByte*>(line);
                 asByte != nullptr) {
             instrText = "BYTE";
+            bytesAllocated = 1;
         }
         // .WORD may be a(n) 1) integral type, 2) array of two 1 byte integrals or 3) nothing.
         // Tags are always optional.
         else if(DotWord* asWord = dynamic_cast<DotWord*>(line);
                 asWord != nullptr) {
             instrText = "WORD";
+            bytesAllocated = 2;
         }
 
         QString comment = line->getComment();
-        int bytesAllocated = line->objectCodeLength();
         // If line has a @params @locals hint, it is malformed.
         if(containsStackHint(comment)) {
             resultCache.errorList.append({line->getListingLineNumber(), badHint});
@@ -354,7 +357,7 @@ void MacroStackAnnotater::resolveCodeLines()
         // CALL may have a tag if it is calling MALLOC.
         else if(NonUnaryInstruction* asNonunary = dynamic_cast<NonUnaryInstruction*>(line);
                 asNonunary != nullptr) {
-            mnemonic = asUnary->getMnemonic();
+            mnemonic = asNonunary->getMnemonic();
         }
         switch(mnemonic) {
         // Stack set instruction
