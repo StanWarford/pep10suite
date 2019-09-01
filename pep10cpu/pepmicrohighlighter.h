@@ -40,7 +40,7 @@ public:
     void setCPUType(Enu::CPUType type);
 
 protected:
-    void highlightBlock(const QString &text);
+    void highlightBlock(const QString &text) override;
 /*protected slots:
     void onStyleChange();*/
 private:

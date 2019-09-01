@@ -6,8 +6,9 @@
 #include <stdexcept>
 #include <exception>
 #include <string>
+#include <utility>
 #include <registerfile.h>
-CPUDataSection::CPUDataSection(Enu::CPUType type, QSharedPointer<AMemoryDevice> memDev, QObject *parent): QObject(parent), memDevice(memDev),
+CPUDataSection::CPUDataSection(Enu::CPUType type, QSharedPointer<AMemoryDevice> memDev, QObject *parent): QObject(parent), memDevice(std::move(memDev)),
     cpuFeatures(type), mainBusState(Enu::None),
     registerBank(QSharedPointer<RegisterFile>::create()), memoryRegisters(6), controlSignals(Pep::numControlSignals()),
     clockSignals(Pep::numClockSignals()), emitEvents(true), hadDataError(false), errorMessage(""),
@@ -459,7 +460,7 @@ void CPUDataSection::stepOneByte() noexcept
 
     isALUCacheValid = false;
     //Set up all variables needed by stepping calculation
-    Enu::EALUFunc aluFunc = static_cast<Enu::EALUFunc>(controlSignals[Enu::ALU]);
+    auto aluFunc = static_cast<Enu::EALUFunc>(controlSignals[Enu::ALU]);
     quint8 a = 0, b = 0, c = 0, alu = 0, NZVC = 0;
     bool hasA = valueOnABus(a), hasB = valueOnBBus(b), hasC = valueOnCBus(c), statusBitError = false;
     bool hasALUOutput = calculateALUOutput(alu,NZVC);
@@ -467,7 +468,7 @@ void CPUDataSection::stepOneByte() noexcept
     //Handle write to memory
     if(mainBusState == Enu::MemWriteReady) {
         // << upcasts from quint8 to int32, must explicitly narrow.
-        quint16 address = static_cast<quint16>((memoryRegisters[Enu::MEM_MARA]<<8)
+        auto address = static_cast<quint16>((memoryRegisters[Enu::MEM_MARA]<<8)
                 | memoryRegisters[Enu::MEM_MARB]);
         memDevice->writeByte(address, memoryRegisters[Enu::MEM_MDR]);
     }
@@ -581,7 +582,7 @@ void CPUDataSection::stepTwoByte() noexcept
 
     isALUCacheValid = false;
     // Set up all variables needed by stepping calculation
-    Enu::EALUFunc aluFunc = static_cast<Enu::EALUFunc>(controlSignals[Enu::ALU]);
+    auto aluFunc = static_cast<Enu::EALUFunc>(controlSignals[Enu::ALU]);
     quint8 a = 0, b = 0, c = 0, alu = 0, NZVC = 0, temp = 0;
     quint16 address;
     bool memSigError = false, hasA = valueOnABus(a), hasB = valueOnBBus(b), hasC = valueOnCBus(c);
@@ -590,7 +591,7 @@ void CPUDataSection::stepTwoByte() noexcept
     // Handle write to memory
     if(mainBusState == Enu::MemWriteReady) {
         // << widens quint8 to int32, must explictly narrow.
-        quint16 address = static_cast<quint16>((memoryRegisters[Enu::MEM_MARA]<<8)
+        auto address = static_cast<quint16>((memoryRegisters[Enu::MEM_MARA]<<8)
                 | memoryRegisters[Enu::MEM_MARB]);
         address&=0xFFFE; // Memory access ignores lowest order bit
         memDevice->writeWord(address, memoryRegisters[Enu::MEM_MDRE]*256 + memoryRegisters[Enu::MEM_MDRO]);

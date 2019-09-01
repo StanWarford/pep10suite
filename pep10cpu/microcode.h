@@ -33,7 +33,7 @@ class CPUDataSection;
 class AMicroCode
 {
 public:
-    virtual ~AMicroCode() { }
+    virtual ~AMicroCode();
     virtual bool isMicrocode() const { return false; }
     virtual void setCpuLabels(CpuGraphicsItems *)const { }
     virtual QString getObjectCode() const { return ""; }

@@ -14,7 +14,7 @@ class FullMicrocodedCPU : public ACPUModel, public InterfaceMCCPU, public Interf
     friend class FullMicrocodedMemoizer;
 public:
     FullMicrocodedCPU(const AsmProgramManager* manager, QSharedPointer<AMemoryDevice>, QObject* parent = nullptr) noexcept;
-    virtual ~FullMicrocodedCPU() override;
+    ~FullMicrocodedCPU() override;
     QSharedPointer<CPUDataSection> getDataSection();
     // Returns true if the microprogram counter is at the
     // start of the von neumann cycle.

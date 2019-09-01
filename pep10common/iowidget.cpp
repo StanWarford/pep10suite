@@ -39,7 +39,7 @@ IOWidget::IOWidget(QWidget *parent) :
     connect(ui->batchInput, &InputPane::redoAvailable, this, &IOWidget::onSetRedoability);
     connect(ui->terminalIO, &TerminalPane::undoAvailable, this, &IOWidget::onSetUndoability);
     connect(ui->terminalIO, &TerminalPane::redoAvailable, this, &IOWidget::onSetRedoability);
-    QSplitter *split = new QSplitter(nullptr);
+    auto *split = new QSplitter(nullptr);
     split->setOrientation(Qt::Vertical);
     split->addWidget(ui->batchInput);
     split->addWidget(ui->batchOutput);

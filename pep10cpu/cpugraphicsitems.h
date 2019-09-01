@@ -35,14 +35,14 @@ class CpuGraphicsItems : public QGraphicsItem
 public:
     CpuGraphicsItems(Enu::CPUType type, CPUDataSection* dataSection, QWidget *widgetParent, QGraphicsItem *itemParent = nullptr,
                              QGraphicsScene *scene = nullptr);
-    ~CpuGraphicsItems();
+    ~CpuGraphicsItems() override;
 
-    QRectF boundingRect() const;
+    QRectF boundingRect() const override;
 
     bool aluHasCorrectOutput();
 
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-               QWidget *widget);
+               QWidget *widget) override;
     void darkModeChanged(bool darkMode, QString styleSheet);
     void CPUTypeChanged(Enu::CPUType newType);
 

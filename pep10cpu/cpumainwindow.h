@@ -62,11 +62,11 @@ class CPUMainWindow : public QMainWindow {
     Q_OBJECT
 public:
     CPUMainWindow(QWidget *parent = nullptr);
-    ~CPUMainWindow();
+    ~CPUMainWindow() override;
 protected:
-    void changeEvent(QEvent *e);
-    void closeEvent(QCloseEvent *e);
-    bool eventFilter(QObject *, QEvent *);
+    void changeEvent(QEvent *e) override;
+    void closeEvent(QCloseEvent *e) override;
+    bool eventFilter(QObject *, QEvent *) override;
 
 private:
     Ui::CPUMainWindow *ui;

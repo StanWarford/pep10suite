@@ -38,6 +38,7 @@
 #include <QTextStream>
 #include <QTextCodec>
 #include <QUrl>
+#include <utility>
 
 #include "aboutpep.h"
 #include "amemorychip.h"
@@ -311,7 +312,7 @@ void MicroMainWindow::closeEvent(QCloseEvent *event)
 bool MicroMainWindow::eventFilter(QObject *, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
         if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)) {
             if (ui->cpuWidget->hasFocus() && ui->actionDebug_Single_Step_Microcode->isEnabled()) {
                 // single step or clock, depending of if currently debugging
@@ -870,7 +871,7 @@ void MicroMainWindow::assembleDefaultOperatingSystem()
         else {
             qDebug() << "OS failed to assemble.";
             auto textList = defaultOSText.split("\n");
-            for(auto errorPair : elist) {
+            for(const auto& errorPair : elist) {
                 qDebug() << textList[errorPair.first] << errorPair.second << endl;
             }
             throw std::logic_error("The default operating system failed to assemble.");
@@ -890,7 +891,7 @@ QVector<quint8> convertObjectCodeToIntArray(QString line, bool& success)
     bool ok = true;
     quint8 temp;
     QVector<quint8> output;
-    for(QString byte : line.split(" ")) {
+    for(const QString& byte : line.split(" ")) {
         // toShort(...) should never throw any errors, so there should be no concerns if byte is not a hex constant.
         temp = static_cast<quint8>(byte.toShort(&ok, 16));
         // There could be a loss in precision if given text outside the range of an uchar but in range of a ushort.
@@ -938,7 +939,7 @@ bool MicroMainWindow::loadObjectCodeProgram()
     bool temp, convertSuccess = true;
     // If there are no lines, there is no data.
     bool hadData = !lines.isEmpty();
-    for(auto line : lines.split("\n")) {
+    for(const auto& line : lines.split("\n")) {
         // Check if line is empty, if it is, stop processing line.
         QString trimmed = line.trimmed();
         if(trimmed.isEmpty()){
@@ -1428,7 +1429,7 @@ void MicroMainWindow::handleDebugButtons()
             && !programManager->getOperatingSystem()->getSymbolTable()->getValue("charIn").isNull();
     if(waiting_io) {
        quint16 address = programManager->getOperatingSystem()->getSymbolTable()->getValue("charIn")->getValue();
-       InputChip *chip = static_cast<InputChip*>(memDevice->chipAt(address));
+       auto *chip = static_cast<InputChip*>(memDevice->chipAt(address));
        waiting_io &= chip->waitingForInput(address-chip->getBaseAddress());
     }
     int enabledButtons = 0;
@@ -2066,7 +2067,7 @@ void MicroMainWindow::setRedoability(bool b)
 
 void MicroMainWindow::appendMicrocodeLine(QString line)
 {
-    ui->microcodeWidget->appendMessageInSourceCodePaneAt(-2, line);
+    ui->microcodeWidget->appendMessageInSourceCodePaneAt(-2, std::move(line));
 }
 
 void MicroMainWindow::helpCopyToSourceClicked()

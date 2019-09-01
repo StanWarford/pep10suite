@@ -36,8 +36,8 @@ class PepMicroHighlighter;
 class MicroHelpDialog : public QDialog {
     Q_OBJECT
 public:
-    MicroHelpDialog(QWidget *parent = 0);
-    ~MicroHelpDialog();
+    MicroHelpDialog(QWidget *parent = nullptr);
+    ~MicroHelpDialog() override;
 
     QString getCode(Enu::EPane &destPane, Enu::EPane &inputDest, QString &input);
 
@@ -52,7 +52,7 @@ public:
 
     void selectItem(QString string);
 protected:
-    void changeEvent(QEvent *e);
+    void changeEvent(QEvent *e) override;
 
 private:
     Ui::HelpDialog *ui;

@@ -29,6 +29,7 @@
 
 #include <QWebEngineView>
 #include <QScrollBar>
+#include <utility>
 
 #include "interfacemccpu.h"
 #include "tristatelabel.h"
@@ -57,7 +58,7 @@ CpuPane::CpuPane( QWidget *parent) :
 void CpuPane::init(QSharedPointer<InterfaceMCCPU> cpu, QSharedPointer<CPUDataSection> dataSection)
 {
     this->cpu = cpu;
-    this->dataSection = dataSection;
+    this->dataSection = std::move(dataSection);
     type = cpu->getCPUType();
     initModel();
     this->setMinimumWidth(static_cast<int>(cpuPaneItems->boundingRect().left())+100);
@@ -495,7 +496,7 @@ void CpuPane::changeEvent(QEvent *e)
 
 void CpuPane::regTextEdited(QString str)
 {
-    QLineEdit *lineEdit = qobject_cast<QLineEdit *>(sender());
+    auto *lineEdit = qobject_cast<QLineEdit *>(sender());
 
     // Make sure the string isn't mangled
     if (str == "0") {
@@ -533,7 +534,7 @@ void CpuPane::regTextEdited(QString str)
 
 void CpuPane::regTextFinishedEditing()
 {
-    QLineEdit *lineEdit = qobject_cast<QLineEdit *>(sender());
+    auto *lineEdit = qobject_cast<QLineEdit *>(sender());
 
     QString str = lineEdit->text();
     //qDebug() << "str: " << str;
@@ -611,7 +612,7 @@ void CpuPane::zoomFactorChanged(int factor)
 
 void CpuPane::labelClicked()
 {
-    TristateLabel *label = qobject_cast<TristateLabel *>(sender());
+    auto *label = qobject_cast<TristateLabel *>(sender());
     label->toggle();
     QString temp="";
     quint8 tempVal=0;
@@ -732,7 +733,7 @@ void CpuPane::on_copyToMicrocodePushButton_clicked() // union of all models
 {
     MicroCode code(dataSection->getCPUType(), false);
     if (cpuPaneItems->loadCk->isChecked()) {
-        code.setClockSingal(Enu::LoadCk, 1);
+        code.setClockSingal(Enu::LoadCk, true);
     }
     if (cpuPaneItems->cLineEdit->text() != "") {
         code.setControlSignal(Enu::C, static_cast<quint8>(cpuPaneItems->cLineEdit->text().toInt()));
@@ -744,7 +745,7 @@ void CpuPane::on_copyToMicrocodePushButton_clicked() // union of all models
         code.setControlSignal(Enu::A, static_cast<quint8>(cpuPaneItems->aLineEdit->text().toInt()));
     }
     if (cpuPaneItems->MARCk->isChecked()) {
-        code.setClockSingal(Enu::MARCk, 1);
+        code.setClockSingal(Enu::MARCk, true);
     }
     if (cpuPaneItems->aMuxTristateLabel->text() != "") {
         code.setControlSignal(Enu::AMux, static_cast<quint8>(cpuPaneItems->aMuxTristateLabel->text().toInt()));
@@ -759,22 +760,22 @@ void CpuPane::on_copyToMicrocodePushButton_clicked() // union of all models
         code.setControlSignal(Enu::CSMux, static_cast<quint8>(cpuPaneItems->CSMuxTristateLabel->text().toInt()));
     }
     if (cpuPaneItems->SCkCheckBox->isChecked()) {
-        code.setClockSingal(Enu::SCk, 1);
+        code.setClockSingal(Enu::SCk, true);
     }
     if (cpuPaneItems->CCkCheckBox->isChecked()) {
-        code.setClockSingal(Enu::CCk, 1);
+        code.setClockSingal(Enu::CCk, true);
     }
     if (cpuPaneItems->VCkCheckBox->isChecked()) {
-        code.setClockSingal(Enu::VCk, 1);
+        code.setClockSingal(Enu::VCk, true);
     }
     if (cpuPaneItems->AndZTristateLabel->text() != "") {
         code.setControlSignal(Enu::AndZ, static_cast<quint8>(cpuPaneItems->AndZTristateLabel->text().toInt()));
     }
     if (cpuPaneItems->ZCkCheckBox->isChecked()) {
-        code.setClockSingal(Enu::ZCk, 1);
+        code.setClockSingal(Enu::ZCk, true);
     }
     if (cpuPaneItems->NCkCheckBox->isChecked()) {
-        code.setClockSingal(Enu::NCk, 1);
+        code.setClockSingal(Enu::NCk, true);
     }
     if (cpuPaneItems->MemReadTristateLabel->text() != "") {
         code.setControlSignal(Enu::MemRead, static_cast<quint8>(cpuPaneItems->MemReadTristateLabel->text().toInt()));
@@ -790,7 +791,7 @@ void CpuPane::on_copyToMicrocodePushButton_clicked() // union of all models
     // 1 byte exclusive controls.
     if (cpu->getCPUType() == Enu::CPUType::TwoByteDataBus &&
             cpuPaneItems->MDRCk->isChecked()) { // 1 byte bus
-        code.setClockSingal(Enu::MDRCk, 1);
+        code.setClockSingal(Enu::MDRCk, true);
     }
     if (cpu->getCPUType() == Enu::CPUType::TwoByteDataBus &&
             cpuPaneItems->MDRMuxTristateLabel->text() != "") { // 1 byte bus
@@ -804,7 +805,7 @@ void CpuPane::on_copyToMicrocodePushButton_clicked() // union of all models
     }
     if (cpu->getCPUType() == Enu::CPUType::TwoByteDataBus &&
             cpuPaneItems->MDROCk->isChecked()) { // 2 byte bus
-        code.setClockSingal(Enu::MDROCk, 1);
+        code.setClockSingal(Enu::MDROCk, true);
     }
     if (cpu->getCPUType() == Enu::CPUType::TwoByteDataBus &&
             cpuPaneItems->MDROMuxTristateLabel->text() != "") { // 2 byte bus
@@ -812,7 +813,7 @@ void CpuPane::on_copyToMicrocodePushButton_clicked() // union of all models
     }
     if (cpu->getCPUType() == Enu::CPUType::TwoByteDataBus &&
             cpuPaneItems->MDRECk->isChecked()) { // 2 byte bus
-        code.setClockSingal(Enu::MDRECk, 1);
+        code.setClockSingal(Enu::MDRECk, true);
     }
     if (cpu->getCPUType() == Enu::CPUType::TwoByteDataBus &&
             cpuPaneItems->MDREMuxTristateLabel->text() != "") { // 2 byte bus
@@ -892,7 +893,7 @@ void CpuPane::ALUTextEdited(QString str)
 
 void CpuPane::onClockChanged()
 {
-    QCheckBox* send = qobject_cast<QCheckBox*>(sender());
+    auto send = qobject_cast<QCheckBox*>(sender());
     if(send==cpuPaneItems->NCkCheckBox) {
         dataSection->onSetClock(Enu::NCk,cpuPaneItems->NCkCheckBox->checkState());
     }
@@ -927,7 +928,7 @@ void CpuPane::onClockChanged()
 
 void CpuPane::onBusChanged()
 {
-    QLineEdit* bus = qobject_cast<QLineEdit*>(sender());
+    auto* bus = qobject_cast<QLineEdit*>(sender());
     quint8 val;
     if(bus==cpuPaneItems->aLineEdit)
     {

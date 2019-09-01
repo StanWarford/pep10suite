@@ -36,6 +36,8 @@
 #include <Qt>
 #include <QClipboard>
 #include <QPainter>
+#include <utility>
+#include <utility>
 static QString space = "   ";
 
 MemoryDumpPane::MemoryDumpPane(QWidget *parent) :
@@ -70,8 +72,8 @@ MemoryDumpPane::MemoryDumpPane(QWidget *parent) :
 
 void MemoryDumpPane::init(QSharedPointer<MainMemory> memory, QSharedPointer<ACPUModel> cpu)
 {
-    this->memDevice = memory;
-    this->cpu = cpu;
+    this->memDevice = std::move(memory);
+    this->cpu = std::move(cpu);
     delegate = new MemoryDumpDelegate(memDevice, ui->tableView);
     ui->tableView->setItemDelegate(delegate);
     refreshMemoryLines(0, 0);
@@ -130,7 +132,8 @@ void MemoryDumpPane::refreshMemoryLines(quint16 firstByte, quint16 lastByte)
             if(quint32(row * 8 + col) <= memDevice->maxAddress()) {
                 // Use the data in the memory section to set the value in the model.
                 memDevice->getByte(static_cast<quint16>(row * 8 + col), tempData);
-                data->setData(data->index(row, col + 1), QString("%1").arg(tempData, 2, 16, QChar('0')).toUpper());
+                data->setData(data->index(row, col + 1),
+                              QString("%1").arg(tempData, 2, 16, QChar('0')).toUpper());
                 ch = QChar(tempData);
                 if (ch.isPrint()) {
                     memoryDumpLine.append(ch);
@@ -161,7 +164,8 @@ void MemoryDumpPane::clearHighlight()
 {
     // Don't to remove BackgroundRole & ForegroundRole from data->itemData(...) map,
     // followed by a data->setItemData(...) call.
-    // Even though items were removed from the map and both calls were successful, the tableView would not remove the old highlighting.
+    // Even though items were removed from the map and both calls were successful,
+    // the tableView would not remove the old highlighting.
     // Explicitly setting the field to QVariant (nothing) reutrns the field to default styling.
     while (!highlightedData.isEmpty()) {
         quint16 address = highlightedData.takeFirst();
@@ -195,7 +199,7 @@ void MemoryDumpPane::highlight()
     }
     else if(!Pep::isUnaryMap[Pep::decodeMnemonic[is]]) {
         for(int it = 0; it < 3; it++) {
-            quint16 as16 = static_cast<quint16>(pc + it);
+            auto as16 = static_cast<quint16>(pc + it);
             highlightByte(as16, colors->altTextHighlight, colors->memoryHighlightPC);
             highlightedData.append(as16);
         }
@@ -274,7 +278,7 @@ void MemoryDumpPane::copy()
     }
     // Turn the text of the selected rows into space delimited strings.
     QStringList lines;
-    for(auto line : map) {
+    for(const auto& line : map) {
         lines.append(line.join(" "));
     }
     // Join all selected rows into a newline delimited string.
@@ -297,8 +301,7 @@ void MemoryDumpPane::onFontChanged(QFont font)
     for(int it = 0; it < data->columnCount(); it++) {
         lineSize += static_cast<unsigned int>(ui->tableView->columnWidth(it));
     }
-    lineSize +=
-            QFontMetrics(font).boundingRect(space).width();
+    lineSize += QFontMetrics(font).boundingRect(space).width();
     ui->tableView->adjustSize();
     setMaximumWidth(sizeHint().width());
 }
@@ -307,7 +310,8 @@ void MemoryDumpPane::onDarkModeChanged(bool darkMode)
 {
     if(darkMode) colors = &PepColors::darkMode;
     else colors = &PepColors::lightMode;
-    // Explicitly rehighlight if in simulation, otherwise old highlighting colors will still be used until the next cycle.
+    // Explicitly rehighlight if in simulation, otherwise old highlighting colors
+    // will still be used until the next cycle.
     if(inSimulation) {
         clearHighlight();
         highlight();
@@ -353,9 +357,12 @@ void MemoryDumpPane::scrollToByte(quint16 address)
 {
     // Rows contain 8 bytes of memory.
     // The first column is an address, so the first byte in a row is in column one.
-    disconnect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged, this, &MemoryDumpPane::scrollToLine);
-    ui->tableView->scrollTo(data->index(address/8, address%8 + 1), QAbstractItemView::ScrollHint::PositionAtTop);
-    connect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged, this, &MemoryDumpPane::scrollToLine, Qt::UniqueConnection);
+    disconnect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged,
+               this, &MemoryDumpPane::scrollToLine);
+    ui->tableView->scrollTo(data->index(address/8, address%8 + 1),
+                            QAbstractItemView::ScrollHint::PositionAtTop);
+    connect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, &MemoryDumpPane::scrollToLine, Qt::UniqueConnection);
 }
 
 void MemoryDumpPane::scrollToPC()
@@ -410,23 +417,21 @@ void MemoryDumpPane::scrollToLine(int /*scrollBarValue*/)
     ui->scrollToLineEdit->setText(str);
 }
 
-MemoryDumpDelegate::MemoryDumpDelegate(QSharedPointer<MainMemory> memory, QObject *parent): QStyledItemDelegate(parent),
-    memDevice(memory), canEdit(true)
+MemoryDumpDelegate::MemoryDumpDelegate(QSharedPointer<MainMemory> memory, QObject *parent):
+    QStyledItemDelegate(parent),
+    memDevice(std::move(std::move(memory))), canEdit(true)
 {
 
 }
 
-MemoryDumpDelegate::~MemoryDumpDelegate()
-{
-
-}
+MemoryDumpDelegate::~MemoryDumpDelegate() = default;
 
 QWidget *MemoryDumpDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     // The first and last columns are not user editable, so do not create an editor.
     if(index.column() == 0 || index.column() == 1 + 8 || !canEdit) return nullptr;
     // Otherwise, defer to QStyledItemDelegate's implementation, which returns a LineEdit
-    QLineEdit *line = qobject_cast<QLineEdit*>(QStyledItemDelegate::createEditor(parent, option, index));
+    auto *line = qobject_cast<QLineEdit*>(QStyledItemDelegate::createEditor(parent, option, index));
     // Apply a validator, so that a user cannot input anything other than a one byte hexadecimal constant
     line->setValidator(new QRegExpValidator(QRegExp("[a-fA-F0-9][a-fA-F0-9]|[a-fA-F0-9]"), line));
     return line;
@@ -436,7 +441,7 @@ void MemoryDumpDelegate::setEditorData(QWidget *editor, const QModelIndex &index
 {
     // The default value in the line edit should be the text currently in that cell.
     QString value = index.model()->data(index, Qt::EditRole).toString();
-    QLineEdit *line = static_cast<QLineEdit*>(editor);
+    auto *line = static_cast<QLineEdit*>(editor);
     line->setText(value);
 }
 
@@ -449,12 +454,12 @@ void MemoryDumpDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptio
 void MemoryDumpDelegate::setModelData(QWidget *editor, QAbstractItemModel *, const QModelIndex &index) const
 {
     // Get text from editor and convert it to a integer.
-    QLineEdit *line = static_cast<QLineEdit*>(editor);
+    auto *line = static_cast<QLineEdit*>(editor);
     QString strValue = line->text();
     bool ok;
-    quint64 intValue = static_cast<quint64>(strValue.toInt(&ok, 16));
+    auto intValue = static_cast<quint64>(strValue.toInt(&ok, 16));
     // Use column - 1 since the first column is the address.
-    quint16 addr = static_cast<quint16>(index.row()*8 + index.column() - 1);
+    auto addr = static_cast<quint16>(index.row()*8 + index.column() - 1);
     // Even though there is a regexp validator in place, validate data again.
     if(ok && intValue< 1<<16) {
         // Instead of inserting data directly into the item model, notify the MemorySection of a change.
@@ -514,16 +519,13 @@ DisableEdgeSelectionModel::DisableEdgeSelectionModel(QAbstractItemModel *model, 
 
 }
 
-DisableEdgeSelectionModel::~DisableEdgeSelectionModel()
-{
-
-}
+DisableEdgeSelectionModel::~DisableEdgeSelectionModel() = default;
 
 void DisableEdgeSelectionModel::select(const QItemSelection &selection, QItemSelectionModel::SelectionFlags command)
 {
     QItemSelection newSelection;
     // For every selection range, remove any invalid indicies.
-    for(auto item : selection) {
+    for(const auto& item : selection) {
         // If the leftmost edge is in the last column, the selection
         // only spans the last column, so ignore it.
         if(item.topLeft().column() == model()->columnCount() - 1) continue;

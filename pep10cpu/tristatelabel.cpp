@@ -45,38 +45,38 @@ bool TristateLabel::toggle()
     if (toggleMode == Tristate) {
         if (text() == "") {
             setText("0");
-            return 0;
+            return false;
         }
         else if (text() == "0") {
             setText("1");
-            return 1;
+            return true;
         }
         else if (text() == "1") {
             setText("");
-            return 0; // what should this be?
+            return false; // what should this be?
         }
     }
     else if (toggleMode == ZeroOne) {
         if (text() == "0") {
             setText("1");
-            return 1;
+            return true;
         }
         else if (text() == "1") {
             setText("0");
-            return 0;
+            return false;
         }
     }
     else if (toggleMode == OneUndefined) {
         if (text() == "") {
             setText("1");
-            return 1;
+            return true;
         }
         else if (text() == "1") {
             setText("");
-            return 0;
+            return false;
         }
     }
-    return 0;
+    return false;
 }
 
 void TristateLabel::mousePressEvent(QMouseEvent *ev)

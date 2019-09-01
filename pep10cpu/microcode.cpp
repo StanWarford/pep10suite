@@ -488,3 +488,5 @@ bool UnitPostCode::hasUnitPost() const
 {
     return true;
 }
+
+AMicroCode::~AMicroCode() = default;

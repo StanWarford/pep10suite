@@ -154,19 +154,19 @@ public:
     // See http://doc.qt.io/qt-5/qstyleditemdelegate.html#subclassing-qstyleditemdelegate for explanation on the methods being reimplemented.
 
     // If the index is editable, create an editor that validates byte hex constants, otherwise return nullptr
-    virtual QWidget* createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    QWidget* createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     // Provides editor widget with starting data for editing.
-    virtual void setEditorData(QWidget * editor, const QModelIndex & index) const override;
+    void setEditorData(QWidget * editor, const QModelIndex & index) const override;
     // Ensure that editor is displayed correctly on the item view
-    virtual void updateEditorGeometry(QWidget * editor,
+    void updateEditorGeometry(QWidget * editor,
                                       const QStyleOptionViewItem & option,
                                       const QModelIndex & index) const override;
     // Handle updating data in the model via calling the memorySection
-    virtual void setModelData(QWidget *editor,
+    void setModelData(QWidget *editor,
                               QAbstractItemModel *model,
                               const QModelIndex &index) const override;
     // Override painting method to allow drawing of vertical bars in dump pane.
-    virtual void paint(QPainter *painter,
+    void paint(QPainter *painter,
                        const QStyleOptionViewItem &option,
                        const QModelIndex &index ) const override;
 };
@@ -182,9 +182,9 @@ class DisableEdgeSelectionModel : public QItemSelectionModel
 {
     Q_OBJECT
 public:
-    DisableEdgeSelectionModel(QAbstractItemModel *model = Q_NULLPTR) noexcept;
-    DisableEdgeSelectionModel(QAbstractItemModel *model, QObject *parent = Q_NULLPTR) noexcept;
-    virtual ~DisableEdgeSelectionModel() override;
+    DisableEdgeSelectionModel(QAbstractItemModel *model = nullptr) noexcept;
+    DisableEdgeSelectionModel(QAbstractItemModel *model, QObject *parent = nullptr) noexcept;
+    ~DisableEdgeSelectionModel() override;
     void select(const QItemSelection &selection, QItemSelectionModel::SelectionFlags command) override;
     void select(const QModelIndex &index, SelectionFlags command) override;
 };

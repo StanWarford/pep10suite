@@ -35,7 +35,7 @@ class IOWidget : public QWidget
 
 public:
     explicit IOWidget(QWidget *parent = nullptr);
-    ~IOWidget();
+    ~IOWidget() override;
 
     // Set the text in the batch input pane. Needed to pass
     void setBatchInput(QString text);

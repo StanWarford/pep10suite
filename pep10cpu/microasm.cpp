@@ -20,6 +20,7 @@
 */
 
 #include<QStringList>
+#include <utility>
 #include "microasm.h"
 #include "pep.h"
 #include "microcode.h"
@@ -39,7 +40,7 @@ QRegExp MicroAsm::rxDigit("^[0-9]+");
 QRegExp MicroAsm::rxIdentifier("^((([A-Z|a-z]{1})(\\w*))(:){0,1})");
 QRegExp MicroAsm::rxHexConst("^((0(?![x|X]))|((0)([x|X])([0-9|A-F|a-f])+)|((0)([0-9]+)))");
 MicroAsm::MicroAsm(QSharedPointer<AMemoryDevice> memory, Enu::CPUType type, bool useExtendedFeatures): cpuType(type),
-    useExt(useExtendedFeatures), memDevice(memory)
+    useExt(useExtendedFeatures), memDevice(std::move(memory))
 {
 
 }

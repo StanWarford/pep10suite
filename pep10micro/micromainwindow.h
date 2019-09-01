@@ -63,11 +63,11 @@ class MicroMainWindow : public QMainWindow {
     Q_OBJECT
 public:
     MicroMainWindow(QWidget *parent = nullptr);
-    ~MicroMainWindow();
+    ~MicroMainWindow() override;
 protected:
-    void changeEvent(QEvent *e);
-    void closeEvent(QCloseEvent *e);
-    bool eventFilter(QObject *, QEvent *);
+    void changeEvent(QEvent *e) override;
+    void closeEvent(QCloseEvent *e) override;
+    bool eventFilter(QObject *, QEvent *) override;
 
 private:
     Ui::MicroMainWindow *ui;

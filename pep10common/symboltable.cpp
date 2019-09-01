@@ -21,6 +21,8 @@
 */
 
 #include "symboltable.h"
+
+#include <utility>
 #include "symbolentry.h"
 #include "symbolvalue.h"
 
@@ -35,9 +37,7 @@ SymbolID SymbolTable::getNextUserSymbolID()
 	return newSymbolID;
 }
 
-SymbolTable::SymbolTable()
-{
-}
+SymbolTable::SymbolTable() = default;
 
 SymbolTable::~SymbolTable() = default;
 
@@ -73,7 +73,7 @@ SymbolEntryPtr SymbolTable::setValue(SymbolID symbolID, AbstractSymbolValuePtr v
     if(rval->isDefined()) {
         rval->setMultiplyDefined();
     }
-    rval->setValue(value);
+    rval->setValue(std::move(value));
     return rval;
 }
 
@@ -81,7 +81,7 @@ SymbolEntryPtr SymbolTable::setValue(const QString & symbolName, AbstractSymbolV
 {
     // If the table doesn't contain a symbol, create it first.
     if(!exists(symbolName)) insertSymbol(symbolName);
-    return setValue(symbolLookup.find(symbolName).value(), value);
+    return setValue(symbolLookup.find(symbolName).value(), std::move(value));
 }
 
 SymbolTable::SymbolEntryPtr SymbolTable::reference(const QString &symbolName)

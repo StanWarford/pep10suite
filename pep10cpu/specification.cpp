@@ -22,9 +22,9 @@
 #include "specification.h"
 #include "cpudata.h"
 #include "amemorydevice.h"
-Specification::Specification() noexcept
-{
-}
+Specification::Specification() noexcept = default;
+
+Specification::~Specification() = default;
 
 MemSpecification::MemSpecification(AMemoryDevice* mem, int memoryAddress, int memoryValue, int numberBytes) noexcept: memDevice(mem), memAddress(memoryAddress),
     memValue(memoryValue), numBytes(numberBytes) {

@@ -23,6 +23,7 @@
 #define ForceShowAnnotation true
 #include <QRegExp>
 #include <QSharedPointer>
+#include <utility>
 
 #include "asmcode.h"
 #include "asmargument.h"
@@ -240,7 +241,7 @@ QString AsmCode::getComment() const
 
 void AsmCode::setComment(QString comment)
 {
-    this->comment = comment;
+    this->comment = std::move(comment);
     this->hasCom = !this->comment.isEmpty();
 }
 
@@ -251,7 +252,7 @@ QList<TraceCommand> AsmCode::getTraceData() const
 
 void AsmCode::setTraceData(QList<TraceCommand> trace)
 {
-  this->trace = trace;
+  this->trace = std::move(trace);
 }
 
 int AsmCode::getMemoryAddress() const
@@ -489,7 +490,7 @@ QSharedPointer<AsmArgument>NonUnaryInstruction::getArgument() const
 
 void NonUnaryInstruction::setArgument(QSharedPointer<AsmArgument> argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 bool NonUnaryInstruction::tracksTraceTags() const
@@ -547,7 +548,7 @@ QString UnaryInstruction::getAssemblerListing() const
                       .arg(codeStr, -7, QLatin1Char(' '))
                       .arg(getAssemblerSource());
     if(ForceShowAnnotation) {
-        for(auto command : getTraceData()) {
+        for(const auto& command : getTraceData()) {
             lineStr.append(QString(" %1").arg(command.toString()));
         }
     }
@@ -591,7 +592,7 @@ QString NonUnaryInstruction::getAssemblerListing() const
                       .arg(oprndNumStr, -5, QLatin1Char(' '))
                       .arg(getAssemblerSource(), -29);
     if(ForceShowAnnotation) {
-        for(auto command : getTraceData()) {
+        for(const auto& command : getTraceData()) {
             lineStr.append(QString(" %1").arg(command.toString()));
         }
     }
@@ -785,7 +786,7 @@ QString DotBlock::getAssemblerListing() const
             .arg(oprndStr, -12)
             .arg(comment);
     if(ForceShowAnnotation) {
-        for(auto command : getTraceData()) {
+        for(const auto& command : getTraceData()) {
             lineStr.append(QString(" %1").arg(command.toString()));
         }
     }
@@ -857,7 +858,7 @@ QSharedPointer<AsmArgument>DotBurn::getArgument() const
 
 void DotBurn::setArgument(QSharedPointer<AsmArgument>argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 QString DotByte::getAssemblerListing() const
@@ -958,7 +959,7 @@ QSharedPointer<AsmArgument>DotEquate::getArgument() const
 
 void DotEquate::setArgument(QSharedPointer<AsmArgument>argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 bool DotEquate::tracksTraceTags() const
@@ -985,7 +986,7 @@ QString DotWord::getAssemblerListing() const
             .arg(codeStr, -7, QLatin1Char(' '))
             .arg(getAssemblerSource());
     if(ForceShowAnnotation) {
-        for(auto command : getTraceData()) {
+        for(const auto& command : getTraceData()) {
             lineStr.append(QString(" %1").arg(command.toString()));
         }
     }
@@ -1061,7 +1062,7 @@ QSharedPointer<AsmArgument>DotAddrss::getArgument() const
 
 void DotAddrss::setArgument(QSharedPointer<AsmArgument>argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 quint16 DotAlign::objectCodeLength() const
@@ -1081,7 +1082,7 @@ QSharedPointer<AsmArgument>DotAlign::getArgument() const
 
 void DotAlign::setArgument(QSharedPointer<AsmArgument>argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 quint16 DotAlign::getNumBytesGenerated() const
@@ -1108,7 +1109,7 @@ QSharedPointer<AsmArgument>DotAscii::getArgument() const
 
 void DotAscii::setArgument(QSharedPointer<AsmArgument> argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 quint16 DotBlock::objectCodeLength() const
@@ -1128,7 +1129,7 @@ QSharedPointer<AsmArgument>DotBlock::getArgument() const
 
 void DotBlock::setArgument(QSharedPointer<AsmArgument> argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 bool DotBlock::tracksTraceTags() const
@@ -1153,7 +1154,7 @@ QSharedPointer<AsmArgument>DotByte::getArgument() const
 
 void DotByte::setArgument(QSharedPointer<AsmArgument>argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 bool DotByte::tracksTraceTags() const
@@ -1178,7 +1179,7 @@ QSharedPointer<AsmArgument> DotWord::getArgument() const
 
 void DotWord::setArgument(QSharedPointer<AsmArgument> argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 bool DotWord::tracksTraceTags() const
@@ -1188,7 +1189,7 @@ bool DotWord::tracksTraceTags() const
 
 void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
 {
-    for(auto code : this->macroInstance->codeList) {
+    for(const auto& code : this->macroInstance->codeList) {
         // Don't generate listing for anything after and including .END
         if(dynamic_cast<DotEnd*>(code.get()) != nullptr) break;
         code->appendObjectCode(objectCode);
@@ -1198,7 +1199,7 @@ void MacroInvoke::appendObjectCode(QList<int> &objectCode) const
 void MacroInvoke::adjustMemAddress(int addressDelta)
 {
     this->memAddress+=addressDelta;
-    for(auto code : this->macroInstance->codeList) {
+    for(const auto& code : this->macroInstance->codeList) {
         // Don't generate listing for anything after and including .END
         code->adjustMemAddress(addressDelta);
     }
@@ -1218,7 +1219,7 @@ QString MacroInvoke::getAssemblerListing() const
             .arg(argumentList.join(","), -12);
             //.arg(comment);
     list.append(lineStr);
-    for(auto code : this->macroInstance->codeList) {
+    for(const auto& code : this->macroInstance->codeList) {
         // Don't generate listing for anything after and including .END
         if(dynamic_cast<DotEnd*>(code.get()) != nullptr) break;
         list << code->getAssemblerListing();
@@ -1248,7 +1249,7 @@ QString MacroInvoke::getAssemblerSource() const
 quint16 MacroInvoke::objectCodeLength() const
 {
     quint16 total = 0;
-    for(auto line :this->macroInstance->codeList) {
+    for(const auto& line :this->macroInstance->codeList) {
         total += line->objectCodeLength();
     }
     return total;
@@ -1261,7 +1262,7 @@ QStringList MacroInvoke::getArgumentList() const
 
 void MacroInvoke::setArgumentList(QStringList argumentList)
 {
-    this->argumentList = argumentList;
+    this->argumentList = std::move(argumentList);
 }
 
 QSharedPointer<ModuleInstance> MacroInvoke::getMacroInstance() const
@@ -1271,7 +1272,7 @@ QSharedPointer<ModuleInstance> MacroInvoke::getMacroInstance() const
 
 void MacroInvoke::setMacroInstance(QSharedPointer<ModuleInstance> macroInstance)
 {
-    this->macroInstance = macroInstance;
+    this->macroInstance = std::move(macroInstance);
 }
 
 DotExport::DotExport(const DotExport &other) : AsmCode(other)
@@ -1335,7 +1336,7 @@ QSharedPointer<SymbolRefArgument> DotExport::getArgument() const
 
 void DotExport::setArgument(QSharedPointer<SymbolRefArgument> argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 DotSycall::DotSycall(const DotSycall &other) : AsmCode(other)
@@ -1399,7 +1400,7 @@ QSharedPointer<SymbolRefArgument> DotSycall::getArgument() const
 
 void DotSycall::setArgument(QSharedPointer<SymbolRefArgument> argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }
 
 DotUSycall::DotUSycall(const DotUSycall &other) : AsmCode(other)
@@ -1463,5 +1464,5 @@ QSharedPointer<SymbolRefArgument> DotUSycall::getArgument() const
 
 void DotUSycall::setArgument(QSharedPointer<SymbolRefArgument> argument)
 {
-    this->argument = argument;
+    this->argument = std::move(argument);
 }

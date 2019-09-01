@@ -220,7 +220,7 @@ void CPUMainWindow::closeEvent(QCloseEvent *event)
 bool CPUMainWindow::eventFilter(QObject *, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
         if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)) {
             if (ui->cpuWidget->hasFocus() && ui->actionDebug_Single_Step_Microcode->isEnabled()) {
                 // single step or clock, depending of if currently debugging
@@ -485,7 +485,7 @@ void CPUMainWindow::print()
     document.setPlainText(ui->microcodeWidget->toPlainText());
     mcHi.rehighlight();
 
-    QPrintDialog *dialog = new QPrintDialog(&printer, this);
+    auto *dialog = new QPrintDialog(&printer, this);
     dialog->setWindowTitle(title);
     if (dialog->exec() == QDialog::Accepted) {
         // printer.setPaperSize(QPrinter::Letter);

@@ -12,10 +12,7 @@ DisableSelectionModel::DisableSelectionModel(QAbstractItemModel *model, QObject 
 
 }
 
-DisableSelectionModel::~DisableSelectionModel()
-{
-
-}
+DisableSelectionModel::~DisableSelectionModel() = default;
 
 void DisableSelectionModel::select(const QItemSelection &selection, QItemSelectionModel::SelectionFlags command)
 {

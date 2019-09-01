@@ -24,9 +24,11 @@
 #include "ui_aboutpep.h"
 #include "pep.h"
 
+#include <utility>
+
 AboutPep::AboutPep(QString aboutText, QPixmap pixmap, QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::AboutPep), str(aboutText), icon(pixmap)
+    ui(new Ui::AboutPep), str(std::move(aboutText)), icon(pixmap)
 {
     ui->setupUi(this);
     QPalette p = ui->aboutText->palette();

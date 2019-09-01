@@ -31,7 +31,7 @@ class Specification
 {
 public:
     explicit Specification() noexcept;
-    virtual ~Specification() { }
+    virtual ~Specification();
     virtual void setUnitPre(CPUDataSection*) noexcept { }
     virtual bool testUnitPost(const CPUDataSection*, QString&) const noexcept {return true;}
     virtual QString getSourceCode() const noexcept = 0;
@@ -41,7 +41,7 @@ class MemSpecification: public Specification {
 public:
     MemSpecification(AMemoryDevice* mem, int memoryAddress, int memoryValue, int numberBytes) noexcept;
     void setUnitPre(CPUDataSection*) noexcept override;
-    bool testUnitPost(const CPUDataSection *data, QString &errString) const noexcept override;
+    bool testUnitPost(const CPUDataSection *data, QString &errorString) const noexcept override;
     QString getSourceCode() const noexcept override;
 private:
     AMemoryDevice* memDevice;
@@ -54,7 +54,7 @@ class RegSpecification: public Specification {
 public:
     RegSpecification(Enu::ECPUKeywords registerAddress, int registerValue) noexcept;
     void setUnitPre(CPUDataSection*) noexcept override;
-    bool testUnitPost(const CPUDataSection *data, QString &errString) const noexcept override;
+    bool testUnitPost(const CPUDataSection *data, QString &errorString) const noexcept override;
     QString getSourceCode() const noexcept override;
 private:
     Enu::ECPUKeywords regAddress;

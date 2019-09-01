@@ -35,8 +35,8 @@ namespace Ui {
 class CPUHelpDialog : public QDialog {
     Q_OBJECT
 public:
-    CPUHelpDialog(QWidget *parent = 0);
-    ~CPUHelpDialog();
+    CPUHelpDialog(QWidget *parent = nullptr);
+    ~CPUHelpDialog() override;
 
     QString getExampleText();
     Enu::CPUType getExamplesModel();
@@ -50,7 +50,7 @@ public:
     void selectItem(QString string);
 
 protected:
-    void changeEvent(QEvent *e);
+    void changeEvent(QEvent *e) override;
 
 private:
     Ui::HelpDialog *ui;

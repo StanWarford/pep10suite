@@ -58,7 +58,7 @@ public slots:
 private:
     Ui::OutputPane *ui;
 
-    void mouseReleaseEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *) override;
 };
 
 #endif // OUTPUTPANE_H

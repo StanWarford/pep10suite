@@ -36,7 +36,7 @@ class MicroObjectCodePane : public QWidget {
     Q_OBJECT
 public:
     explicit MicroObjectCodePane(QWidget *parent = nullptr);
-    virtual ~MicroObjectCodePane() override;
+    ~MicroObjectCodePane() override;
 
     // Must be called after the class is constructed but before it is used, else the program will crash
     void init(QSharedPointer<InterfaceMCCPU> cpu, bool showCtrlSectionSignals);

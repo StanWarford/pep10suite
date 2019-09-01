@@ -29,7 +29,7 @@ MicrocodeProgram::MicrocodeProgram(QVector<AMicroCode*>objectCode, QSharedPointe
     }
 
     for(int it = 0; it < microcodeVec.length(); it++) {
-        MicroCode* line = static_cast<MicroCode*>(programVec[microcodeVec[it]]);
+        auto* line = static_cast<MicroCode*>(programVec[microcodeVec[it]]);
         // If the line doesn't already have a symbol, create an assembler assigned one.
         if((line->getSymbol()) == nullptr) {
             line->setSymbol(symTable->insertSymbol("_as" + QString::number(it)).data());
@@ -39,7 +39,7 @@ MicrocodeProgram::MicrocodeProgram(QVector<AMicroCode*>objectCode, QSharedPointe
     // For each microcode line with an Assembler_Assigned branch function,
     // replace it with the appropriate Uncoditional branch to the next line of microcode.
     for(int it=0;it<microcodeVec.length();it++) {
-        MicroCode* line = static_cast<MicroCode*>(programVec[microcodeVec[it]]);
+        auto* line = static_cast<MicroCode*>(programVec[microcodeVec[it]]);
         // If the line of microcode has no branch function, assume an uncoditional branch to the following line of microcode.
         if((line->getBranchFunction() == Enu::Assembler_Assigned) && (it + 1 <microcodeVec.length())) {
             line->setBranchFunction(Enu::Unconditional);

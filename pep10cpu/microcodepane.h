@@ -38,8 +38,8 @@ class CPUDataSection;
 class MicrocodePane : public QWidget {
     Q_OBJECT
 public:
-    MicrocodePane(QWidget *parent = 0);
-    ~MicrocodePane();
+    MicrocodePane(QWidget *parent = nullptr);
+    ~MicrocodePane() override;
 
     void init(QSharedPointer<InterfaceMCCPU> cpu, QSharedPointer<CPUDataSection> dataSection,  QSharedPointer<AMemoryDevice> memDevice, bool fullCtrlSection);
     void initCPUModelState();
@@ -112,7 +112,7 @@ public slots:
     void onCPUTypeChanged(Enu::CPUType type);
 
 protected:
-    void changeEvent(QEvent *e);
+    void changeEvent(QEvent *e) override;
 
 private:
     Ui::MicrocodePane *ui;
