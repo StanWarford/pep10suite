@@ -1,7 +1,9 @@
 ;******* Pep/9 Operating System, 2019/03/03
 ;
-TRUE:    .EQUATE 1           
-FALSE:   .EQUATE 0           
+true:    .EQUATE 1
+false:   .EQUATE 0
+         .EXPORT true
+         .EXPORT false
 ;
 ;******* Operating system RAM
 osRAM:   .BLOCK  128         ;System stack area
@@ -340,7 +342,7 @@ DECI:    LDWA    0x00FE,i    ;Assert d, n, s, sf, x, sx, sfx
          CALL    assertAd    
          CALL    setAddr     ;Set address of trap operand
          SUBSP   13,i        ;@locals#total#asciiCh#valAscii#isOvfl#isNeg#state#temp
-         LDWA    FALSE,i     ;isOvfl <- FALSE
+         LDWA    false,i     ;isOvfl <- false
          STWA    isOvfl,s    
          LDWA    init,i      ;state <- init
          STWA    state,s     
@@ -360,7 +362,7 @@ stateJT: .ADDRSS sInit
 ;
 sInit:   CPBA    '+',i       ;if (asciiCh == '+')
          BRNE    ifMinus     
-         LDWX    FALSE,i     ;isNeg <- FALSE
+         LDWX    false,i     ;isNeg <- false
          STWX    isNeg,s     
          LDWX    sign,i      ;state <- sign
          STWX    state,s     
@@ -368,7 +370,7 @@ sInit:   CPBA    '+',i       ;if (asciiCh == '+')
 ;
 ifMinus: CPBA    '-',i       ;else if (asciiCh == '-')
          BRNE    ifDigit     
-         LDWX    TRUE,i      ;isNeg <- TRUE
+         LDWX    true,i      ;isNeg <- true
          STWX    isNeg,s     
          LDWX    sign,i      ;state <- sign
          STWX    state,s     
@@ -378,7 +380,7 @@ ifDigit: CPBA    '0',i       ;else if (asciiCh is a digit)
          BRLT    ifWhite     
          CPBA    '9',i       
          BRGT    ifWhite     
-         LDWX    FALSE,i     ;isNeg <- FALSE
+         LDWX    false,i     ;isNeg <- false
          STWX    isNeg,s     
          LDWX    valAscii,s  ;total <- value(asciiCh)
          STWX    total,s     
@@ -406,29 +408,29 @@ sDigit:  CPBA    '0',i       ;if (asciiCh is not a digit)
          BRLT    deciNorm    
          CPBA    '9',i       
          BRGT    deciNorm    ;exit normaly
-         LDWX    TRUE,i      ;else X <- TRUE for later assignments
+         LDWX    true,i      ;else X <- true for later assignments
          LDWA    total,s     ;Multiply total by 10 as follows:
          ASLA                ;First, times 2
          BRV     ovfl1       ;If overflow then
          BR      L1          
-ovfl1:   STWX    isOvfl,s    ;isOvfl <- TRUE
+ovfl1:   STWX    isOvfl,s    ;isOvfl <- true
 L1:      STWA    temp,s      ;Save 2 * total in temp
          ASLA                ;Now, 4 * total
          BRV     ovfl2       ;If overflow then
          BR      L2          
-ovfl2:   STWX    isOvfl,s    ;isOvfl <- TRUE
+ovfl2:   STWX    isOvfl,s    ;isOvfl <- true
 L2:      ASLA                ;Now, 8 * total
          BRV     ovfl3       ;If overflow then
          BR      L3          
-ovfl3:   STWX    isOvfl,s    ;isOvfl <- TRUE
+ovfl3:   STWX    isOvfl,s    ;isOvfl <- true
 L3:      ADDA    temp,s      ;Finally, 8 * total + 2 * total
          BRV     ovfl4       ;If overflow then
          BR      L4          
-ovfl4:   STWX    isOvfl,s    ;isOvfl <- TRUE
+ovfl4:   STWX    isOvfl,s    ;isOvfl <- true
 L4:      ADDA    valAscii,s  ;A <- 10 * total + valAscii
          BRV     ovfl5       ;If overflow then
          BR      L5          
-ovfl5:   STWX    isOvfl,s    ;isOvfl <- TRUE
+ovfl5:   STWX    isOvfl,s    ;isOvfl <- true
 L5:      STWA    total,s     ;Update total
          BR      do          
 ;
@@ -440,8 +442,8 @@ deciNorm:LDWA    isNeg,s     ;If isNeg then
          NEGA                ;Negate total
          STWA    total,s     
          BR      setNZ       
-L6:      LDWA    FALSE,i     ;else -32768 is a special case
-         STWA    isOvfl,s    ;isOvfl <- FALSE
+L6:      LDWA    false,i     ;else -32768 is a special case
+         STWA    isOvfl,s    ;isOvfl <- false
 ;
 setNZ:   LDBX    oldNZVC,s   ;Set NZ according to total result:
          ANDX    0x0001,i    ;First initialize NZV to 000
@@ -504,7 +506,7 @@ numPrint:SUBSP   6,i         ;Allocate @locals #remain#outYet#place
          STBX    charOut,d   
          NEGA                ;Make magnitude positive
 printMag:STWA    remain,s    ;remain <- abs(oprnd)
-         LDWA    FALSE,i     ;Initialize outYet <- FALSE
+         LDWA    false,i     ;Initialize outYet <- false
          STWA    outYet,s    
          LDWA    10000,i     ;place <- 10,000
          STWA    place,s     
@@ -542,7 +544,7 @@ divLoop: SUBA    place2,s    ;Division by repeated subtraction
 ;
 writeNum:CPWX    0,i         ;If X != 0 then
          BREQ    checkOut    
-         LDWA    TRUE,i      ;outYet <- TRUE
+         LDWA    true,i      ;outYet <- true
          STWA    outYet2,s   
          BR      printDgt    ;and branch to print this digit
 checkOut:LDWA    outYet2,s   ;else if a previous char was output
