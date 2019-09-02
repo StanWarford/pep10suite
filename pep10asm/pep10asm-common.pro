@@ -24,6 +24,7 @@ HEADERS += \
     asmprogrammanager.h \
     asmsourcecodepane.h \
     cpphighlighter.h \
+    errormessage.h \
     executionstatisticswidget.h \
     fakemacrodriver.h \
     interfaceisacpu.h \
@@ -63,6 +64,7 @@ SOURCES += \
     asmprogrammanager.cpp \
     asmsourcecodepane.cpp \
     cpphighlighter.cpp \
+    errormessage.cpp \
     executionstatisticswidget.cpp \
     fakemacrodriver.cpp \
     interfaceisacpu.cpp \
