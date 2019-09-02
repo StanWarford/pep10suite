@@ -32,6 +32,9 @@ public:
 
     bool registerCustomMacro(QString macroName, QString macroText);
     QList<QSharedPointer<const Macro>> getCustomMacros() const;
+    void clearCustomMacros();
+    void reloadCustomMacros() = delete;
+
     //Given the text of a macro, get the macro's name & argument count.
     static std::tuple<bool, QString, quint16> macroDefinition(QString macroText);
 private:

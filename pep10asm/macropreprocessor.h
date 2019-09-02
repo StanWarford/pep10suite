@@ -89,4 +89,12 @@ private:
     QSharedPointer<FrontEndError> mapError(quint16 badModule, QString message);
 };
 
+static const QString tooManyMacros = ";ERROR: Only one macro may be referenced per line.";
+static const QString noIdentifier = ";ERROR: A @ must be followed by a string identifier.";
+static const QString noSuchMaro = ";ERROR: Referenced macro does not exist.";
+static const QString badArgCount = ";ERROR: Macro supplied wrong number of arguments.";
+static const QString noDollarInMacro = ";ERROR: Cannot use $ as part of a macro identifier.";
+static const QString invalidArg = ";ERROR: Bad argument: %1. Cannot use $ in macro argument.";
+static const QString circularInclude = ";ERROR: Circular macro inclusion detected.";
+static const QString selfRefence = ";ERROR: Macro definition invokes itself.";
 #endif // MACROPREPROCESSOR_H

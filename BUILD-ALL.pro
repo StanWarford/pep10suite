@@ -4,6 +4,7 @@ SUBDIRS = \
             pep10cpu \
             pep10micro \
             pep10term \
+            pep10unit \
 
 
 

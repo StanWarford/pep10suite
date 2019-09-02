@@ -83,6 +83,17 @@ QList<QSharedPointer<const Macro> > MacroRegistry::getCustomMacros() const
     return getMacros(MacroType::UserMacro);
 }
 
+void MacroRegistry::clearCustomMacros()
+{
+    for(auto it = macroList.begin(); it != macroList.end(); ) {
+        if(it.value()->type == MacroType::UserMacro) {
+            it = macroList.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 std::tuple<bool, QString, quint16> MacroRegistry::macroDefinition(QString macroText)
 {
     /*

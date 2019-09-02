@@ -3,15 +3,6 @@
 #include "ngraph_prune.h"
 #include "ngraph_path.h"
 
-static const QString tooManyMacros = ";ERROR: Only one macro may be referenced per line.";
-static const QString noIdentifier = ";ERROR: A @ must be followed by a string identifier.";
-static const QString noSuchMaro = ";ERROR: Referenced macro does not exist.";
-static const QString badArgCount = ";ERROR: Macro supplied wrong number of arguments.";
-static const QString noDollarInMacro = ";ERROR: Cannot use $ as part of a macro identifier.";
-static const QString invalidArg = ";ERROR: Bad argument: %1. Cannot use $ in macro argument.";
-static const QString circularInclude = ";ERROR: Circular macro inclusion detected.";
-static const QString selfRefence = ";ERROR: Macro definition invokes itself.";
-
 MacroPreprocessor::MacroPreprocessor(const MacroRegistry *registry): registry(registry), moduleIndex(0)
 {
 
@@ -85,9 +76,6 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
     ExtractResult retVal;
     MacroDefinition extract;
     if(module.moduleType == ModuleType::MACRO) {
-        //++lineIt;
-        //++lineNumber;
-        // Remove the first line of text from the module.
         module.textLines.pop_front();
         module.text = module.text.mid(module.text.indexOf("\n") + 1);
     }
@@ -154,9 +142,6 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
 
         auto macroObject = registry->getMacro(macroName);
         auto endMacroName = macroNameMatch.capturedEnd();
-        //QString argSubstr = lineText.mid(endMacroName, commentLoc);
-        //QString trimmedSubstr = argSubstr.trimmed();
-        //QStringList splitList = trimmedSubstr.split(",", QString::SplitBehavior::SkipEmptyParts);
 
         // Get the number of "things" seperated by commas AND outside of comments.
         QString argText = lineText.mid(endMacroName, commentLoc - endMacroName).trimmed();
@@ -276,6 +261,7 @@ std::tuple<bool, QString> MacroPreprocessor::validateMacroName(QString macroName
     if(macroMatch.match(macroName).hasMatch()) {
         return {false, noDollarInMacro};
     }
+
     return {true, ""};
 }
 
