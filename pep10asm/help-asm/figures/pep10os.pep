@@ -140,9 +140,9 @@ unary:   LDWA    USCJT,i
          LDWA    EUSCJT,i
          SUBA    USCJT,i
          STWA    -2,s
-         SUBSP   4,i        ;Allocate @param #arrAddr#arrDim
+         SUBSP   4,i         ;Allocate @param #arrAddr#arrDim
          CALL    trapFind
-         ADDSP   4,i        ;Deallocate @param #arrDim#arrAddr
+         ADDSP   4,i         ;Deallocate @param #arrDim#arrAddr
          CALL    USCJT, x
          SRET
 ;
@@ -155,14 +155,14 @@ nonUnary:LDWA    oldPC,s     ;Must increment program counter
          LDWA    ESCJT,i
          SUBA    SCJT,i
          STWA    -2,s
-         SUBSP   4,i        ;Allocate @param #arrAddr#arrDim
+         SUBSP   4,i         ;Allocate @param #arrAddr#arrDim
          CALL    trapFind
-         ADDSP   4,i        ;Deallocate @param #arrDim#arrAddr
+         ADDSP   4,i         ;Deallocate @param #arrDim#arrAddr
          CALL    SCJT, x
          SRET
 ;
-arrDim:  .EQUATE 4          ;#2d Stack address of the array size
-arrAddr: .EQUATE 2          ;#2h Stack address of the trap array
+arrDim:  .EQUATE 4           ;#2d Stack address of the array size
+arrAddr: .EQUATE 2           ;#2h Stack address of the trap array
 trapFind: MOVTA
           LDWX   0,i         ;Initialize array iterator
 trapLoop: CPWX   arrDim,s    ;Check if iterator is at end of array
