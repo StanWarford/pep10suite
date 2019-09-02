@@ -16,11 +16,13 @@ win32{
 SOURCES +=  \
     testmain.cpp \
     tst_assembleos.cpp \
+    tst_assembleprograms.cpp \
     tst_prepreocessorfail.cpp \
     tst_tokenizerfail.cpp
 
 HEADERS += \
     tst_assembleos.h \
+    tst_assembleprograms.h \
     tst_prepreocessorfail.h \
     tst_tokenizerfail.h
 
@@ -40,4 +42,5 @@ include(../../pep10cpu/pep10cpu-common.pro)
 
 #Must manually add resource files we care about.
 RESOURCES += \
-    ../../pep10asm/pep10asm-macros.qrc
+    ../../pep10asm/pep10asm-macros.qrc \
+    ../../pep10asm/pep10asm-helpresources.qrc \

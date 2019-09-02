@@ -1,8 +1,8 @@
 #include <QTest>
-#include "../AutoTest.h"
 #include "tst_prepreocessorfail.h"
 #include "tst_tokenizerfail.h"
 #include "tst_assembleos.h"
+#include "tst_assembleprograms.h"
 #include "pep.h"
 int main(int argc, char *argv[])
 {
@@ -27,5 +27,7 @@ int main(int argc, char *argv[])
     AssembleOS os;
     ret += QTest::qExec(&os, argc, argv);
     // Lastly, try assembling all sample programs.
+    AssemblePrograms progs;
+    ret += QTest::qExec(&progs, argc, argv);
     return ret;
 }

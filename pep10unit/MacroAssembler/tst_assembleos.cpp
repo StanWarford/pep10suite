@@ -23,7 +23,7 @@ void AssembleOS::assembleOS()
 {
     QSharedPointer<AsmProgram> prog;
     auto elist = QList<QPair<int, QString>>();
-    MacroAssemblerDriver assembler(std::move(registry));
+    MacroAssemblerDriver assembler(registry);
     auto asmResult = assembler.assembleOperatingSystem(osText);
     QVERIFY2(asmResult.success, "Assembly of operating system did not succede");
     QVERIFY2(!asmResult.program.isNull(), "Operating system program does not exist");
