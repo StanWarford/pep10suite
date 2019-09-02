@@ -5,13 +5,14 @@
 #include "macromodules.h"
 #include "macroregistry.h"
 
+class FrontEndError;
 // Report whether the entire preprocessing stage
 // was successful, or report what line in the main
 // module caused (or included) a macro error.
 struct PreprocessorResult
 {
     bool succes;
-    ErrorInfo error;
+    QSharedPointer<FrontEndError> error;
 };
 
 /*
@@ -85,6 +86,7 @@ private:
     // Create a module or return a pointer to an identical one.
     quint16 maybeCreatePrototype(QString macroName, ModuleType type);
     QSharedPointer<ModuleInstance> maybeCreateInstance(quint16 moduleIndex, QStringList args);
+    QSharedPointer<FrontEndError> mapError(quint16 badModule, QString message);
 };
 
 #endif // MACROPREPROCESSOR_H

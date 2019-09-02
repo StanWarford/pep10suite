@@ -304,7 +304,6 @@ bool BuildHelper::buildProgram()
     QFile objectFile(objFileInfo.absoluteFilePath());
     QFile errorLog(QFileInfo(objectFile).absoluteDir().absoluteFilePath(
                        QFileInfo(objectFile).baseName() + "_errLog.txt"));
-    QList<ErrorInfo> elist;
 
     MacroAssemblerDriver assembler(registry);
     //QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
@@ -316,16 +315,27 @@ bool BuildHelper::buildProgram()
 
     // If there were errors, attempt to write all of them to the error file.
     // If the error file can't be opened, log that failure to standard output.
-    if(!asmResult.errors.isEmpty()) {
-        elist = asmResult.errors;
+    if(!asmResult.errors.sourceMapped.isEmpty()) {
         if(!errorLog.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
             qDebug().noquote() << errLogOpenErr.arg(errorLog.fileName());
         }
         else {
             QTextStream errAsStream(&errorLog);
             auto textList = source.split("\n");
-            for(auto errorPair : elist) {
-                errAsStream << textList[std::get<0>(errorPair)] << std::get<1>(errorPair) << endl;
+            for(auto errorList : asmResult.errors.sourceMapped) {
+                for(auto error : errorList) {
+                    int index = error->getSourceLineNumber();
+                    // Sometimes errors will be at (or past) the end of the source list.
+                    // This occurs when a .END isn't specified.
+                    // In this case, there is not text to print, so ignore existing text.
+                    if(index >= textList.size()) {
+                        errAsStream << error->getErrorMessage() << endl;
+                    }
+                    else {
+                        errAsStream << textList[error->getSourceLineNumber()]
+                                    << error->getErrorMessage() << endl;
+                    }
+                }
             }
             // Error log should be flushed automatically.
             errorLog.close();
@@ -337,7 +347,7 @@ bool BuildHelper::buildProgram()
         QSharedPointer<AsmProgram> program = asmResult.program;
         // Program assembly can succeed despite the presence of errors in the
         // case of trace tag warnings. Must gaurd against this.
-        if(elist.isEmpty()) {
+        if(asmResult.errors.sourceMapped.isEmpty()) {
             qDebug() << "Program assembled successfully.";
         }
         else {
@@ -348,7 +358,7 @@ bool BuildHelper::buildProgram()
             qDebug().noquote() << errLogOpenErr.arg(objectFile.fileName());
         }
         else {
-            // Below code copeid from object code pane's formatting
+            // Below code copied from object code pane's formatting
             QString objectCodeString = "";
             auto objectCode = program->getObjectCode();
             for (int i = 0; i < objectCode.length(); i++) {

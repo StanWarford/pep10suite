@@ -10,6 +10,7 @@
 #include "macromodules.h"
 #include "macropreprocessor.h"
 #include "symboltable.h"
+#include "errormessage.h"
 /*
  * Contains result of an assembler run.
  *
@@ -21,7 +22,7 @@
 struct ProgramOutput
 {
     bool success;
-    QList<ErrorInfo> errors;
+    ErrorDictionary errors;
     QSharedPointer<AsmProgram> program;
 };
 

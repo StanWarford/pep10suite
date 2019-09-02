@@ -9,7 +9,7 @@
 struct AssemblerResult
 {
     bool success;
-    ErrorInfo error;
+    QSharedPointer<FrontEndError> error;
 };
 
 class TokenizerBuffer;
@@ -25,7 +25,7 @@ private:
     struct ModuleResult
     {
         bool success;
-        ErrorInfo errInfo;
+        QSharedPointer<FrontEndError> errInfo;
     };
     struct LineResult
     {

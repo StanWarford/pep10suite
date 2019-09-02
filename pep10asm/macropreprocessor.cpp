@@ -3,14 +3,14 @@
 #include "ngraph_prune.h"
 #include "ngraph_path.h"
 
-static const QString tooManyMacros = "ERROR: Only one macro may be referenced per line.";
-static const QString noIdentifier = "ERROR: A % must be followed by a string identifier.";
-static const QString noSuchMaro = "ERROR: Referenced macro does not exist.";
-static const QString badArgCount = "ERROR: Macro supplied wrong number of arguments.";
-static const QString noDollarInMacro = "ERROR: Cannot use $ as part of a macro identifier.";
-static const QString invalidArg = "ERROR: Bad argument: %1. Cannot use $ in macro argument.";
-static const QString circularInclude = "ERROR: Circular macro inclusion detected.";
-static const QString selfRefence = "ERROR: Macro definition invokes itself.";
+static const QString tooManyMacros = ";ERROR: Only one macro may be referenced per line.";
+static const QString noIdentifier = ";ERROR: A @ must be followed by a string identifier.";
+static const QString noSuchMaro = ";ERROR: Referenced macro does not exist.";
+static const QString badArgCount = ";ERROR: Macro supplied wrong number of arguments.";
+static const QString noDollarInMacro = ";ERROR: Cannot use $ as part of a macro identifier.";
+static const QString invalidArg = ";ERROR: Bad argument: %1. Cannot use $ in macro argument.";
+static const QString circularInclude = ";ERROR: Circular macro inclusion detected.";
+static const QString selfRefence = ";ERROR: Macro definition invokes itself.";
 
 MacroPreprocessor::MacroPreprocessor(const MacroRegistry *registry): registry(registry), moduleIndex(0)
 {
@@ -39,20 +39,12 @@ PreprocessorResult MacroPreprocessor::preprocess()
         auto extract = extractMacroDefinitions(module);
         // If there were parsing errors, abort preprocessing now.
         if(extract.syntaxError) {
-            // Need the root module to find how it include the module that failed.
-            auto instance = target->instanceMap[target->rootModule][0];
-            auto prototype = target->prototypeMap[target->rootModule];
-            // Failing path gives the shortest path from root to the bad module,
-            // where the first item in the path is the first step towards the bad module.
-            auto failingPath =  path<quint16>(target->moduleGraph, target->rootModule, module.index);
-            //qDebug() << failingPath;
-            int wrongModule = failingPath.front();
             // Take the error message from extraction and place it on the line in root that
             // started the include chain that failed.
-            ErrorInfo err = {target->getLineFromIndex(*prototype, wrongModule), std::get<1>(extract.error)};
-            instance->errorList.append(err);
-            result.error = err;
+            auto error = mapError(module.index, std::get<1>(extract.error));
+            target->addError(error);
             result.succes = false;
+            result.error = error;
             return result;
         }
         // At this point, we have only checked syntax errors like %*($&$#.
@@ -60,20 +52,12 @@ PreprocessorResult MacroPreprocessor::preprocess()
         auto link = addModuleLinksToPrototypes(module, extract.moduleDefinitionList);
         qDebug().noquote() << graphIndex << ": "<< target->prototypeMap[graphIndex].get()->name;
         if(link.semanticsError) {
-            // Need the root module to find how it include the module that failed.
-            auto instance = target->instanceMap[target->rootModule][0];
-            auto prototype = target->prototypeMap[target->rootModule];
-            // Failing path gives the shortest path from root to the bad module,
-            // where the first item in the path is the first step towards the bad module.
-            auto failingPath =  path<quint16>(target->moduleGraph, target->rootModule, module.index);
-            //qDebug() << failingPath;
-            int wrongModule = failingPath.front();
-            // Take the error message from linking and place it on the line in root that
+            // Take the error message from the linker and place it on the line in root that
             // started the include chain that failed.
-            ErrorInfo err = {target->getLineFromIndex(*prototype, wrongModule), std::get<1>(link.error)};
-            instance->errorList.append(err);
-            result.error = err;
+            auto error = mapError(module.index, std::get<1>(link.error));
+            target->addError(error);
             result.succes = false;
+            result.error = error;
             return result;
         }
     }
@@ -83,17 +67,12 @@ PreprocessorResult MacroPreprocessor::preprocess()
 
     auto cycleCheck = checkForCycles();
     if(!std::get<0>(cycleCheck)) {
-        // Need the root module to find how it include the module that failed.
-        auto instance = target->instanceMap[target->rootModule][0];
-        auto prototype = target->prototypeMap[target->rootModule];
-        // Failing path points to the first module that participates in cycle
-        // that was included by main.
-        auto failingPath =  std::get<1>(cycleCheck);
-        int wrongModule = failingPath.front();
-        result.succes = false;
         // Take the error message from the linker and place it on the line in root that
         // started the include chain that failed.
-        result.error = {target->getLineFromIndex(*prototype, wrongModule), circularInclude};
+        auto error = mapError(std::get<1>(cycleCheck).front(), circularInclude);
+        target->addError(error);
+        result.succes = false;
+        result.error = error;
     }
 
     return result;
@@ -291,7 +270,7 @@ std::tuple<bool, std::list<quint16> > MacroPreprocessor::checkForCycles()
 
 std::tuple<bool, QString> MacroPreprocessor::validateMacroName(QString macroName)
 {
-    // The only ivalid symbol in a macro name is a $, as a $ signifies
+    // The only valid symbol in a macro name is a $, as a $ signifies
     // the argument of a previously defined macro
     static const QRegularExpression macroMatch("\\$");
     if(macroMatch.match(macroName).hasMatch()) {
@@ -308,7 +287,7 @@ std::tuple<bool, QString> MacroPreprocessor::validateMacroArgs(QStringList macro
      * I do not see a compelling use case for this level of complexity,
      * so I have opted to outright ban it.
      */
-    static const QRegularExpression macroPattern("\\s*$\\d+");
+    static const QRegularExpression macroPattern("\\s*\\$\\d+");
     for(auto arg : macroArgs) {
         auto pattern = macroPattern.match(arg);
         if(pattern.hasMatch()) {
@@ -369,6 +348,28 @@ QSharedPointer<ModuleInstance> MacroPreprocessor::maybeCreateInstance(quint16 mo
     auto instance = QSharedPointer<ModuleInstance>::create();
     instance->prototype = target->prototypeMap[moduleIndex];
     instance->macroArgs = args;
+    // Require each instance have a unique ID.
+    instance->setInstanceIndex(target->getNextInstanceID());
     target->instanceMap[moduleIndex].append(instance);
     return instance;
+}
+
+QSharedPointer<FrontEndError> MacroPreprocessor::mapError(quint16 badModule, QString message)
+{
+    // Need the root module to find how it include the module that failed.
+    auto instance = target->instanceMap[target->rootModule][0];
+    auto prototype = target->prototypeMap[target->rootModule];
+    // Failing path gives the shortest path from root to the bad module,
+    // where the first item in the path is the first step towards the bad module.
+    auto failingPath =  path<quint16>(target->moduleGraph, target->rootModule, badModule);
+
+    int wrongModule = failingPath.front();
+    // Take the error message and place it on the line in root that
+    // started the include chain that failed.
+    int wrongLineInRoot =  target->getLineFromIndex(*prototype, wrongModule);
+    auto error = QSharedPointer<FrontEndError>::create(instance->instanceIndex,
+                                                       Severity::ERROR,
+                                                       message,
+                                                       wrongLineInRoot);
+    return error;
 }

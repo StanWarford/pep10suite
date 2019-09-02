@@ -39,6 +39,7 @@ public:
     AErrorMessage(AErrorMessage&& other);
     virtual ~AErrorMessage() = 0;
 
+    quint16 getPrototypeIndex() const;
     quint32 getInstanceIndex() const;
     Severity getSeverity() const;
     Stage getStage() const;
@@ -142,8 +143,9 @@ public:
     using ProjectErrors = QMap<quint32, ModuleErrors>;
 
     ProjectErrors errors;
+    ModuleErrors sourceMapped;
 
-    void addError(quint32 instanceIndex, QSharedPointer<AErrorMessage> error);
+    void addError(QSharedPointer<AErrorMessage> error);
     ModuleErrors getModuleErrors(quint32 instanceIndex);
 
 };

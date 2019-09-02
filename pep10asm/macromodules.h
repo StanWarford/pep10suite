@@ -6,6 +6,7 @@
 #include "ngraph.h"
 #include "symboltable.h"
 #include "asmcode.h"
+#include "errormessage.h"
 
 // Track the line number an contents of an error message.
 using ErrorInfo = std::tuple<int /*line*/, QString /*errMessage*/> ;
@@ -103,8 +104,13 @@ struct ModuleInstance {
     ~ModuleInstance();
     ModuleInstance& operator=(ModuleInstance rhs);
 
-    // Errors may be raised on any line at any step.
-    QList<ErrorInfo> errorList;
+    // A module instance index consists of two parts -
+    // the upper 16 bits is the prototype index,
+    // and the lower 16 is a number that uniquely
+    // identifies a module instance from all other instances,
+    // including those with different prototypes.
+    quint32 instanceIndex;
+    void setInstanceIndex(quint16 lowerPart);
 
     /*
      * Information that must be filled in before preprocessing.
@@ -143,9 +149,9 @@ struct ModuleInstance {
     friend void swap(ModuleInstance& first, ModuleInstance&second)
     {
         using std::swap;
+        swap(first.instanceIndex, second.instanceIndex);
         swap(first.burnInfo, second.burnInfo);
         swap(first.codeList, second.codeList);
-        swap(first.errorList, second.errorList);
         swap(first.macroArgs, second.macroArgs);
         swap(first.prototype, second.prototype);
         swap(first.traceInfo, second.traceInfo);
@@ -168,11 +174,14 @@ struct ModuleAssemblyGraph
     // For a given ID, log every separate instance of the prototype.
     using InstanceMap = QMap<quint16, QList<QSharedPointer<ModuleInstance>>>;
     InstanceMap instanceMap;
+    ErrorDictionary errors;
+    void addError(QSharedPointer<AErrorMessage> error);
     // By convention the root module is 0, but it would be best to have
     // it be an explicit field.
     quint16 rootModule = defaultRootIndex;
     static const quint16 defaultRootIndex = 0;
-
+    quint16 nextInstanceID = 0;
+    quint16 getNextInstanceID();
     // Attempt to find a module prototype with the same name as macroName.
     // It will ignore case, and return a valid index in the module graph if
     // the name is found.

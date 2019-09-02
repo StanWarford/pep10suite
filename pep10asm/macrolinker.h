@@ -32,7 +32,8 @@ private:
     // prototype's line-to-instance mapping is updated, and the macro line's instance is updated.
     // This copy is performed so that multiple macro invocations (with different addresses)
     // may share the same (unadjusted) code list.
-    LinkResult linkModule(ModuleAssemblyGraph::InstanceMap& newMap, ModuleInstance& instance);
+    LinkResult linkModule(ModuleAssemblyGraph graph, ModuleAssemblyGraph::InstanceMap& newMap,
+                          ModuleInstance& instance);
     // Pre: instance contains a valid program code listing.
     // Post: The address of every line of code in codeList is increased by addressDelta
     void relocateCode(ModuleInstance& instance, quint16 addressDelta);

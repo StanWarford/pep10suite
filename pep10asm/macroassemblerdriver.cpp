@@ -34,26 +34,26 @@ ProgramOutput MacroAssemblerDriver::assembleUserProgram(QString input,
     if(!preprocess()) {
         output.success = false;
         // Report the error list of the root instance.
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
     // Handle any preprocessor errors.
     if(!assembleProgram()) {
         output.success = false;
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
     this->linker->setOSSymbolTable(osSymbol);
     if(!link()) {
         output.success = false;
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
     auto rootInstance = graph.instanceMap[graph.rootModule].first();
 
     if(!annotate()) {
         output.success = false;
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
     validate(*rootInstance.get());
@@ -77,25 +77,25 @@ ProgramOutput MacroAssemblerDriver::assembleOperatingSystem(QString input)
     if(!preprocess()) {
         output.success = false;
         // Report the error list of the root instance.
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
     // Handle any preprocessor errors.
     if(!assembleProgram()) {
         output.success = false;
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
     this->linker->clearOSSymbolTable();
     if(!link()) {
         output.success = false;
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
 
     if(!annotate()) {
         output.success = false;
-        output.errors = graph.instanceMap[graph.rootModule].first()->errorList;
+        output.errors = graph.errors;
         return output;
     }
 
@@ -116,9 +116,9 @@ bool MacroAssemblerDriver::preprocess()
     bool retVal = false;
     if(!preprocessResult.succes) {
         qDebug().noquote() << "[PREERR]"
-                           << std::get<0>(preprocessResult.error)
+                           << preprocessResult.error->getSourceLineNumber()
                            <<": "
-                           << std::get<1>(preprocessResult.error);
+                           << preprocessResult.error->getErrorMessage();
         retVal = false;
     }
     else {
@@ -134,9 +134,9 @@ bool MacroAssemblerDriver::assembleProgram()
     bool retVal = false;
     if(!assemblyResult.success) {
         qDebug().noquote() << "[ASMERR]"
-                           << std::get<0>(assemblyResult.error)
+                           << assemblyResult.error->getSourceLineNumber()
                            <<": "
-                           << std::get<1>(assemblyResult.error);
+                           << assemblyResult.error->getErrorMessage();
         retVal = false;
     }
     else {

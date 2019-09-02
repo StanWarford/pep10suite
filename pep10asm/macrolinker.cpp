@@ -45,7 +45,7 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
     ModuleAssemblyGraph::InstanceMap newMap;
     newMap[graph.rootModule] = {rootModuleInstance};
     // Begin depth-first linking starting from the root.
-    auto linkResult = linkModule(newMap, *rootModuleInstance);
+    auto linkResult = linkModule(graph, newMap, *rootModuleInstance);
     if(!linkResult.success) {
         return linkResult;
     }
@@ -96,7 +96,8 @@ LinkResult MacroLinker::pullInExports(ModuleAssemblyGraph &graph)
     return {true, {}};
 }
 
-LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstanceMap,
+LinkResult MacroLinker::linkModule(ModuleAssemblyGraph graph,
+                                   ModuleAssemblyGraph::InstanceMap& newInstanceMap,
                                    ModuleInstance& instance)
 {
     LinkResult retVal;
@@ -164,6 +165,8 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
             // Copy and swap the moduleInstance. Now we can adjust the code list for the
             // child module without affecting every instance of the macro in the application.
             auto copiedInstance = QSharedPointer<ModuleInstance>::create(*macroLine->getMacroInstance());
+            // As we have a new macro instance, we MUST update it's instance ID to be unique
+            copiedInstance->setInstanceIndex(graph.getNextInstanceID());
             // However, for linking updates to be reflected, the macro line must be updated too.
             macroLine->setMacroInstance(copiedInstance);
             // Ensure that new instance map won't error when we append an item.
@@ -184,7 +187,7 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph::InstanceMap& newInstance
             instance.prototype->lineToInstance[lineNum] = &*copiedInstance;
             // Must assign addresses to children macros before we know
             // the address of the next code line in the current module.
-            auto childRetVal = linkModule(newInstanceMap, *copiedInstance);
+            auto childRetVal = linkModule(graph, newInstanceMap, *copiedInstance);
             if(childRetVal.success == false) {
                 retVal.success = false;
                 // Only take the first linking error from child, otherwise a line might
@@ -217,7 +220,7 @@ bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
     /*
      * I doubt .ALIGN after a burn work as anticipated.
      * In order to properly align, one would need to begin with the last line of code,
-     * and assign address back-to-front. This wouldn't be a massic change,
+     * and assign address back-to-front. This wouldn't be a massive change,
      * but it would completely divorce the OS linker implementation from
      * the user linker.
      */
@@ -226,13 +229,17 @@ bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
     bool success = true;
     QString errorString;
     if (rootInstance->burnInfo.burnCount != 1) {
-        rootInstance->errorList.append({0, oneBURN});
         success = false;
+        auto error = QSharedPointer<BackEndError>::create(rootInstance->instanceIndex, Severity::ERROR,
+                                                          oneBURN, rootInstance->codeList.first());
+        graph.addError(error);
     }
     else if(forceBurn0xFFFF && rootInstance->burnInfo.burnArgument != 0xFFFF) {
         success = false;
-#pragma message("TODO: Insert error on correct line")
-        rootInstance->errorList.append({0, BURNat0xFFFF});
+        #pragma message("TODO: Insert error on correct line")
+        auto error = QSharedPointer<BackEndError>::create(rootInstance->instanceIndex, Severity::ERROR,
+                                                          BURNat0xFFFF, rootInstance->codeList.first());
+        graph.addError(error);
     }
     if(!success) return false;
     auto &codeList = rootInstance->codeList;

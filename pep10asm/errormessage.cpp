@@ -20,6 +20,11 @@ AErrorMessage::AErrorMessage(AErrorMessage &&other):
 
 }
 
+quint16 AErrorMessage::getPrototypeIndex() const
+{
+    return static_cast<quint16>(instanceIndex >> 16);
+}
+
 quint32 AErrorMessage::getInstanceIndex() const
 {
     return instanceIndex;
@@ -125,8 +130,9 @@ int BackEndError::getListingLineNumber() const
     return line->getListingLineNumber();
 }
 
-void ErrorDictionary::addError(quint32 instanceIndex, QSharedPointer<AErrorMessage> error)
+void ErrorDictionary::addError(QSharedPointer<AErrorMessage> error)
 {
+    quint32 instanceIndex = error->getInstanceIndex();
     if(!this->errors.contains(instanceIndex)) {
         errors.insert(instanceIndex, {});
     }

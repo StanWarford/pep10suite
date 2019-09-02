@@ -1,4 +1,39 @@
 #include "macromodules.h"
+#include "ngraph_path.h"
+void ModuleAssemblyGraph::addError(QSharedPointer<AErrorMessage> error)
+{
+    errors.addError(error);
+    if(error->getPrototypeIndex() == rootModule) {
+        // Determine which line in the source program caused this error to occur.
+        // Need the root module to find how it include the module that failed.
+        auto instance = instanceMap[rootModule][0];
+        auto prototype = prototypeMap[rootModule];
+        // Failing path gives the shortest path from root to the bad module,
+        // where the first item in the path is the first step towards the bad module.
+        auto failingPath =  path<quint16>(moduleGraph, rootModule, error->getPrototypeIndex());
+
+        int wrongModule = failingPath.front();
+        // Take the error message and place it on the line in root that
+        // started the include chain that failed.
+        int wrongLineInRoot =  getLineFromIndex(*prototype, wrongModule);
+        if(!errors.sourceMapped.contains(wrongLineInRoot)) {
+            errors.sourceMapped[wrongLineInRoot] = {};
+        }
+        errors.sourceMapped[wrongLineInRoot].append(error);
+    }
+    else {
+        int wrongLineInRoot =  error->getSourceLineNumber();
+        if(!errors.sourceMapped.contains(wrongLineInRoot)) {
+            errors.sourceMapped[wrongLineInRoot] = {};
+        }
+        errors.sourceMapped[wrongLineInRoot].append(error);
+    }
+}
+
+quint16 ModuleAssemblyGraph::getNextInstanceID()
+{
+    return nextInstanceID++;
+}
 
 quint16 ModuleAssemblyGraph::getIndexFromName(QString macroName) const
 {
@@ -68,6 +103,7 @@ std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance> > Mod
     QSharedPointer<ModuleInstance> rootInstance = QSharedPointer<ModuleInstance>::create();
     rootInstance->prototype = rootPrototype;
     rootInstance->macroArgs = QStringList();
+    rootInstance->setInstanceIndex(getNextInstanceID());
     instanceMap.insert(rootPrototype->index, {rootInstance});
     return {rootPrototype, rootInstance};
 }
@@ -79,7 +115,8 @@ ModuleInstance::ModuleInstance(const ModuleInstance &other)
     for(auto line : other.codeList) {
         this->codeList.append(QSharedPointer<AsmCode>(line->cloneAsmCode()));
     }
-    this->errorList = other.errorList;
+    // WARNING: Multiple instances now have the same instance index. This is very bad.
+    this->instanceIndex = other.instanceIndex;
     this->macroArgs = other.macroArgs;
     this->prototype = other.prototype;
     this->traceInfo = other.traceInfo;
@@ -98,4 +135,10 @@ ModuleInstance &ModuleInstance::operator=(ModuleInstance rhs)
 {
     swap(*this, rhs);
     return *this;
+}
+
+void ModuleInstance::setInstanceIndex(quint16 lowerPart)
+{
+    instanceIndex = static_cast<quint32>(prototype->index << 16);
+    instanceIndex |= lowerPart;
 }

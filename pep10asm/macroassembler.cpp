@@ -8,7 +8,7 @@
 static const QString unexpectedToken = ";ERROR: Unexpected token %1 encountered.";
 static const QString unxpectedEOL = ";ERROR: Found unexpected end of line.";
 static const QString expectNewlineAfterComment = ";ERROR: \n expected after a comment";
-static const QString unexpectedSymbolDecl = ";ERROR: symbol definition must be followed by a  identifier, dot command, or macro.";
+static const QString unexpectedSymbolDecl = ";ERROR: symbol definition must be followed by an identifier, dot command, or macro.";
 static const QString invalidMnemonic = ";ERROR: Invalid mnemonic \"%1\".";
 static const QString onlyInOperatingSystem = ";ERROR: Only operating systems may contain a %1.";
 static const QString invalidDotCommand = ";ERROR: Invalid dot command \"%1\"";
@@ -112,9 +112,13 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
         if(retVal.success == false) {
             result.success = false;
             // Track the error message as in the return value
-            // and in the ModuleInstance.
-            result.errInfo = {lineNumber, errorMessage};
-            instance.errorList.append(result.errInfo);
+            // and in the ModuleInstance;
+            auto error = QSharedPointer<FrontEndError>::create(instance.instanceIndex,
+                                                               Severity::ERROR,
+                                                               errorMessage,
+                                                               lineNumber);
+            graph.addError(error);
+            result.errInfo = error;
             break;
         }
         else {
@@ -128,8 +132,14 @@ MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph 
     // Otherwise, error messages might be surpressed by dotEnd error.
     if(!dotEndDetected && result.success) {
         result.success = false;
-#pragma message("Validate location of END error.")
-        result.errInfo = {instance.prototype->textLines.size(), missingEND};
+        // Track the error message as in the return value
+        // and in the ModuleInstance;
+        auto error = QSharedPointer<FrontEndError>::create(instance.instanceIndex,
+                                                           Severity::ERROR,
+                                                           missingEND,
+                                                           instance.prototype->textLines.size());
+        graph.addError(error);
+        result.errInfo = error;
     }
     if(result.success) {
         instance.codeList = codeList;
