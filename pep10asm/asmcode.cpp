@@ -214,10 +214,7 @@ MacroInvoke &MacroInvoke::operator=(MacroInvoke other)
     return *this;
 }
 
-AsmCode::~AsmCode()
-{
-
-}
+AsmCode::~AsmCode() = default;
 
 void AsmCode::setEmitObjectCode(bool emitObject)
 {
@@ -877,7 +874,7 @@ QString DotByte::getAssemblerListing() const
             .arg(codeStr, -7, QLatin1Char(' '))
             .arg(getAssemblerSource());
     if(ForceShowAnnotation) {
-        for(auto command : getTraceData()) {
+        for(const auto& command : getTraceData()) {
             lineStr.append(QString(" %1").arg(command.toString()));
         }
     }
