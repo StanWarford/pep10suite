@@ -2,9 +2,7 @@
 ;Computer Systems, Fifth edition
 ;Figure 6.32
 ;
-         BR      main        
-true:    .EQUATE 1           
-false:   .EQUATE 0           
+         BR      main                 
 ;
 LOWER:   .EQUATE 21          ;const int
 UPPER:   .EQUATE 65          ;const int
