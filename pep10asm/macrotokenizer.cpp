@@ -19,21 +19,12 @@ const QRegularExpression MacroTokenizerHelper::dotCommand = init("\\.[a-zA-Z]\\w
 const QRegularExpression MacroTokenizerHelper::hexConst = init("0[xX][0-9a-fA-F]+\\s*");
 const QRegularExpression MacroTokenizerHelper::identifier = init("[A-Z|a-z|_]\\w*(:){0,1}\\s*");
 const QRegularExpression MacroTokenizerHelper::stringConst("((\")((([^\"\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\")\\s*)");
-const QRegularExpression MacroTokenizerHelper::macroInvocation = init("@[A-Z|a-z|_]{1}(\\w*)\\s*");
-const QRegularExpression MacroTokenizerHelper::macroSubstitution = init("\\$\\d+\\s*");
+const QRegularExpression MacroTokenizerHelper::macroInvocation = init("@[A-Z|a-z|_]{1}(\\w*)");
 // Regular expressions for trace tag analysis
 const QRegularExpression MacroTokenizerHelper::rxFormatTag("(#((1c)|(1d)|(1h)|(2d)|(2h))((\\d)+a)?(\\s|$))");
 const QRegularExpression MacroTokenizerHelper::rxArrayTag("(#((1c)|(1d)|(1h)|(2d)|(2h))(\\d)+a)(\\s|$)?");
 const QRegularExpression MacroTokenizerHelper::rxSymbolTag("#[a-zA-Z][a-zA-Z0-9]{0,7}");
 const QRegularExpression MacroTokenizerHelper::rxArrayMultiplier("((\\d)+)a");
-
-// Formats for trace tag error messages
-const QString bytesAllocMismatch = ";WARNING: Number of bytes allocated (%1) not equal to number of bytes listed in trace tag (%2).";
-const QString badTag = ";WARNING: %1 not specified in .EQUATE";
-const QString neSymbol(";WARNING: Looked up a symbol that does not exist: %1");
-const QString noEquate(";WARNING: Looked for existing symbol not defined in .EQUATE: %1");
-const QString noSymbol(";WARNING: Trace tag with no symbol declaration");
-const QString illegalAddrMode(";WARNING: Stack trace not possible unless immediate addressing is specified.");
 
 bool MacroTokenizerHelper::startsWithHexPrefix(QStringRef str)
 {
@@ -151,24 +142,34 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
     }
 
 
+    // All of the $'s should have been taken care of by the token buffer.
+    // So, if we're seeing a $, we a gaurenteed a malformed substitution.
     if (firstChar == '$') {
-        auto match = macroSubstitution.match(sourceLine, offset);
-        if (!match.hasMatch()) {
-            token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed macro substitution.";
-            return false;
-        }
+        token = ELexicalToken::LTE_ERROR;
+        errorString = malformedMacroSubstitution;
+        return false;
     }
-    // Works!
     if (firstChar == '@') {
         auto match = macroInvocation.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed macro invocation.";
+            errorString = malformedMacroInvocation;
+            return false;
         }
         token = ELexicalToken::LTE_MACRO_INVOKE;
         int startIdx = match.capturedStart();
         int len = match.capturedLength();
+
+        // If the macro invocation is not followed by and end of line,
+        // space, or comment, then there was some form of identifier parsing error.
+        if (sourceLine.length() > offset + len &&
+                !(sourceLine.at(offset+len).isSpace() ||
+                  sourceLine.at(offset+len)==';')) {
+            token = ELexicalToken::LTE_ERROR;
+            errorString = malformedMacroInvocation;
+            return false;
+        }
+
         tokenString = QStringRef(&sourceLine, startIdx + 1, len - 1).trimmed();
         offset += len;
         return true;
@@ -178,12 +179,12 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         auto match = addrMode.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed addressing mode.";
+            errorString = malformedAddrMode;
             return false;
         }
         token = ELexicalToken::LT_ADDRESSING_MODE;
         int startIdx = match.capturedStart();
-        int len = match.capturedLength();;
+        int len = match.capturedLength();
         tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
         // Must move offset forward one extra character to account for ,
         offset += len + 1;
@@ -193,7 +194,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         auto match = charConst.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed character constant.";
+            errorString = malformedCharConst;
             return false;
         }
         token = ELexicalToken::LT_CHAR_CONSTANT;
@@ -208,7 +209,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         if (!match.hasMatch()) {
             // This error should not occur, as any characters are allowed in a comment.
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed comment";
+            errorString = malformedComment;
             return false;
         }
         token = ELexicalToken::LT_COMMENT;
@@ -222,7 +223,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         auto match = hexConst.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed hex constant.";
+            errorString = malformedHexConst;
             return false;
         }
         token = ELexicalToken::LT_HEX_CONSTANT;
@@ -237,7 +238,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         auto match = decConst.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed decimal constant.";
+            errorString = malformedDecConst;
             return false;
         }
         token = ELexicalToken::LT_DEC_CONSTANT;
@@ -251,7 +252,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         auto match = dotCommand.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed dot command.";
+            errorString = malformedDot;
             return false;
         }
         token = ELexicalToken::LT_DOT_COMMAND;
@@ -267,7 +268,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
             // This error should not occur, as one-character identifiers are valid.
-            errorString = ";ERROR: Malformed identifier.";
+            errorString = malformedIdentifier;
             return false;
         }
 
@@ -284,7 +285,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         auto match = stringConst.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed string constant.";
+            errorString = malformedStringConst;
             return false;
         }
         token = ELexicalToken::LT_STRING_CONSTANT;
@@ -296,7 +297,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         return true;
     }
     token = ELexicalToken::LTE_ERROR;
-    errorString = ";ERROR: Syntax error.";
+    errorString = syntaxError;
     return false;
 }
 
@@ -341,7 +342,7 @@ void TokenizerBuffer::setTokenizerInput(QStringList lines)
     tokenizerInput.resize(lines.size());
     int index = 0;
     for(auto line : lines) {
-        // ALways purge whitespace.
+        // Always purge whitespace.
         tokenizerInput[index] = line.trimmed();
         index++;
     }
@@ -450,10 +451,10 @@ void TokenizerBuffer::fetchNextLine()
             backedUpInput.append({token, tokenString});
             break;
         }
+
         if(token == MacroTokenizerHelper::ELexicalToken::LTE_MACRO_INVOKE) {
             hadMacroInvoke = true;
         }
-
         if(hadMacroInvoke) {
             if(tokenizerInput[inputIterator][offset] == ",") {
                 ++offset;

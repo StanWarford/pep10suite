@@ -77,6 +77,17 @@ public:
     // Replace preprocessor tokens ($1 $2 $3 etc) before evaluating through tokenizer.
     void setMacroSubstitutions(QStringList macroSubstitution);
     void performMacroSubstitutions(QString& sourceLine);
+    static const inline QString malformedMacroSubstitution = ";ERROR: Malformed macro substitution.";
+    static const inline QString malformedMacroInvocation = ";ERROR: Malformed macro invocation.";
+    static const inline QString malformedAddrMode = ";ERROR: Malformed addressing mode.";
+    static const inline QString malformedCharConst = ";ERROR: Malformed character constant.";
+    static const inline QString malformedComment = ";ERROR: Malformed comment";
+    static const inline QString malformedHexConst = ";ERROR: Malformed hex constant.";
+    static const inline QString malformedDecConst =";ERROR: Malformed decimal constant.";
+    static const inline QString malformedDot = ";ERROR: Malformed dot command.";
+    static const inline QString malformedIdentifier = ";ERROR: Malformed identifier.";
+    static const inline QString malformedStringConst = ";ERROR: Malformed string constant.";
+    static const inline QString syntaxError = ";ERROR: Syntax error.";
 
 private:
     QStringList macroSubstitutions;
