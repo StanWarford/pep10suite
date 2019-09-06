@@ -11,10 +11,10 @@ const QRegularExpression init(QString string)
 // Regular expressions for lexical analysis
 // For addressing modes starting with s, use negative lookaheads to ensure
 // that the longest possible addressing is matched.
-const QRegularExpression MacroTokenizerHelper::addrMode = init("\\s*(i|d|x|n|s(?![fx])|sx(?!f)|sf(?!x)|sfx)\\s*");
+const QRegularExpression MacroTokenizerHelper::addrMode = init("^,\\s*(i|d|x|n|s(?!([fx]))|sx(?!f)|sf(?!x)|sfx)\\s*");
 const QRegularExpression MacroTokenizerHelper::charConst("((\')(?![\'])(([^\'\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
-const QRegularExpression MacroTokenizerHelper::decConst = init("[+|-]{0,1}[0-9]+\\s*");
+const QRegularExpression MacroTokenizerHelper::decConst = init("^[+|-]{0,1}[0-9]+\\s*");
 const QRegularExpression MacroTokenizerHelper::dotCommand = init("\\.[a-zA-Z]\\w*\\s*");
 const QRegularExpression MacroTokenizerHelper::hexConst = init("0[xX][0-9a-fA-F]+\\s*");
 const QRegularExpression MacroTokenizerHelper::identifier = init("[A-Z|a-z|_]\\w*(:){0,1}\\s*");
@@ -174,9 +174,10 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         offset += len;
         return true;
     }
-    // Works!
+    // Parse a suspected addressing mode.
     if (firstChar == ',') {
-        auto match = addrMode.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = addrMode.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
             errorString = malformedAddrMode;
@@ -185,9 +186,10 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         token = ELexicalToken::LT_ADDRESSING_MODE;
         int startIdx = match.capturedStart();
         int len = match.capturedLength();
-        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
-        // Must move offset forward one extra character to account for ,
-        offset += len + 1;
+        // Chop off the matched ,.
+        tokenString = subStr.mid(startIdx + 1, len - 1).trimmed();
+        // Move offset to the end of the matched string.
+        offset += len;
         return true;
     }
     if (firstChar == '\'') {
@@ -233,9 +235,9 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         offset += len;
         return true;
     }
-    // Works!
     if ((firstChar.isDigit() || firstChar == '+' || firstChar == '-')) {
-        auto match = decConst.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = decConst.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
             errorString = malformedDecConst;
@@ -244,7 +246,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         token = ELexicalToken::LT_DEC_CONSTANT;
         int startIdx = match.capturedStart();
         int len = match.capturedLength();;
-        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        tokenString = subStr.mid(startIdx, len).trimmed();
         offset += len;
         return true;
     }
