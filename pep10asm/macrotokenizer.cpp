@@ -18,8 +18,8 @@ const QRegularExpression MacroTokenizerHelper::charConst("^\'([^\'\\\\]|\\\\(\'|
 //const QRegularExpression MacroTokenizerHelper::charConst("^\'(?!\')([^\'\\\\]{1}|(\\\\[\'|b|f|n|r|t|v|\"|\\\\])|(\\\\[x|X][0-9|A-F|a-f]{2}\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
 const QRegularExpression MacroTokenizerHelper::decConst = init("^[+|-]{0,1}[0-9]+\\s*");
-const QRegularExpression MacroTokenizerHelper::dotCommand = init("\\.[a-zA-Z]\\w*\\s*");
-const QRegularExpression MacroTokenizerHelper::hexConst = init("0[xX][0-9a-fA-F]+\\s*");
+const QRegularExpression MacroTokenizerHelper::dotCommand = init("^\\.[a-zA-Z]\\w*\\s*");
+const QRegularExpression MacroTokenizerHelper::hexConst = init("^0[xX][0-9a-fA-F]+\\s*");
 const QRegularExpression MacroTokenizerHelper::identifier = init("[A-Z|a-z|_]\\w*(:){0,1}\\s*");
 const QRegularExpression MacroTokenizerHelper::stringConst("((\")((([^\"\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\")\\s*)");
 const QRegularExpression MacroTokenizerHelper::macroInvocation = init("@[A-Z|a-z|_]{1}(\\w*)");
@@ -226,7 +226,8 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         return true;
     }
     if (startsWithHexPrefix(sourceLine.midRef(offset))) {
-        auto match = hexConst.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = hexConst.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
             errorString = malformedHexConst;
@@ -235,7 +236,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         token = ELexicalToken::LT_HEX_CONSTANT;
         int startIdx = match.capturedStart();
         int len = match.capturedLength();;
-        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        tokenString = subStr.mid(startIdx, len).trimmed();
         offset += len;
         return true;
     }
@@ -255,7 +256,8 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         return true;
     }
     if (firstChar == '.') {
-        auto match = dotCommand.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = dotCommand.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
             errorString = malformedDot;
@@ -264,7 +266,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         token = ELexicalToken::LT_DOT_COMMAND;
         int startIdx = match.capturedStart();
         int len = match.capturedLength();;
-        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        tokenString = subStr.mid(startIdx, len).trimmed();
         offset += len;
         return true;
     }
