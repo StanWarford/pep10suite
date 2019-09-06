@@ -1,29 +1,29 @@
-#include "tst_tokenizerfail.h"
+#include "tst_tokenizer.h"
 #include "macroregistry.h"
 #include "macrotokenizer.h"
 #include "macromodules.h"
 
-TokenizerFailure::TokenizerFailure(): registry(new MacroRegistry())
+TokenizerTest::TokenizerTest(): registry(new MacroRegistry())
 {
 
 }
 
-TokenizerFailure::~TokenizerFailure()
+TokenizerTest::~TokenizerTest()
 {
 
 }
 
-void TokenizerFailure::initTestCase()
+void TokenizerTest::initTestCase()
 {
     tokenizer = QSharedPointer<MacroTokenizer>::create();
 }
 
-void TokenizerFailure::cleanupTestCase()
+void TokenizerTest::cleanupTestCase()
 {
 
 }
 
-void TokenizerFailure::case_malformedMacroInvoke_data()
+void TokenizerTest::case_malformedMacroInvoke_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -69,12 +69,12 @@ void TokenizerFailure::case_malformedMacroInvoke_data()
             << true;
 }
 
-void TokenizerFailure::case_malformedMacroInvoke()
+void TokenizerTest::case_malformedMacroInvoke()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedMacroSubstitution_data()
+void TokenizerTest::case_malformedMacroSubstitution_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -115,12 +115,12 @@ void TokenizerFailure::case_malformedMacroSubstitution_data()
             << false;
 }
 
-void TokenizerFailure::case_malformedMacroSubstitution()
+void TokenizerTest::case_malformedMacroSubstitution()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedAddrMode_data()
+void TokenizerTest::case_malformedAddrMode_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -190,12 +190,12 @@ void TokenizerFailure::case_malformedAddrMode_data()
             << true;
 }
 
-void TokenizerFailure::case_malformedAddrMode()
+void TokenizerTest::case_malformedAddrMode()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedCharConst_data()
+void TokenizerTest::case_malformedCharConst_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -262,12 +262,12 @@ void TokenizerFailure::case_malformedCharConst_data()
             << true;
 }
 
-void TokenizerFailure::case_malformedCharConst()
+void TokenizerTest::case_malformedCharConst()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedDecConst_data()
+void TokenizerTest::case_malformedDecConst_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -321,12 +321,12 @@ void TokenizerFailure::case_malformedDecConst_data()
 
 }
 
-void TokenizerFailure::case_malformedDecConst()
+void TokenizerTest::case_malformedDecConst()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedHexConst_data()
+void TokenizerTest::case_malformedHexConst_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -389,12 +389,12 @@ void TokenizerFailure::case_malformedHexConst_data()
             << true;
 }
 
-void TokenizerFailure::case_malformedHexConst()
+void TokenizerTest::case_malformedHexConst()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedDot_data()
+void TokenizerTest::case_malformedDot_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -441,12 +441,12 @@ void TokenizerFailure::case_malformedDot_data()
             << false;
 }
 
-void TokenizerFailure::case_malformedDot()
+void TokenizerTest::case_malformedDot()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedIdentifier_data()
+void TokenizerTest::case_malformedIdentifier_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
@@ -490,32 +490,110 @@ void TokenizerFailure::case_malformedIdentifier_data()
             << true;
 }
 
-void TokenizerFailure::case_malformedIdentifier()
+void TokenizerTest::case_malformedIdentifier()
 {
     execute();
 }
 
-void TokenizerFailure::case_malformedStringConst_data()
+void TokenizerTest::case_malformedStringConst_data()
 {
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
 
+    // Tests designed to fail.
+    QTest::newRow("Invalid escape sequence \\k.")
+            << "\"\\k\""
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+    QTest::newRow("Invalid escape sequence \\N.")
+            << "\"\\N\""
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+    QTest::newRow("Invalid escape sequence \\x2 9.")
+            << "\"\\x2 9\""
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+    QTest::newRow("Invalid escape sequence \\x 29.")
+            << "\"\\x 29\""
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+    QTest::newRow("Invalid escape sequence \\x0.")
+            << "\"\\x0\""
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+    QTest::newRow("Unclosed string literal.")
+            << "\""
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+    QTest::newRow("Unclosed string and a \\n.")
+            << "\"\n"
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+    QTest::newRow("Unexpected \\n.")
+            << " \"\n\" "
+            << MacroTokenizer::malformedStringConst
+            << false;
+
+
+    // Tests designed to pass.
+    QTest::newRow("Escape quote \".")
+            << "\"\\\"\""
+            << ""
+            << true;
+
+    // Demonstrate that hex escape sequence will parse
+    QTest::newRow("Escape sequence \\xff.")
+            << "\"\\xff\""
+            << ""
+            << true;
+    // Demonstrate that two escape sequences in a row will parse.
+    QTest::newRow("Escape sequence \\xfe\\xed.")
+            << "\"\\xfe\\xed\""
+            << ""
+            << true;
 }
 
-void TokenizerFailure::case_malformedStringConst()
+void TokenizerTest::case_malformedStringConst()
 {
-
+    execute();
 }
 
-void TokenizerFailure::case_syntaxError_data()
+void TokenizerTest::case_syntaxError_data()
 {
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
 
+    QTest::newRow("Single special character.")
+            << "!"
+            << MacroTokenizer::syntaxError
+            << false;
+
+    QTest::newRow("Multiple special characters.")
+            << "()"
+            << MacroTokenizer::syntaxError
+            << false;
+
+    QTest::newRow("Unexpected :.")
+            << ": hello world"
+            << MacroTokenizer::syntaxError
+            << false;
 }
 
-void TokenizerFailure::case_syntaxError()
+void TokenizerTest::case_syntaxError()
 {
-
+    execute();
 }
 
-void TokenizerFailure::preprocess(ModuleAssemblyGraph &graph)
+void TokenizerTest::preprocess(ModuleAssemblyGraph &graph)
 {
     QFETCH(QString, ProgramText);
     QFETCH(QString, ExpectedError);
@@ -528,7 +606,7 @@ void TokenizerFailure::preprocess(ModuleAssemblyGraph &graph)
             //QCOMPARE(result.error->getErrorMessage(), ExpectedError);
 }
 
-void TokenizerFailure::execute()
+void TokenizerTest::execute()
 {
     QFETCH(QString, ProgramText);
     QFETCH(QString, ExpectedError);

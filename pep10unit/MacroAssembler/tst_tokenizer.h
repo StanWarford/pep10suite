@@ -7,13 +7,13 @@
 class MacroRegistry;
 class MacroTokenizer;
 struct ModuleAssemblyGraph;
-class TokenizerFailure : public QObject
+class TokenizerTest : public QObject
 {
     Q_OBJECT
 
 public:
-    TokenizerFailure();
-    ~TokenizerFailure();
+    TokenizerTest();
+    ~TokenizerTest();
 
 private slots:
     void initTestCase();

@@ -1,6 +1,6 @@
 #include <QTest>
 #include "tst_prepreocessorfail.h"
-#include "tst_tokenizerfail.h"
+#include "tst_tokenizer.h"
 #include "tst_assembleos.h"
 #include "tst_assembleprograms.h"
 #include "pep.h"
@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     ret += QTest::qExec(&preFail, argc, argv);
 
     // Then test the tokenizer.
-    TokenizerFailure tokenFail;
+    TokenizerTest tokenFail;
     ret += QTest::qExec(&tokenFail, argc, argv);
     // Then test that the assembler works.
     // Followed by the linker.
