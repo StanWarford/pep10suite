@@ -12,7 +12,10 @@ const QRegularExpression init(QString string)
 // For addressing modes starting with s, use negative lookaheads to ensure
 // that the longest possible addressing is matched.
 const QRegularExpression MacroTokenizerHelper::addrMode = init("^,\\s*(i|d|x|n|s(?!([fx]))|sx(?!f)|sf(?!x)|sfx)\\s*");
-const QRegularExpression MacroTokenizerHelper::charConst("((\')(?![\'])(([^\'\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
+// Do not use init() to ignore case, as escape sequences are case sensitive.
+const QRegularExpression MacroTokenizerHelper::charConst("^\'([^\'\\\\]|\\\\(\'||[bfnrtv]|\"|////)|\\\\[xX][0-9a-fA-F]{2})\'");
+// Old Pep9 regular expression for matching a char const.
+//const QRegularExpression MacroTokenizerHelper::charConst("^\'(?!\')([^\'\\\\]{1}|(\\\\[\'|b|f|n|r|t|v|\"|\\\\])|(\\\\[x|X][0-9|A-F|a-f]{2}\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
 const QRegularExpression MacroTokenizerHelper::decConst = init("^[+|-]{0,1}[0-9]+\\s*");
 const QRegularExpression MacroTokenizerHelper::dotCommand = init("\\.[a-zA-Z]\\w*\\s*");
@@ -193,7 +196,8 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         return true;
     }
     if (firstChar == '\'') {
-        auto match = charConst.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = charConst.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
             errorString = malformedCharConst;
@@ -202,7 +206,7 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         token = ELexicalToken::LT_CHAR_CONSTANT;
         int startIdx = match.capturedStart();
         int len = match.capturedLength();;
-        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        tokenString = subStr.mid(startIdx, len).trimmed();
         offset += len;
         return true;
     }

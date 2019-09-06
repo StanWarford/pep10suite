@@ -362,6 +362,11 @@ void TokenizerFailure::case_malformedHexConst_data()
             << MacroTokenizer::malformedHexConst
             << false;
 
+    QTest::newRow("Double 0x.")
+            << "0x0x9595"
+            << MacroTokenizer::malformedHexConst
+            << false;
+
     // Tests expected to pass.
     QTest::newRow("1 character hex constant.")
             << "0x1"
