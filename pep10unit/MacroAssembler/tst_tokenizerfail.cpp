@@ -126,6 +126,7 @@ void TokenizerFailure::case_malformedAddrMode_data()
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
 
+    // Tests expected to fail.
     QTest::newRow("Integer in place of address mode.")
             << ",22"
             << MacroTokenizer::malformedAddrMode
@@ -166,10 +167,27 @@ void TokenizerFailure::case_malformedAddrMode_data()
             << MacroTokenizer::malformedAddrMode
             << false;
 
-    QTest::newRow("SFX addressing mode (from Pep8).")
-            << ",sfx"
+    QTest::newRow("SXF addressing mode (from Pep8).")
+            << ",sxf"
             << MacroTokenizer::malformedAddrMode
             << false;
+
+    // Check that the tokenizer doesn't "skip" to the 'i' in light.
+    QTest::newRow("Nonsensense identifier.")
+            << ", light"
+            << MacroTokenizer::malformedAddrMode
+            << false;
+
+    //Test expected to pass.
+    QTest::newRow("Comma followed by a space, then an identifier.")
+            << ", i"
+            << ""
+            << true;
+
+    QTest::newRow("Comma followed by a tab, then an identifier.")
+            << ",\ti"
+            << ""
+            << true;
 }
 
 void TokenizerFailure::case_malformedAddrMode()
