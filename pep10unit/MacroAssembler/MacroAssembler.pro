@@ -18,12 +18,14 @@ SOURCES +=  \
     tst_assembleos.cpp \
     tst_assembleprograms.cpp \
     tst_prepreocessorfail.cpp \
+    tst_tokenbuffer.cpp \
     tst_tokenizer.cpp
 
 HEADERS += \
     tst_assembleos.h \
     tst_assembleprograms.h \
     tst_prepreocessorfail.h \
+    tst_tokenbuffer.h \
     tst_tokenizer.h
 
 INCLUDEPATH += $$PWD/../../pep10common

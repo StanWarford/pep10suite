@@ -273,7 +273,11 @@ void TokenizerTest::case_malformedDecConst_data()
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
 
-    QTest::newRow("Identifier in dec const.")
+    // Detecting identifiers or special joined with decimal constants
+    // requires evaluating a chain of tokens, which is beyond the ability
+    // of our tokenizer. The TokenizerBuffer exists for this reason,
+    // and as such these unit tests have been moved to tst_tokenbuffer.
+    /*QTest::newRow("Identifier in dec const.")
             << "6a7"
             << MacroTokenizer::malformedDecConst
             << false;
@@ -286,7 +290,7 @@ void TokenizerTest::case_malformedDecConst_data()
     QTest::newRow("Special character in dec const (-67_).")
             << "-67_"
             << MacroTokenizer::malformedDecConst
-            << false;
+            << false;*/
 
     QTest::newRow("Double negative decimal constant.")
             << "--67"
@@ -357,6 +361,11 @@ void TokenizerTest::case_malformedHexConst_data()
             << MacroTokenizer::malformedHexConst
             << false;
 
+    // Detecting identifiers or special joined with hex constants
+    // requires evaluating a chain of tokens, which is beyond the ability
+    // of our tokenizer. The TokenizerBuffer exists for this reason,
+    // and as such these unit tests have been moved to tst_tokenbuffer.
+    /*
     QTest::newRow("Invalid hex value 0x9p.")
             << "0x9p"
             << MacroTokenizer::malformedHexConst
@@ -365,7 +374,7 @@ void TokenizerTest::case_malformedHexConst_data()
     QTest::newRow("Double 0x.")
             << "0x0x9595"
             << MacroTokenizer::malformedHexConst
-            << false;
+            << false;*/
 
     // Tests expected to pass.
     QTest::newRow("1 character hex constant.")
@@ -400,18 +409,28 @@ void TokenizerTest::case_malformedDot_data()
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
 
-    QTest::newRow("Number starting dot command.")
-            << ".5dot"
-            << MacroTokenizer::malformedDot
-            << false;
 
     QTest::newRow("Number inside dot command.")
             << ".d04t"
             << MacroTokenizer::malformedDot
             << false;
 
-    QTest::newRow("Special character inside dot command.")
+    // Detecting identifiers or special joined with dot commands
+    // requires evaluating a chain of tokens, which is beyond the ability
+    // of our tokenizer. The TokenizerBuffer exists for this reason,
+    // and as such these unit tests have been moved to tst_tokenbuffer.
+    /*QTest::newRow("Special character inside dot command.")
             << ".d()t"
+            << MacroTokenizer::malformedDot
+            << false;
+
+    QTest::newRow(". inside dot command.")
+            << ".EQUA.TE"
+            << MacroTokenizer::malformedDot
+            << false;*/
+
+    QTest::newRow("Number starting dot command.")
+            << ".5dot"
             << MacroTokenizer::malformedDot
             << false;
 
@@ -422,11 +441,6 @@ void TokenizerTest::case_malformedDot_data()
 
     QTest::newRow("Too many .'s.")
             << "..EQUATE"
-            << MacroTokenizer::malformedDot
-            << false;
-
-    QTest::newRow(". inside dot command.")
-            << ".EQUA.TE"
             << MacroTokenizer::malformedDot
             << false;
 
@@ -453,6 +467,11 @@ void TokenizerTest::case_malformedIdentifier_data()
     QTest::addColumn<bool>("ExpectPass");
 
     // Tests designed to fail.
+    // Detecting identifiers or special joined with hex constants
+    // requires evaluating a chain of tokens, which is beyond the ability
+    // of our tokenizer. The TokenizerBuffer exists for this reason,
+    // and as such these unit tests have been moved to tst_tokenbuffer.
+    /*
     QTest::newRow("Special character in identifier (h!i).")
             << "h!i"
             << MacroTokenizer::malformedIdentifier
@@ -462,19 +481,19 @@ void TokenizerTest::case_malformedIdentifier_data()
             << "h-_+i"
             << MacroTokenizer::malformedIdentifier
             << false;
-
-    // Tests designed to pass.
     QTest::newRow("Identifier looking like hex constant.")
             << "l0x5d"
             << MacroTokenizer::malformedIdentifier
-            << false;
+            << false;*/
+
+    // Tests designed to pass.
 
     QTest::newRow("Well formed identifier.")
             << "hi"
             << ""
             << true;
 
-    QTest::newRow("Long well formed identifier.")
+    QTest::newRow("Well formed, long, identifier.")
             << "hello_world_this_is_a_long_identifier"
             << ""
             << true;
