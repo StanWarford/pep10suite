@@ -5,34 +5,6 @@
 #include "asmcode.h"
 #include "symboltable.h"
 #include "optional_helper.h"
-static const QString unexpectedToken = ";ERROR: Unexpected token %1 encountered.";
-static const QString unxpectedEOL = ";ERROR: Found unexpected end of line.";
-static const QString expectNewlineAfterComment = ";ERROR: \n expected after a comment";
-static const QString unexpectedSymbolDecl = ";ERROR: symbol definition must be followed by an identifier, dot command, or macro.";
-static const QString invalidMnemonic = ";ERROR: Invalid mnemonic \"%1\".";
-static const QString onlyInOperatingSystem = ";ERROR: Only operating systems may contain a %1.";
-static const QString invalidDotCommand = ";ERROR: Invalid dot command \"%1\"";
-static const QString longSymbol = ";ERROR: Symbol %1 cannot have more than eight characters.";
-static const QString missingEND = ";ERROR: Missing .END sentinel.";
-static const QString reqAddrMode = ";ERROR: Addressing mode required for this instruction.";
-static const QString illegalAddrMode = ";ERROR: Illegal addressing mode for this instruction.";
-static const QString macroDoesNotExist = ";ERROR: Macro %1 does not exist.";
-static const QString macroWrongArgCount = ";ERROR: Macro %1 has wrong number of arguments.";
-static const QString opsecAfterMnemonic = ";ERROR: Operand specifier expected after mnemonic.";
-static const QString wordStringOutOfRange = ";ERROR: String operands must have length at most two.";
-static const QString wordHexOutOfRange = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
-static const QString wordSignDecOutOfRange = ";ERROR: Decimal constant is out of range (-32768..65535).";
-static const QString addrssSymbolicArg = ";ERROR: .ADDRSS requires a symbolic argument.";
-static const QString badAsciiArgument = ";ERROR: .ASCII requires a string constant argument.";
-static const QString decConst248 = ";ERROR: Decimal constant is out of range (2, 4, 8).";
-static const QString badAlignArgument = ";ERROR: .ALIGN requires a decimal constant 2, 4, or 8.";
-static const QString wordUnsignDecOutOfRange = ";ERROR: Decimal constant is out of range (0..65535).";
-static const QString badBlockArgument = ";ERROR: .BLOCK requires a decimal or hex constant argument.";
-static const QString badBurnArgument = ";ERROR: .BURN requires a hex constant argument.";
-static const QString byteSignDecOutOfRange = ";ERROR: Decimal constant is out of byte range (-128..255).";
-static const QString byteHexOutOfRange = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
-static const QString byteStringOutOfRange = ";ERROR: string operands must have length one.";
-static const QString badByteArgument = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
 
 static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
     {MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER,
@@ -352,7 +324,8 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         }
         // Check if there was a non-empty token that caused a syntax error.
         // If-with-assignment to limit scope of match.
-        else if(auto match = tokenBuffer->takeLastMatch();
+        tokenBuffer->matchOneOf(nonunaryOperandTypes);
+        if(auto match = tokenBuffer->takeLastMatch();
                 match.first != MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
             errorMessage =  unexpectedToken.arg(match.second);
 

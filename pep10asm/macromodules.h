@@ -23,6 +23,7 @@ enum ModuleType {
     OPERATING_SYSTEM,
     USER_PROGRAM,
 };
+Q_DECLARE_METATYPE(ModuleType);
 
 // Information collected during assembly stage
 // about the number and value of a .BURN directive.

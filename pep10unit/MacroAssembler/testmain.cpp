@@ -2,6 +2,7 @@
 #include "tst_prepreocessorfail.h"
 #include "tst_tokenizer.h"
 #include "tst_tokenbuffer.h"
+#include "tst_assembler.h"
 #include "tst_assembleos.h"
 #include "tst_assembleprograms.h"
 #include "pep.h"
@@ -25,7 +26,11 @@ int main(int argc, char *argv[])
     // Test that streams of tokens may be parsed.
     TokenBufferTest tokenBuffer;
     ret += QTest::qExec(&tokenBuffer, argc, argv);
+
     // Then test that the assembler works.
+    AssemblerTest assemblerTest;
+    ret += QTest::qExec(&assemblerTest, argc, argv);
+
     // Followed by the linker.
     // Then try out the stack annotator.
     // Now attempt to assemble the operating system.

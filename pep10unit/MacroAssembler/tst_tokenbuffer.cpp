@@ -272,7 +272,6 @@ void TokenBufferTest::case_malformedIdentifier()
 
 void TokenBufferTest::execute()
 {
-
     QFETCH(QString, ProgramText);
     QFETCH(QList<MacroTokenizerHelper::ELexicalToken>, MatchList);
     QFETCH(QList<MacroTokenizerHelper::ELexicalToken>, ExpectedMatches);
