@@ -386,6 +386,118 @@ void AssemblerTest::case_onlyInOS()
     execute();
 }
 
+void AssemblerTest::case_invalidDotCommand_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Invalid dot commands
+    QTest::addRow("Invalid dot command .WHAT.")
+            << ".WHAT\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::invalidDotCommand.arg("WHAT")
+            << false;
+
+    QTest::addRow("Invalid dot command .W_HAT.")
+            << ".W_HAT\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::invalidDotCommand.arg("W_HAT")
+            << false;
+
+    QTest::addRow("Invalid dot command W_9HAT.")
+            << ".W_9HAT\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::invalidDotCommand.arg("W_9HAT")
+            << false;
+    // Validate all remaining dot commands
+    #pragma message("TODO: Move validation to helper functions")
+    #pragma message("TODO: Finish purmuting dot commands / operands")
+    QTest::addRow("Validate .END.")
+            << ".END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+
+    // Validate other arguments in handler specifically for ADDRSS.
+    QTest::addRow("Validate .ADDRSS ld.")
+            << "ld:nop\n.ADDRSS ld\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+
+    // Validate non {2,4,8} args in .ALIGN handler.
+    for(auto string : {"2","4","8"}) {
+        QTest::addRow("%s", QString("Validate .ALIGN %1.")
+                      .arg(string).toStdString().c_str())
+                << QString(".ALIGN %1\n.END\n").arg(string)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+    }
+
+}
+
+void AssemblerTest::case_invalidDotCommand()
+{
+    execute();
+}
+
+void AssemblerTest::case_symbolTooLong_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Tests that show the cutoff point between short and too long.
+    QTest::newRow("Symbol of length 7.")
+            << "abcdefg: asra\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+
+    QTest::newRow("Symbol of length 8 identifier.")
+            << "abcdefgh: asra\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+
+    QTest::newRow("Length 9 identifier.")
+            << "abcdefghi: asra\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::longSymbol.arg("abcdefghi")
+            << false;
+
+    // Tests expected to fail.
+    QString longStr = "long_identifier";
+    QTest::newRow("Otherwise valid symbol that is too long.")
+            << QString("%1: asra\n.END\n").arg(longStr)
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::longSymbol.arg(longStr)
+            << false;
+
+    // Tests expected to pass.
+    QTest::newRow("Well formed symbol of length 3.")
+            << "hi: asra\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+
+    QTest::newRow("Well formed symbol with accented character.")
+            << "hÁi: asra\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+}
+
+void AssemblerTest::case_symbolTooLong()
+{
+
+}
+
 void AssemblerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType moduleType)
 {
     QFETCH(QString, ProgramText);

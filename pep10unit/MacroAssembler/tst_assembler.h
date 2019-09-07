@@ -49,12 +49,12 @@ private slots:
     void case_onlyInOS();
 
     // Test cases for invalid dot commands e.g. "YETI"
-    //void case_invalidDotCommand_data();
-    //void case_invalidDotCommand();
+    void case_invalidDotCommand_data();
+    void case_invalidDotCommand();
 
     // Test cases where a symbol is declared to be too long
-    //void case_symbolTooLong_data();
-    //void case_symbolTooLong();
+    void case_symbolTooLong_data();
+    void case_symbolTooLong();
 
 private:
     QSharedPointer<MacroRegistry> registry;
