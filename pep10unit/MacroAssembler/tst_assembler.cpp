@@ -614,12 +614,23 @@ void AssemblerTest::case_badAddrMode_data()
         // Handle BR / CALL mnemonics where the addressing mode is optional.
         else{
             #pragma message("TODO: Create better error message for unary instruction treated like nonunary")
-            QTest::newRow(QString("Invalid addressing mode for branch %1.")
-                          .arg(QString(metaEnum.key(it)).toUpper()).toStdString().c_str())
-                    << QString(metaEnum.key(it)).toUpper() + " k,d \n.END\n"
-                    << ModuleType::USER_PROGRAM
-                    << MacroAssembler::illegalAddrMode
-                    << false;
+            for(int addrIt = 0; addrIt < addrEnum.keyCount(); addrIt++) {
+                if(Pep::addrModesMap[mnemonic] & addrEnum.value(addrIt)) {
+                    continue;
+                }
+                else if(static_cast<Enu::EAddrMode>(addrEnum.value(addrIt))
+                        == Enu::EAddrMode::NONE) {
+                    continue;
+                }
+                QTest::newRow(QString("Illegal addressing mode for %1 k,%2.")
+                              .arg(QString(metaEnum.key(it)).toUpper())
+                              .arg(QString(addrEnum.key(addrIt)).toLower()).toStdString().c_str())
+                        << QString(metaEnum.key(it)).toUpper() + " k," +
+                           QString(addrEnum.key(addrIt)).toLower() + "\n.END\n"
+                        << ModuleType::USER_PROGRAM
+                        << MacroAssembler::illegalAddrMode
+                        << false;
+            }
         }
     }
 }
