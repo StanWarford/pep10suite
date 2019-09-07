@@ -19,6 +19,10 @@ private slots:
     void initTestCase();
     void cleanupTestCase();
 
+    // Test cases where an otherwise valid program forgets a .END.
+    void case_missingEnd_data();
+    void case_missingEnd();
+
     // Test that true syntax errors are propogated to the end user.
     void case_syntaxError_data();
     void case_syntaxError();
@@ -40,7 +44,7 @@ private slots:
     void case_unexpectedSymbolDeclaration_data();
     void case_unexpectedSymbolDeclaration();
 
-    // Test cases with non-existant mnemonics e.g. "YETI"
+    // Test cases with non-existant mnemonics e.g. "YETI".
     void case_invalidMnemonic_data();
     void case_invalidMnemonic();
 
@@ -48,11 +52,11 @@ private slots:
     void case_onlyInOS_data();
     void case_onlyInOS();
 
-    // Test cases for invalid dot commands e.g. "YETI"
+    // Test cases for invalid dot commands e.g. "YETI".
     void case_invalidDotCommand_data();
     void case_invalidDotCommand();
 
-    // Test cases where a symbol is declared to be too long
+    // Test cases where a symbol is declared to be too long.
     void case_symbolTooLong_data();
     void case_symbolTooLong();
 

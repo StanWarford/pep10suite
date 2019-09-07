@@ -25,6 +25,58 @@ void AssemblerTest::cleanupTestCase()
 
 }
 
+void AssemblerTest::case_missingEnd_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    QTest::addRow("Empty user program missing .END sentinel.")
+            << "\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::missingEND
+            << false;
+
+    QTest::addRow("Non-empty user program missing .END sentinel.")
+            << "asra\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::missingEND
+            << false;
+
+    QTest::addRow("Empty operating system missing .END sentinel.")
+            << "\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::missingEND
+            << false;
+
+    QTest::addRow("Non-empty operating system missing .END sentinel.")
+            << "asra\n"
+            << ModuleType::OPERATING_SYSTEM
+            << MacroAssembler::missingEND
+            << false;
+
+    registry->clearCustomMacros();
+    registry->registerCustomMacro("test", "@test 0\n\n");
+    QTest::addRow("User program including a macro missing .END sentinel.")
+            << "@test\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::missingEND
+            << false;
+
+    QTest::addRow("Operating system including a macro missing .END sentinel.")
+            << "@test\n.END"
+            << ModuleType::OPERATING_SYSTEM
+            << MacroAssembler::missingEND
+            << false;
+
+}
+
+void AssemblerTest::case_missingEnd()
+{
+    execute();
+}
+
 void AssemblerTest::case_syntaxError_data()
 {
     QTest::addColumn<QString>("ProgramText");
