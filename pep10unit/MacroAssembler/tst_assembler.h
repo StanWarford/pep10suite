@@ -28,16 +28,17 @@ private slots:
     void case_unexpectedToken();
 
     // Test cases where an EOL is encountered too early.
-    //void case_unexpectedEOL_data();
-    //void case_unexpectedEOL();
+    void case_unexpectedEOL_data();
+    void case_unexpectedEOL();
 
     // Test cases where something other than a comment is detected after a newline.
+    // However, this should be impossible to hit, since lines always have a \n appened to them.
     //void case_expectNewlineCommnet_data();
     //void case_expectNewlineCommnet();
 
     // Test cases where a symbol is declared unexpctedly.
-    //void case_unexpectedSymbolDeclaration_data();
-    //void case_unexpectedSymbolDeclaration();
+    void case_unexpectedSymbolDeclaration_data();
+    void case_unexpectedSymbolDeclaration();
 
     // Test cases with non-existant mnemonics e.g. "YETI"
     //void case_invalidMnemonic_data();
