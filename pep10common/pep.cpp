@@ -403,7 +403,7 @@ void Pep::initMnemonicMaps()
     initMnemMapHelper(EMnemonic::ORX, 216, false, true, false);
 
     initMnemMapHelper(EMnemonic::RET, 0, true, false, false);
-    initMnemMapHelper(EMnemonic::ROLA, 24, false, true, false);
+    initMnemMapHelper(EMnemonic::ROLA, 24, true, false, false);
     initMnemMapHelper(EMnemonic::ROLX, 25, true, false, false);
     initMnemMapHelper(EMnemonic::RORA, 26, true, false, false);
     initMnemMapHelper(EMnemonic::RORX, 27, true, false, false);
