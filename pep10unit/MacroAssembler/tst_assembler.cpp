@@ -281,6 +281,58 @@ void AssemblerTest::case_unexpectedSymbolDeclaration()
     execute();
 }
 
+void AssemblerTest::case_invalidMnemonic_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Tests expected to fail.
+    QTest::addRow("Invalid mnemonic hello.")
+            << "hello\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::invalidMnemonic.arg("hello")
+            << false;
+
+    QTest::addRow("Invalid mnemonic x95.")
+            << "x95\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::invalidMnemonic.arg("x95")
+            << false;
+
+    QTest::addRow("Invalid mnemonic x_95.")
+            << "x_95\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::invalidMnemonic.arg("x_95")
+            << false;
+
+    QTest::addRow("Invalid mnemonic _hi.")
+            << "_hi\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::invalidMnemonic.arg("_hi")
+            << false;
+
+    // Passing unary instructions
+    QTest::addRow("Parse unary instruction ASRA.")
+            << "asra\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+
+    // Passing nonunary instructions
+    QTest::addRow("Parse nonunary instruction LDWA 10,d.")
+            << "LDWA 10,d\n.END\n"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+}
+
+void AssemblerTest::case_invalidMnemonic()
+{
+    execute();
+}
+
 void AssemblerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType moduleType)
 {
     QFETCH(QString, ProgramText);

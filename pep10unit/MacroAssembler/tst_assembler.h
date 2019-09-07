@@ -41,8 +41,8 @@ private slots:
     void case_unexpectedSymbolDeclaration();
 
     // Test cases with non-existant mnemonics e.g. "YETI"
-    //void case_invalidMnemonic_data();
-    //void case_invalidMnemonic();
+    void case_invalidMnemonic_data();
+    void case_invalidMnemonic();
 
     // Test cases for dot commands that may only occur in operating system.
     //void case_onlyInOS_data();
