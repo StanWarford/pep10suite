@@ -45,8 +45,8 @@ private slots:
     void case_invalidMnemonic();
 
     // Test cases for dot commands that may only occur in operating system.
-    //void case_onlyInOS_data();
-    //void case_onlyInOS();
+    void case_onlyInOS_data();
+    void case_onlyInOS();
 
     // Test cases for invalid dot commands e.g. "YETI"
     //void case_invalidDotCommand_data();

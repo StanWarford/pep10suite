@@ -333,6 +333,59 @@ void AssemblerTest::case_invalidMnemonic()
     execute();
 }
 
+void AssemblerTest::case_onlyInOS_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    using element = typename std::tuple<QString,QString, ModuleType, bool, QString>;
+    QList<element> identList;
+    // For each token type, construct a test case with a symbol before it.
+    // For tokens that identify multiple code lines (identifiers, dot commands)
+    // must test multiple permutations of these symbols.
+    identList  << element("User .SCALL", ".SCALL ld\n", ModuleType::USER_PROGRAM,
+                          false, MacroAssembler::onlyInOperatingSystem.arg(".SCALL"))
+               << element("OS .SCALL", ".SCALL ld\n", ModuleType::OPERATING_SYSTEM,
+                          false, MacroAssembler::missingEND)
+               << element("User .USCALL", ".USCALL ld\n", ModuleType::USER_PROGRAM,
+                          false, MacroAssembler::onlyInOperatingSystem.arg(".USCALL"))
+               << element("OS .USCALL", ".USCALL 0\n", ModuleType::OPERATING_SYSTEM,
+                          false, MacroAssembler::missingEND)
+               << element("User .BURN", ".BURN 0x9f\n", ModuleType::USER_PROGRAM,
+                          false, MacroAssembler::onlyInOperatingSystem.arg(".BURN"))
+               << element("OS .BURN", ".BURN 0x9f\n", ModuleType::OPERATING_SYSTEM,
+                          false, MacroAssembler::missingEND)
+               << element("User .EXPORT", ".EXPORT ld\n", ModuleType::USER_PROGRAM,
+                          false, MacroAssembler::onlyInOperatingSystem.arg(".EXPORT"))
+               << element("OS .EXPORT", ".EXPORT ld\n", ModuleType::OPERATING_SYSTEM,
+                          false, MacroAssembler::missingEND);
+    for(auto ident : identList) {
+        registry->clearCustomMacros();
+        QTest::addRow("%s", QString("Testing %1.")
+                      .arg(std::get<0>(ident)).toStdString().c_str())
+                << QString("%1").arg(std::get<1>(ident))
+                << std::get<2>(ident)
+                << std::get<4>(ident)
+                << std::get<3>(ident);
+        registry->registerCustomMacro("test",
+                                      QString("@test 0\n %1\n.END").arg(std::get<1>(ident)));
+        QTest::addRow("%s", QString("Testing %1 as an embedded macro.")
+                      .arg(std::get<0>(ident)).toStdString().c_str())
+                << "@test\n"
+                << std::get<2>(ident)
+                << std::get<4>(ident)
+                << std::get<3>(ident);
+    }
+
+}
+
+void AssemblerTest::case_onlyInOS()
+{
+    execute();
+}
+
 void AssemblerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType moduleType)
 {
     QFETCH(QString, ProgramText);
