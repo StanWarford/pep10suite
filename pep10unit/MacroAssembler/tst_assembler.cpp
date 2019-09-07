@@ -601,13 +601,24 @@ void AssemblerTest::case_badAddrMode_data()
 
             }
         }
-        else {
+        // Handle true unary instructions where any addressing mode is illegal.
+        else if(Pep::isUnaryMap[mnemonic]){
             #pragma message("TODO: Create better error message for unary instruction treated like nonunary")
-            QTest::newRow(QString("Forbid addressing mode for %1.")
+            QTest::newRow(QString("Forbid addressing mode for unary instruction %1.")
+                          .arg(QString(metaEnum.key(it)).toUpper()).toStdString().c_str())
+                    << QString(metaEnum.key(it)).toUpper() + " k,n \n.END\n"
+                    << ModuleType::USER_PROGRAM
+                    << MacroAssembler::unxpectedEOL
+                    << false;
+        }
+        // Handle BR / CALL mnemonics where the addressing mode is optional.
+        else{
+            #pragma message("TODO: Create better error message for unary instruction treated like nonunary")
+            QTest::newRow(QString("Invalid addressing mode for branch %1.")
                           .arg(QString(metaEnum.key(it)).toUpper()).toStdString().c_str())
                     << QString(metaEnum.key(it)).toUpper() + " k,d \n.END\n"
                     << ModuleType::USER_PROGRAM
-                    << MacroAssembler::unxpectedEOL
+                    << MacroAssembler::illegalAddrMode
                     << false;
         }
     }
@@ -615,7 +626,7 @@ void AssemblerTest::case_badAddrMode_data()
 
 void AssemblerTest::case_badAddrMode()
 {
-
+    execute();
 }
 
 void AssemblerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType moduleType)
