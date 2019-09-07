@@ -13,7 +13,7 @@ const QRegularExpression init(QString string)
 // that the longest possible addressing is matched.
 const QRegularExpression MacroTokenizerHelper::addrMode = init("^,\\s*(i|d|x|n|s(?!([fx]))|sx(?!f)|sf(?!x)|sfx)\\s*");
 // Do not use init() to ignore case, as escape sequences are case sensitive.
-const QRegularExpression MacroTokenizerHelper::charConst("^\'([^\'\\\\]|\\\\(\'||[bfnrtv]|\"|////)|\\\\[xX][0-9a-fA-F]{2})\'");
+const QRegularExpression MacroTokenizerHelper::charConst("^\'([^\'\\\\]|\\\\(\'|[bfnrtv]|\"|////)|\\\\[xX][0-9a-fA-F]{2})\'");
 // Old Pep9 regular expression for matching a char const.
 //const QRegularExpression MacroTokenizerHelper::charConst("^\'(?!\')([^\'\\\\]{1}|(\\\\[\'|b|f|n|r|t|v|\"|\\\\])|(\\\\[x|X][0-9|A-F|a-f]{2}\'))");
 const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
