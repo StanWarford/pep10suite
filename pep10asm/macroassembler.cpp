@@ -13,6 +13,13 @@ static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
      MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT,
      MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT};
 
+static QList<MacroTokenizerHelper::ELexicalToken> noLineStart =
+    {MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE,
+     MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT,
+     MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT,
+     MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT,
+     MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT};
+
 MacroAssembler::MacroAssembler(MacroRegistry* registry): registry(registry),
     tokenBuffer(new TokenizerBuffer())
 {
@@ -27,6 +34,7 @@ MacroAssembler::~MacroAssembler()
 AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
 {
     AssemblerResult retVal;
+    retVal.success = true;
     std::list<ModuleInstance*> toAssemble;
     toAssemble.emplace_back(graph.instanceMap[graph.rootModule][0].get());
 
@@ -324,7 +332,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         }
         // Check if there was a non-empty token that caused a syntax error.
         // If-with-assignment to limit scope of match.
-        tokenBuffer->matchOneOf(nonunaryOperandTypes);
+        tokenBuffer->matchOneOf(noLineStart);
         if(auto match = tokenBuffer->takeLastMatch();
                 match.first != MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
             errorMessage =  unexpectedToken.arg(match.second);
