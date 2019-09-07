@@ -511,13 +511,13 @@ void AssemblerTest::case_symbolTooLong_data()
             << ""
             << true;
 
-    QTest::newRow("Symbol of length 8 identifier.")
+    QTest::newRow("Symbol of length 8.")
             << "abcdefgh: asra\n.END\n"
             << ModuleType::USER_PROGRAM
             << ""
             << true;
 
-    QTest::newRow("Length 9 identifier.")
+    QTest::newRow("Symbol of length 9.")
             << "abcdefghi: asra\n.END\n"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::longSymbol.arg("abcdefghi")
@@ -546,6 +546,74 @@ void AssemblerTest::case_symbolTooLong_data()
 }
 
 void AssemblerTest::case_symbolTooLong()
+{
+    execute();
+}
+
+void AssemblerTest::case_badAddrMode_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Failing tests that omit addressing modes on non-unary instructions
+    QSet<QString> mnemonics;
+    QMetaObject meta = Enu::staticMetaObject;
+    QMetaEnum metaEnum = meta.enumerator(meta.indexOfEnumerator("EMnemonic"));
+    QMetaEnum addrEnum = meta.enumerator(meta.indexOfEnumerator("EAddrMode"));
+    QString tempqs;
+    for(int it = 0; it < metaEnum.keyCount(); it++)
+    {
+        auto mnemonic = static_cast<Enu::EMnemonic>(metaEnum.value(it));
+        // If the instruction requires an addressing mode, construct
+        // a test where it it provided no addressing modes.
+        if(Pep::addrModeRequiredMap[mnemonic]) {
+            QTest::newRow(QString("Require addressing mode for %1.")
+                          .arg(QString(metaEnum.key(it)).toUpper()).toStdString().c_str())
+                    << QString(metaEnum.key(it)).toUpper() + " k \n.END\n"
+                    << ModuleType::USER_PROGRAM
+                    << MacroAssembler::reqAddrMode
+                    << false;
+
+            // If the instruction doesn't allow all addressing modes,
+            // then construct a test case where it is provided the illegal
+            // addressing mode.
+            if(auto allowed = Pep::addrModesMap[mnemonic];
+                    allowed != static_cast<int>(Enu::EAddrMode::ALL)) {
+                for(int addrIt = 0; addrIt < addrEnum.keyCount(); addrIt++) {
+                    if(allowed & addrEnum.value(addrIt)) {
+                        continue;
+                    }
+                    else if(static_cast<Enu::EAddrMode>(addrEnum.value(addrIt))
+                            == Enu::EAddrMode::NONE) {
+                        continue;
+                    }
+                    QTest::newRow(QString("Illegal addressing mode for %1 k,%2.")
+                                  .arg(QString(metaEnum.key(it)).toUpper())
+                                  .arg(QString(addrEnum.key(addrIt)).toLower()).toStdString().c_str())
+                            << QString(metaEnum.key(it)).toUpper() + " k," +
+                               QString(addrEnum.key(addrIt)).toLower() + "\n.END\n"
+                            << ModuleType::USER_PROGRAM
+                            << MacroAssembler::illegalAddrMode
+                            << false;
+                }
+
+            }
+        }
+        else {
+            #pragma message("TODO: Create better error message for unary instruction treated like nonunary")
+            QTest::newRow(QString("Forbid addressing mode for %1.")
+                          .arg(QString(metaEnum.key(it)).toUpper()).toStdString().c_str())
+                    << QString(metaEnum.key(it)).toUpper() + " k,d \n.END\n"
+                    << ModuleType::USER_PROGRAM
+                    << MacroAssembler::unxpectedEOL
+                    << false;
+        }
+    }
+}
+
+void AssemblerTest::case_badAddrMode()
 {
 
 }

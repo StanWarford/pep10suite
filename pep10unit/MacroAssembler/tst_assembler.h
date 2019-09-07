@@ -60,6 +60,11 @@ private slots:
     void case_symbolTooLong_data();
     void case_symbolTooLong();
 
+    // Test cases where an instruction that requires an addressing mode
+    // is not given one.
+    void case_badAddrMode_data();
+    void case_badAddrMode();
+
 private:
     QSharedPointer<MacroRegistry> registry;
     QSharedPointer<MacroPreprocessor> preprocessor;
