@@ -323,6 +323,35 @@ void TokenizerTest::case_malformedDecConst_data()
             << ""
             << true;
 
+    QTest::newRow("1 leading zero on integer literal.")
+            << "067"
+            << ""
+            << true;
+
+    QTest::newRow("5 leading zeros on integer literal.")
+            << "0000067"
+            << ""
+            << true;
+
+    QTest::newRow("1 leading zero on explicitly positive integer literal.")
+            << "+067"
+            << ""
+            << true;
+
+    QTest::newRow("5 leading zeros on explicitly positive integer literal.")
+            << "+0000067"
+            << ""
+            << true;
+
+    QTest::newRow("1 leading zero on negative integer literal.")
+            << "-067"
+            << ""
+            << true;
+
+    QTest::newRow("5 leading zeros on negative integer literal.")
+            << "-0000067"
+            << ""
+            << true;
 }
 
 void TokenizerTest::case_malformedDecConst()
@@ -394,6 +423,17 @@ void TokenizerTest::case_malformedHexConst_data()
 
     QTest::newRow("4 character hex constant.")
             << "0xa23f"
+            << ""
+            << true;
+
+    QTest::newRow("1 leading zero of 4 character hex constant.")
+            << "0x0a23f"
+            << ""
+            << true;
+
+    // Zero padding makes this look like a DWORD to the tokenizer
+    QTest::newRow("4 leading zers of 4 character hex constant.")
+            << "0x0000a23f"
             << ""
             << true;
 }
