@@ -67,12 +67,15 @@ namespace MacroTokenizerHelper
  * it will replace any macro substitutions in a source line before tokenizing it.
  * Choosing to handle macro substitutions here allows the assembler to be entirely unaware of
  * the macro framework.
+ *
+ * The tokenizer SHALL NOT be passed text containing newline characters.
  */
 class MacroTokenizer
 {
 public:
     MacroTokenizer();
     ~MacroTokenizer();
+    // Parse a source line that does not include a \r or \n.
     bool getToken(QString &sourceLine, int& offset, MacroTokenizerHelper::ELexicalToken &token, QStringRef &tokenString, QString& errorString);
     // Replace preprocessor tokens ($1 $2 $3 etc) before evaluating through tokenizer.
     void setMacroSubstitutions(QStringList macroSubstitution);

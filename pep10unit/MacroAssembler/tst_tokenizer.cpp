@@ -450,10 +450,13 @@ void TokenizerTest::case_malformedDot_data()
     QTest::addColumn<bool>("ExpectPass");
 
 
+    // After discussion with Dr. Warford, the tokenizer SHOULD NOT pick up on this error.
+    // A bad dot command (including those with numbers) is not a syntax error,
+    // it is a semantics error that should be detected by the assembler.
     QTest::newRow("Number inside dot command.")
             << ".d04t"
-            << MacroTokenizer::malformedDot
-            << false;
+            << ""
+            << true;
 
     // Detecting identifiers or special joined with dot commands
     // requires evaluating a chain of tokens, which is beyond the ability
@@ -596,10 +599,14 @@ void TokenizerTest::case_malformedStringConst_data()
             << MacroTokenizer::malformedStringConst
             << false;
 
-    QTest::newRow("Unexpected \\n.")
-            << " \"\n\" "
+    // The higher levels of asbtraction of the token stream
+    // and assembler strip all newline characters from the tokenizer
+    // input. Therefore, the tokenizer does not expect to see newline
+    // characters, and will properly match a string that spans multiple lines.
+    /*QTest::newRow("Unexpected \\n.")
+            << " \"\n\""
             << MacroTokenizer::malformedStringConst
-            << false;
+            << false;*/
 
 
     // Tests designed to pass.
