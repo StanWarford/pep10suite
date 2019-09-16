@@ -85,7 +85,7 @@ void TokenBufferTest::case_malformedHexConst_data()
     QStringList interestingChars;
     interestingChars << ":" << "()"<< "!";
     for(auto combo : interestingChars) {
-        QTest::newRow(QString("Special character inside hex constant %1.")
+        QTest::newRow(QString("Special character %1 inside hex constant.")
                       .arg(combo).toStdString().c_str())
                 << QString("0x6%1").arg(combo)+"7"
                 << (QList<MacroTokenizerHelper::ELexicalToken>()
@@ -94,7 +94,7 @@ void TokenBufferTest::case_malformedHexConst_data()
                 << MacroTokenizer::syntaxError
                 << false;
 
-        QTest::newRow(QString("Special character after hex constant %1.")
+        QTest::newRow(QString("Special character %1 after hex constant.")
                       .arg(combo).toStdString().c_str())
                 << QString("0x67%1").arg(combo)
                 << (QList<MacroTokenizerHelper::ELexicalToken>()
@@ -103,6 +103,7 @@ void TokenBufferTest::case_malformedHexConst_data()
                 << MacroTokenizer::syntaxError
                 << false;
     }
+    // Tests expected to pass.
 
     QTest::newRow("Invalid hex constant 0x9p1")
             << QString("0x9p1")
@@ -131,7 +132,6 @@ void TokenBufferTest::case_malformedHexConst_data()
             << ""
             << true;
 
-    // Tests expected to pass.
     QTest::newRow("Identifier joined with decimal constant.")
             << "0x6id"
             << (QList<MacroTokenizerHelper::ELexicalToken>()
@@ -169,7 +169,7 @@ void TokenBufferTest::case_malformedDot_data()
     QStringList interestingChars;
     interestingChars << ":" << "()"<< "!";
     for(auto combo : interestingChars) {
-        QTest::newRow(QString("Special character inside hex constant %1.")
+        QTest::newRow(QString("Special character %1 inside dot command.")
                       .arg(combo).toStdString().c_str())
                 << QString(".EQU%1").arg(combo)+"TE"
                 << (QList<MacroTokenizerHelper::ELexicalToken>()
@@ -178,9 +178,9 @@ void TokenBufferTest::case_malformedDot_data()
                 << MacroTokenizer::syntaxError
                 << false;
 
-        QTest::newRow(QString("Special character after hex constant %1.")
+        QTest::newRow(QString("Special character %1 after dot command.")
                       .arg(combo).toStdString().c_str())
-                << QString("0xEQUATE%1").arg(combo)
+                << QString(".EQUATE%1").arg(combo)
                 << (QList<MacroTokenizerHelper::ELexicalToken>()
                     << ELexicalToken::LT_DOT_COMMAND << ELexicalToken::LTE_ERROR)
                 << (QList<MacroTokenizerHelper::ELexicalToken>() << ELexicalToken::LTE_ERROR)
