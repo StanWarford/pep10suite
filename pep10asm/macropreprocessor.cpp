@@ -124,7 +124,8 @@ MacroPreprocessor::ExtractResult MacroPreprocessor::extractMacroDefinitions(Modu
         // Find the name associated with the macro.
         auto macroNameMatch = MacroTokenizerHelper::identifier.match(lineText, location);
         // The macro didn't have a valid name, error and return.
-        if(!macroNameMatch.hasMatch()) {
+        // If the match "jumped ahead" in the string, then we also had an invalid match.
+        if(!macroNameMatch.hasMatch() || macroNameMatch.capturedStart() > location+1 ) {
             retVal.syntaxError = true;
             retVal.error = {lineNumber, noIdentifier};
             return retVal;

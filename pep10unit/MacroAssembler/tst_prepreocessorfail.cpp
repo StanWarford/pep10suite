@@ -25,32 +25,43 @@ void PreprocessorFailure::case_noSuchMacro_data()
 {
     QTest::addColumn<QString>("ProgramText");
     QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
 
     QTest::newRow("Mispell Core")
             << "@asr4\n.END"
-            << noSuchMaro;
+            << noSuchMaro
+            << false;
 
     QTest::newRow("Wildly Wrong")
             << "@hllowrld\n.END"
-            << noSuchMaro;
+            << noSuchMaro
+            << false;
 
+    // Macro names should be case insensitive (e.g. @AsRa4 should be recognized)
+    // as @ASRA4.
     QTest::newRow("Correct name, wrong capitalization")
-            << "@ASRa4\n.END"
-            << noSuchMaro;
+            << "@AsRa4\n.END"
+            << ""
+            << true;
 }
 
 void PreprocessorFailure::case_noSuchMacro()
 {
     QFETCH(QString, ProgramText);
     QFETCH(QString, ExpectedError);
+    QFETCH(bool, ExpectPass);
 
     auto graph = ModuleAssemblyGraph();
     auto [rootPrototype, startRootInstance] = graph.createRoot(ProgramText, ModuleType::USER_PROGRAM);
     preprocessor->setTarget(&graph);
     auto result = preprocessor->preprocess();
 
-    QVERIFY2(!result.error.isNull(), "Expected an error message.");
-    QCOMPARE(result.error->getErrorMessage(), ExpectedError);
+    QCOMPARE(result.succes, ExpectPass);
+    if(!ExpectPass) {
+        QVERIFY2(!result.error.isNull(), "Expected an error message.");
+        QCOMPARE(result.error->getErrorMessage(), ExpectedError);
+    }
+
 }
 
 void PreprocessorFailure::case_macroRequiresIdentifier_data()
@@ -58,6 +69,7 @@ void PreprocessorFailure::case_macroRequiresIdentifier_data()
         QTest::addColumn<QString>("ProgramText");
         QTest::addColumn<QString>("PreferedError");
         QTest::addColumn<QString>("AlternateError");
+        QTest::addColumn<bool>("ExpectPass");
 
         QStringList fakeMacros;
         fakeMacros << "4ASRA2"
@@ -73,44 +85,85 @@ void PreprocessorFailure::case_macroRequiresIdentifier_data()
         QTest::newRow("Non-existant macro starting with integer.")
                 << "@4m\n.END"
                 << noIdentifier
-                << noSuchMaro;
+                << noSuchMaro
+                << false;
 
         QTest::newRow("Valid macro starting with integer.")
                 << "@"+fakeMacros[0]+"\n.END"
                 << noIdentifier
-                << noSuchMaro;
-
+                << noSuchMaro
+                << false;
 
         QTest::newRow("Non-existant macro starting with punctuation.")
                 << "@()wrd\n.END"
                 << noIdentifier
-                << noSuchMaro;
+                << noSuchMaro
+                << false;
 
         QTest::newRow("Valid macro starting starting with punctuation.")
                 << "@"+fakeMacros[1]+"\n.END"
                 << noIdentifier
-                << noSuchMaro;
+                << noSuchMaro
+                << false;
 
 
         QTest::newRow("Non-existant macro starting with underscore.")
                 << "@_ASRa4\n.END"
                 << noIdentifier
-                << noSuchMaro;
+                << noSuchMaro
+                << false;
 
         QTest::newRow("Valid macro starting with underscore.")
                 << "@"+fakeMacros[2]+"\n.END"
-                << noIdentifier
-                << noSuchMaro;
+                << ""
+                << ""
+                << true;
 
         QTest::newRow("Non-existant macro starting with non-ASCII7.")
                 << "@ÁSRa4\n.END"
                 << noIdentifier
-                << noSuchMaro;
+                << noSuchMaro
+                << false;
 
         QTest::newRow("Valid macro starting with non-ASCII7.")
                 << "@"+fakeMacros[3]+"\n.END"
                 << noIdentifier
-                << noSuchMaro;
+                << noSuchMaro
+                << false;
+
+        // Older versions of Pep10 had issues where identifiers could be detected
+        // non-contiguously with the @ in a macro. These unit tests are to
+        // validate that this behavior does not return.
+
+        QTest::newRow("Non-existant macro starting with integer followed by a comment.")
+                << "@4m;Comment\n.END"
+                << noIdentifier
+                << noSuchMaro
+                << false;
+
+        QTest::newRow("Macro in registry starting with integer followed by a comment.")
+                << "@"+fakeMacros[0]+";Comment\n.END"
+                << noIdentifier
+                << noSuchMaro
+                << false;
+
+        QTest::newRow("@ Followed by a comment with a non-existent macro.")
+                << "@;4m\n.END"
+                << noIdentifier
+                << noSuchMaro
+                << false;
+
+        QTest::newRow("@ Followed by a comment with a macro starting with an integer.")
+                << "@;"+fakeMacros[0]+"\n.END"
+                << noIdentifier
+                << noSuchMaro
+                << false;
+
+        QTest::newRow("@ Followed by a comment with a valid macro.")
+                << "@;ASRA4\n.END"
+                << noIdentifier
+                << noSuchMaro
+                << false;
 }
 
 void PreprocessorFailure::case_macroRequiresIdentifier()
@@ -118,16 +171,19 @@ void PreprocessorFailure::case_macroRequiresIdentifier()
         QFETCH(QString, ProgramText);
         QFETCH(QString, PreferedError);
         QFETCH(QString, AlternateError);
+        QFETCH(bool, ExpectPass);
 
         auto graph = ModuleAssemblyGraph();
         auto [rootPrototype, startRootInstance] = graph.createRoot(ProgramText, ModuleType::USER_PROGRAM);
         preprocessor->setTarget(&graph);
         auto result = preprocessor->preprocess();
-
-        QVERIFY2(!result.error.isNull(), "Expected an error message.");
-        QVERIFY2(result.error->getErrorMessage().compare(PreferedError) ||
-                result.error->getErrorMessage().compare(AlternateError),
-                "Error message did not match expected or alternate.");
+        QCOMPARE(result.succes, ExpectPass);
+        if(!ExpectPass) {
+            QVERIFY2(!result.error.isNull(), "Expected an error message.");
+            QVERIFY2(result.error->getErrorMessage().compare(PreferedError) ||
+                    result.error->getErrorMessage().compare(AlternateError),
+                    "Error message did not match expected or alternate.");
+        }
     }
 
 void PreprocessorFailure::case_badArgCount_data()
@@ -194,6 +250,7 @@ void PreprocessorFailure::case_badArgCount()
 void PreprocessorFailure::case_noDollarInArgument_data()
 {
     QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<bool>("ExpectSuccess");
     QTest::addColumn<QString>("ExpectedError");
 
 
@@ -202,37 +259,48 @@ void PreprocessorFailure::case_noDollarInArgument_data()
 
     QTest::newRow("Pass $0 to a macro.")
             << "@XCHGA $0,d\n.END"
+            << false
             << invalidArg.arg("$0");
 
     QTest::newRow("Pass $1 to a macro.")
             << "@XCHGA $1,d\n.END"
+            << false
             << invalidArg.arg("$1");
 
     QTest::newRow("Pass $2 to a macro.")
             << "@XCHGA $2,d\n.END"
+            << false
             << invalidArg.arg("$2");
 
+    // Even though identifier macro substitutions are invalid,
+    // these are things caught by the assembler, allowing the preprocessor
+    // do less work.
     QTest::newRow("Pass $ followed by text to a macro.")
             << "@XCHGA $cat,d\n.END"
-            << invalidArg.arg("$cat");
+            << true
+            << "";
 
     QTest::newRow("Pass $ _ followed by text to a macro.")
             << "@XCHGA $_cat,d\n.END"
-            << invalidArg.arg("$_cat");
+            << true
+            << "";
 }
 
 void PreprocessorFailure::case_noDollarInArgument()
 {
     QFETCH(QString, ProgramText);
+    QFETCH(bool, ExpectSuccess);
     QFETCH(QString, ExpectedError);
 
     auto graph = ModuleAssemblyGraph();
     auto [rootPrototype, startRootInstance] = graph.createRoot(ProgramText, ModuleType::USER_PROGRAM);
     preprocessor->setTarget(&graph);
     auto result = preprocessor->preprocess();
-
-    QVERIFY2(!result.error.isNull(), "Expected an error message.");
-    QCOMPARE(result.error->getErrorMessage(), ExpectedError);
+    QCOMPARE(result.succes, ExpectSuccess);
+    if(!ExpectSuccess) {
+        QVERIFY2(!result.error.isNull(), "Expected an error message.");
+        QCOMPARE(result.error->getErrorMessage(), ExpectedError);
+    }
 }
 
 void PreprocessorFailure::case_circularInclude_data()

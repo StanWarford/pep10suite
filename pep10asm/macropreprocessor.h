@@ -23,6 +23,9 @@ struct PreprocessorResult
  * It validates that all macro names/arguments are syntatically correct
  * (e.g. they are valid tokens) and semantically correct (macro invocations
  * do not use a macro substitution as part of their identifier or argument list).
+ *
+ * It treats macros as case insensitive, e.g. @AsRa4 will match against @ASRA4,
+ * which is a core macro.
  */
 class MacroPreprocessor
 {
