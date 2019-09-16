@@ -83,6 +83,10 @@ private slots:
     void case_badMacroSub_data();
     void case_badMacroSub();
 
+    // Test cases where a nonunary instruction is not given an operand specifier.
+    void case_expectOperand_data();
+    void case_expectOperand();
+
 private:
     QSharedPointer<MacroRegistry> registry;
     QSharedPointer<MacroPreprocessor> preprocessor;

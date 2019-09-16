@@ -650,25 +650,25 @@ void AssemblerTest::case_badMacroSub_data()
 
     // Macros pass all tokens (except other macros, newlines, and comments)
     // as argument to the next level of depth.
-    QTest::newRow("Pass a symbol to XCHGA")
+    QTest::newRow("Pass a symbol to XCHGA.")
             << "@XCHGA hello: ,i\n.END"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::opsecAfterMnemonic
             << false;
 
-    QTest::newRow("Pass valid string and invalid addressing mode to XCHGA")
+    QTest::newRow("Pass valid string and invalid addressing mode to XCHGA.")
             << "@XCHGA \"SO\" ,i\n.END"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::illegalAddrMode
             << false;
 
-    QTest::newRow("Pass a string that is too long to XCHGA")
+    QTest::newRow("Pass a string that is too long to XCHGA.")
             << "@XCHGA \"SOO\",d\n.END"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::wordStringOutOfRange
             << false;
 
-    QTest::newRow("Pass gibberish to XCHGA")
+    QTest::newRow("Pass gibberish to XCHGA.")
             << "@XCHGA %Hi ,i\n.END"
             << ModuleType::USER_PROGRAM
             << MacroTokenizer::syntaxError
@@ -677,6 +677,100 @@ void AssemblerTest::case_badMacroSub_data()
 }
 
 void AssemblerTest::case_badMacroSub()
+{
+    execute();
+}
+
+void AssemblerTest::case_expectOperand_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Test that br will fail to assemble with any argument
+    // pattern that are similar to correct invocations.
+    // We have already tested missing addressing modes,
+    // so even if an instruction were missing both,
+    // two compile - edit passes would catch both errors.
+    QTest::newRow("No argument to BR: br.")
+            << "BR\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to BR: br;Useless comment.")
+            << "BR;Useless comment\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to BR: br;0x10.")
+            << "BR;0x10\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to BR: here:br;here.")
+            << "here:BR;here\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to BR: br,i.")
+            << "BR ,i\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to BR: br ,i;Useless comment.")
+            << "BR ,i;Useless comment\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to BR: br ,i;0x10.")
+            << "BR ,i;0x10\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to BR: here:br ,i;here.")
+            << "here:BR ,i;here\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    // Test non-br-like instruction, with an addressing mode but no operand.
+    // We have previous tests that check for presence of addressing modes,
+    // so no need to rpeeat ourselves here.
+        QTest::newRow("No argument to ADDA: adda,i.")
+            << "ADDA ,i\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to ADDA: adda ,i;Useless comment.")
+            << "ADDA ,i;Useless comment\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to ADDA: adda ,i;0x10.")
+            << "ADDA ,i;0x10\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("No argument to ADDA: here:adda ,i;here.")
+            << "here:ADDA ,i;here\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+}
+
+void AssemblerTest::case_expectOperand()
 {
     execute();
 }
