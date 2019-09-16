@@ -20,6 +20,11 @@ static QList<MacroTokenizerHelper::ELexicalToken> noLineStart =
      MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT,
      MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT};
 
+// Macros should forward everything but a comment and newline to sub-macro
+static QList<MacroTokenizerHelper::ELexicalToken> macroArgumentsTypes = nonunaryOperandTypes
+        << MacroTokenizerHelper::ELexicalToken::LT_SYMBOL_DEF
+        << MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND
+        << MacroTokenizerHelper::ELexicalToken::LT_SYMBOL_DEF;
 MacroAssembler::MacroAssembler(MacroRegistry* registry): registry(registry),
     tokenBuffer(new TokenizerBuffer())
 {
@@ -442,7 +447,7 @@ QSharedPointer<MacroInvoke>
     auto macro = registry->getMacro(macroName);
     // Collect all arguments for macro.
     QStringList argumentList;
-    while(tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
+    while(tokenBuffer->matchOneOf(macroArgumentsTypes)) {
         auto [token, tokenString] = tokenBuffer->takeLastMatch();
         argumentList << tokenString.toString();
     }

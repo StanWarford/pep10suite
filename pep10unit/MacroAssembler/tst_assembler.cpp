@@ -640,6 +640,47 @@ void AssemblerTest::case_badAddrMode()
     execute();
 }
 
+void AssemblerTest::case_badMacroSub_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Macros pass all tokens (except other macros, newlines, and comments)
+    // as argument to the next level of depth.
+    QTest::newRow("Pass a symbol to XCHGA")
+            << "@XCHGA hello: ,i\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::opsecAfterMnemonic
+            << false;
+
+    QTest::newRow("Pass valid string and invalid addressing mode to XCHGA")
+            << "@XCHGA \"SO\" ,i\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::illegalAddrMode
+            << false;
+
+    QTest::newRow("Pass a string that is too long to XCHGA")
+            << "@XCHGA \"SOO\",d\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::wordStringOutOfRange
+            << false;
+
+    QTest::newRow("Pass gibberish to XCHGA")
+            << "@XCHGA %Hi ,i\n.END"
+            << ModuleType::USER_PROGRAM
+            << MacroTokenizer::syntaxError
+            << false;
+
+}
+
+void AssemblerTest::case_badMacroSub()
+{
+    execute();
+}
+
 void AssemblerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType moduleType)
 {
     QFETCH(QString, ProgramText);

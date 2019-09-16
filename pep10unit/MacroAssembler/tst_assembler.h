@@ -65,6 +65,24 @@ private slots:
     void case_badAddrMode_data();
     void case_badAddrMode();
 
+    /*
+     * Since the preprocessor aggressively catches errors concerning macro names
+     * and argument counts, these tests have been commented out, and their
+     * implementations removed. While our macro assembler is defensive against
+     * this family of errors, it is impossible for it to occur in practice.
+     */
+    // Test cases where the invoked macro does not exist.
+    //void case_noSuchMacro_data();
+    //void case_noSuchMacro();
+    // Test cases where the invoked macro is given the wrong number of arguments.
+    //void case_badMacroArgCount_data();
+    //void case_badMacroArgCount();
+
+    // Test cases where something is wrong with the macro argument list,
+    // but the macro does exist, and has the correct number of arguments.
+    void case_badMacroSub_data();
+    void case_badMacroSub();
+
 private:
     QSharedPointer<MacroRegistry> registry;
     QSharedPointer<MacroPreprocessor> preprocessor;
