@@ -1047,7 +1047,7 @@ void AssemblerTest::case_badAddrssArg_data()
 
 
     // Check that .ADDRSS will assemble when given a symbolic argument.
-    QTest::newRow("Good argument for ADDRSS.")
+    QTest::newRow("Good argument for .ADDRSS.")
             << "sy:.ADDRSS sy \n.END"
             << ModuleType::USER_PROGRAM
             << ""
@@ -1119,6 +1119,45 @@ void AssemblerTest::case_badAlignArg_data()
 }
 
 void AssemblerTest::case_badAlignArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_badAsciiArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    QStringList goodArgs;
+    goodArgs << "\"a\"" << "\"ab\"" << "\"abcdefgh\\x00\"";
+    // Check that .ASCII assembles when given some string arguments.
+    for(auto ident : goodArgs) {
+        QTest::addRow("%s", QString("Good argument for .ASCII: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".ASCII %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+    }
+
+    QStringList badArgs;
+    badArgs << "-1" << "0" << "asra" << "udefsym"
+            << "0xffff" << "'c'" << "65535";
+    // Check that .ASCII fails to assemble when given a non-string argument.
+    for(auto ident : badArgs) {
+        QTest::addRow("%s", QString("Bad argument for .ASCII: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".ASCII %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::badAsciiArgument
+                << false;
+    }
+}
+
+void AssemblerTest::case_badAsciiArg()
 {
     execute();
 }

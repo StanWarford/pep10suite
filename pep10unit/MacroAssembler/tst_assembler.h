@@ -104,8 +104,8 @@ private slots:
     void case_badAlignArg();
 
     // Test cases where .ASCII is given a bad argument.
-    //void case_badAsciiArg_data();
-    //void case_badAsciiArg();
+    void case_badAsciiArg_data();
+    void case_badAsciiArg();
 
     // Test cases where .BLOCK is given a bad argument.
     //void case_badBlockArg_data();
