@@ -42,6 +42,12 @@ RC_FILE = pep10resources.rc
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    asmbuildhelper.cpp \
+    asmrunhelper.cpp \
+    boundexecmicrocpu.cpp \
+    cpubuildhelper.cpp \
+    cpurunhelper.cpp \
+    microstephelper.cpp \
     termhelper.cpp \
     boundexecisacpu.cpp \
     termmain.cpp
@@ -52,6 +58,12 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
+    asmbuildhelper.h \
+    asmrunhelper.h \
+    boundexecmicrocpu.h \
+    cpubuildhelper.h \
+    cpurunhelper.h \
+    microstephelper.h \
     termhelper.h \
     boundexecisacpu.h
 
@@ -69,14 +81,21 @@ DISTFILES += \
 
 INCLUDEPATH += $$PWD/../pep10common
 INCLUDEPATH += $$PWD/../pep10asm
+INCLUDEPATH += $$PWD/../pep10cpu
+INCLUDEPATH += $$PWD/../pep10micro
 
 #Include own directory in VPATH, otherwise qmake might accidentally import files with
 #the same name from other directories.
 VPATH += $$PWD
 VPATH += $$PWD/../pep10common
 VPATH += $$PWD/../pep10asm
+VPATH += $$PWD/../pep10cpu
+VPATH += $$PWD/../pep10micro
+
 include(../pep10common/pep10common.pro)
 include(../pep10asm/pep10asm-common.pro)
+include(../pep10cpu/pep10cpu-common.pro)
+include(../pep10micro/pep10micro-common.pro)
 
 #Add this include to the bottom of your project to enable automated installer creation
 #Include the definitions file that sets all variables needed for the InstallerConfig Script
@@ -84,4 +103,3 @@ include("installer-config.pri")
 
 #Lastly, include and run the installer config script
 include("../installer/installer-creator.pri")
-
