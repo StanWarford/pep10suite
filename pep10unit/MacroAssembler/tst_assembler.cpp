@@ -231,13 +231,13 @@ void AssemblerTest::case_unexpectedEOL_data()
 
     // Dot Commands.
     QTest::addRow("Unexpected EOL in sym:EQUATE instruction.")
-            << "sym:equate 1 1"
+            << "sym:.equate 1 1"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::unxpectedEOL
             << false;
 
     QTest::addRow("Unexpected EOL in sym:EQUATE instruction.")
-            << "sym:equate 1 k"
+            << "sym:.equate 1 k"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::unxpectedEOL
             << false;
@@ -255,13 +255,13 @@ void AssemblerTest::case_unexpectedEOL_data()
             << false;
 
     QTest::addRow("Unexpected EOL in sym:EQUATE instruction ;comment.")
-            << "sym:equate 1 1 ;Com\n"
+            << "sym:.equate 1 1 ;Com\n"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::unxpectedEOL
             << false;
 
     QTest::addRow("Unexpected EOL in sym:EQUATE instruction ;comment.")
-            << "sym:equate 1 k ;Com\n"
+            << "sym:.equate 1 k ;Com\n"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::unxpectedEOL
             << false;
