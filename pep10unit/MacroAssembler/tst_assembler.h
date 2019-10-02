@@ -108,12 +108,12 @@ private slots:
     void case_badAsciiArg();
 
     // Test cases where .BLOCK is given a bad argument.
-    //void case_badBlockArg_data();
-    //void case_badBlockArg();
+    void case_badBlockArg_data();
+    void case_badBlockArg();
 
     // Test cases where .BURN is given a bad argument.
-    //void case_badBurnArg_data();
-    //void case_badBurnArg();
+    void case_badBurnArg_data();
+    void case_badBurnArg();
 
     // Test cases where .BYTE is given a bad argument.
     //void case_badByteArg_data();

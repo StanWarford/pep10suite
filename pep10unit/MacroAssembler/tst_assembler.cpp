@@ -1107,7 +1107,7 @@ void AssemblerTest::case_badAlignArg_data()
 
     QStringList badIntArgs;
     badIntArgs << "0" << "1" << "7" << "65535" << "65536";
-    // Check that .ALIGN fails to assemble when given a non-integer argument.
+    // Check that .ALIGN fails when given an integer outside of {2,4,8}
     for(auto ident : badIntArgs) {
         QTest::addRow("%s", QString("Bad argument for .ALIGN: %1")
                       .arg(ident).toStdString().c_str())
@@ -1158,6 +1158,86 @@ void AssemblerTest::case_badAsciiArg_data()
 }
 
 void AssemblerTest::case_badAsciiArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_badBlockArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Check that .BLOCK a numeric literal argument.
+    QStringList goodArgs;
+    goodArgs << "0" << "1" << "67" << "65535"
+             << "0x0" << "0x100" << "0xFFFF";
+    for(auto ident : goodArgs) {
+        QTest::addRow("%s", QString("Good argument for .BLOCK: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BLOCK %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+    }
+
+    QStringList nonIntArgs;
+    nonIntArgs << "asra" << "udefsym"
+               << "\"hi\"" << "'c'";
+    // Check that .BLOCK fails to assemble when given a non-numeric argument.
+    for(auto ident : nonIntArgs) {
+        QTest::addRow("%s", QString("Bad argument for .BLOCK: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BLOCK %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::badBlockArgument
+                << false;
+    }
+}
+
+void AssemblerTest::case_badBlockArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_badBurnArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Check that .BURN assembles with a hex argument
+    QStringList hexArgs;
+    hexArgs << "0x0" << "0x100" << "0xFFFF";
+    for(auto ident : hexArgs) {
+        QTest::addRow("%s", QString("Good argument for .BURN: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BURN %1\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+    }
+
+    QStringList nonHexArgs;
+    nonHexArgs << "asra" << "udefsym"
+               << "\"hi\"" << "'c'"
+               << "0" << "1" << "65535";
+    // Check that .BURN fails to assemble when given a non-hex argument.
+    for(auto ident : nonHexArgs) {
+        QTest::addRow("%s", QString("Bad argument for .BURN: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BURN %1\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::badBurnArgument
+                << false;
+    }
+}
+
+void AssemblerTest::case_badBurnArg()
 {
     execute();
 }

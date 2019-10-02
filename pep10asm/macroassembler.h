@@ -114,14 +114,12 @@ public:
     static const inline QString wordUnsignDecOutOfRange = ";ERROR: Decimal constant is out of range (0..65535).";
 
     static const inline QString badAddrssArgument = ";ERROR: .ADDRSS requires a symbolic argument.";
-    static const inline QString badAsciiArgument = ";ERROR: .ASCII requires a string constant argument.";
-
     static const inline QString decConst248 = ";ERROR: Decimal constant is out of range (2, 4, 8).";
     static const inline QString badAlignArgument = ";ERROR: .ALIGN requires a decimal constant 2, 4, or 8.";
+    static const inline QString badAsciiArgument = ";ERROR: .ASCII requires a string constant argument.";
 
     static const inline QString badBlockArgument = ";ERROR: .BLOCK requires a decimal or hex constant argument.";
     static const inline QString badBurnArgument = ";ERROR: .BURN requires a hex constant argument.";
-
     static const inline QString badByteArgument = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
 };
 
