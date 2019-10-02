@@ -68,15 +68,16 @@ MicrocodePane::~MicrocodePane()
 }
 
 void MicrocodePane::init(QSharedPointer<InterfaceMCCPU> cpu, QSharedPointer<CPUDataSection> dataSection,
-                         QSharedPointer<AMemoryDevice> memDevice, bool fullCtrlSection)
+                         bool fullCtrlSection)
 {
     if(!dataSection.isNull()) {
         disconnect(dataSection.get(), &CPUDataSection::CPUTypeChanged, this, &MicrocodePane::onCPUTypeChanged);
     }
     if(microASM != nullptr) delete microASM;
-    microASM = new MicroAsm(memDevice, dataSection->getCPUType(), fullCtrlSection);
+    microASM = new MicroAsm(dataSection->getCPUType(), fullCtrlSection);
     this->dataSection = dataSection;
-    connect(dataSection.get(), &CPUDataSection::CPUTypeChanged, this, &MicrocodePane::onCPUTypeChanged);
+    connect(dataSection.get(), &CPUDataSection::CPUTypeChanged,
+            this, &MicrocodePane::onCPUTypeChanged);
     editor->init(cpu);
     // Calls initCPUModelState() to refresh the highlighters
     useFullCtrlSection(fullCtrlSection);

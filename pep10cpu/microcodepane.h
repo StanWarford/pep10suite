@@ -41,7 +41,7 @@ public:
     MicrocodePane(QWidget *parent = nullptr);
     ~MicrocodePane() override;
 
-    void init(QSharedPointer<InterfaceMCCPU> cpu, QSharedPointer<CPUDataSection> dataSection,  QSharedPointer<AMemoryDevice> memDevice, bool fullCtrlSection);
+    void init(QSharedPointer<InterfaceMCCPU> cpu, QSharedPointer<CPUDataSection> dataSection, bool fullCtrlSection);
     void initCPUModelState();
 
     bool microAssemble();

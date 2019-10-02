@@ -34,15 +34,11 @@ FORMS += \
     micromainwindow.ui
 
 HEADERS += \
-    fullmicrocodedcpu.h \
-    fullmicrocodedmemoizer.h \
     decodertabledialog.h \
     micromainwindow.h \
     microhelpdialog.h
 
 SOURCES += \
-    fullmicrocodedcpu.cpp \
-    fullmicrocodedmemoizer.cpp \
     decodertabledialog.cpp \
     micromainwindow.cpp \
     micromain.cpp \
@@ -84,13 +80,10 @@ VPATH += $$PWD/../pep10cpu
 include(../pep10common/pep10common.pro)
 include(../pep10asm/pep10asm-common.pro)
 include(../pep10cpu/pep10cpu-common.pro)
-
+include(pep10micro-common.pro)
 #Add this include to the bottom of your project to enable automated installer creation
 #Include the definitions file that sets all variables needed for the InstallerConfig Script
 include("installer-config.pri")
 
 #Lastly, include and run the installer config script
 include("../installer/installer-creator.pri")
-
-
-
