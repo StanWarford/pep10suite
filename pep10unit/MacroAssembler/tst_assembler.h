@@ -87,6 +87,50 @@ private slots:
     void case_expectOperand_data();
     void case_expectOperand();
 
+    // Test cases where a value is incapable of being represented by a byte.
+    void case_byteOutOfRange_data();
+    void case_byteOutOfRange();
+
+    // Test cases where a value is incapable of being represented by a word.
+    void case_wordOutOfRange_data();
+    void case_wordOutOfRange();
+
+    // Test cases where .ADDRSS is given a bad argument.
+    void case_badAddrssArg_data();
+    void case_badAddrssArg();
+
+    // Test cases where .ALIGN is given a bad argument.
+    void case_badAlignArg_data();
+    void case_badAlignArg();
+
+    // Test cases where .ASCII is given a bad argument.
+    //void case_badAsciiArg_data();
+    //void case_badAsciiArg();
+
+    // Test cases where .BLOCK is given a bad argument.
+    //void case_badBlockArg_data();
+    //void case_badBlockArg();
+
+    // Test cases where .BURN is given a bad argument.
+    //void case_badBurnArg_data();
+    //void case_badBurnArg();
+
+    // Test cases where .BYTE is given a bad argument.
+    //void case_badByteArg_data();
+    //void case_badByteArg();
+
+    // Test cases where .USCALL is given a bad argument.
+    //void case_badUExportArg_data();
+    //void case_badUExportArg();
+
+    // Test cases where .SCALL is given a bad argument.
+    //void case_badScallArg_data();
+    //void case_badScallArg();
+
+    // Test cases where .USCALL is given a bad argument.
+    //void case_badUScallArg_data();
+    //void case_badUScallArg();
+
 private:
     QSharedPointer<MacroRegistry> registry;
     QSharedPointer<MacroPreprocessor> preprocessor;

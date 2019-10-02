@@ -101,12 +101,13 @@ public:
     static const inline QString missingEND = ";ERROR: Missing .END sentinel.";
     static const inline QString reqAddrMode = ";ERROR: Addressing mode required for this instruction.";
     static const inline QString illegalAddrMode = ";ERROR: Illegal addressing mode for this instruction.";
-
     static const inline QString macroDoesNotExist = ";ERROR: Macro %1 does not exist.";
     static const inline QString macroWrongArgCount = ";ERROR: Macro %1 has wrong number of arguments.";
-
     static const inline QString opsecAfterMnemonic = ";ERROR: Operand specifier expected after mnemonic.";
 
+    static const inline QString byteDecOutOfRange = ";ERROR: Decimal constant is out of byte range (-128..255).";
+    static const inline QString byteHexOutOfRange = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
+    static const inline QString byteStringOutOfRange = ";ERROR: string operands must have length one.";
     static const inline QString wordStringOutOfRange = ";ERROR: String operands must have length at most two.";
     static const inline QString wordHexOutOfRange = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
     static const inline QString wordSignDecOutOfRange = ";ERROR: Decimal constant is out of range (-32768..65535).";
@@ -121,9 +122,6 @@ public:
     static const inline QString badBlockArgument = ";ERROR: .BLOCK requires a decimal or hex constant argument.";
     static const inline QString badBurnArgument = ";ERROR: .BURN requires a hex constant argument.";
 
-    static const inline QString byteSignDecOutOfRange = ";ERROR: Decimal constant is out of byte range (-128..255).";
-    static const inline QString byteHexOutOfRange = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
-    static const inline QString byteStringOutOfRange = ";ERROR: string operands must have length one.";
     static const inline QString badByteArgument = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
 };
 

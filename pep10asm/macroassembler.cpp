@@ -742,7 +742,7 @@ QSharedPointer<DotByte>
             dotByte->setArgument(QSharedPointer<DecArgument>::create(value));
         }
         else {
-            errorMessage = byteSignDecOutOfRange;
+            errorMessage = byteDecOutOfRange;
             return nullptr;
         }
     }

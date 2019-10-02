@@ -305,10 +305,10 @@ void AssemblerTest::case_unexpectedSymbolDeclaration_data()
                << element("sy:.BLOCK 5","sy:.BLOCK 5", false, MacroAssembler::unexpectedSymbolDecl)
                << element("sy:.EQUATE","sy:.EQUATE", false, MacroAssembler::unexpectedSymbolDecl)
                << element("sy:.EQUATE","sy:.EQUATE 5", false, MacroAssembler::unexpectedSymbolDecl)
-               << element(".SCALL",".SCALL", false, MacroAssembler::unexpectedSymbolDecl)
-               << element("sy:.SCALL","sy:.SCALL", false, MacroAssembler::unexpectedSymbolDecl)
+               << element(".SCALL",".SCALL sy", false, MacroAssembler::unexpectedSymbolDecl)
+               << element("sy:.SCALL","sy:.SCALL sy", false, MacroAssembler::unexpectedSymbolDecl)
                << element(".USCALL",".USCALL", false, MacroAssembler::unexpectedSymbolDecl)
-               << element("sy:.USCALL","sy:.USCALL", false, MacroAssembler::unexpectedSymbolDecl)
+               << element("sy:.USCALL","sy:.USCALL sy", false, MacroAssembler::unexpectedSymbolDecl)
                << element("hex constant","0x99", false, MacroAssembler::unexpectedSymbolDecl)
                << element("unary instruction","ASRA\n.END\n", true, "")
                << element("nonunary instruction","LDWA 0,d\n.END\n", true, "")
@@ -773,6 +773,289 @@ void AssemblerTest::case_expectOperand_data()
 void AssemblerTest::case_expectOperand()
 {
     execute();
+}
+
+void AssemblerTest::case_byteOutOfRange_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Tests the maximum acceptable values of
+    // decimal, hex, string, and character operands
+    // for byte sized instruction.
+    QStringList inRange;
+    inRange << "-1" << "-128" << "254" << "255"
+            << "\'\\x00\'" << "\'\\xff\'"
+            << "\"\\x00\"" << "\"\\xff\""
+            << "0x00" << "0xff";
+
+    for(auto ident : inRange) {
+        QTest::addRow("%s", QString("Byte constant in range: .BYTE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BYTE %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+
+    }
+
+    // Check that byte mnemonics, pseudo-ops fail when given a 2,3 byte dec const.
+    QStringList decOutOfRange;
+    decOutOfRange << "-129" << "-32768" << "-32769"
+                  << "256" << "65535" << "65536";
+    for(auto ident : decOutOfRange) {
+        QTest::addRow("%s", QString("Byte constant out of range: .BYTE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BYTE %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::byteDecOutOfRange
+                << false;
+    }
+
+    // Check that byte mnemonics, pseudo-ops fail when given a 2,3 byte hex const.
+    QStringList hexOutOfRange;
+    hexOutOfRange << "0x0100" << "0xffff" << "0x10000";
+    for(auto ident : hexOutOfRange) {
+        QTest::addRow("%s", QString("Byte constant out of range: .BYTE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BYTE %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::byteHexOutOfRange
+                << false;
+    }
+
+    // Check that byte mnemonics, pseudo-ops fail when given a 2,3 byte string.
+    QStringList strOutOfRange;
+    strOutOfRange << "\"ab\"" << "\"\\x00\\x00\""
+                  << "\"abc\"" << "\"\\x00\\x00\\x00\"";
+    for(auto ident : strOutOfRange) {
+        QTest::addRow("%s", QString("Byte constant out of range: .BYTE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BYTE %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::byteStringOutOfRange
+                << false;
+    }
+}
+
+void AssemblerTest::case_byteOutOfRange()
+{
+    execute();
+}
+
+void AssemblerTest::case_wordOutOfRange_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // It might seem odd the the byte sized instructions
+    // LDBA and STBA are present in the word section, and
+    // not the byte section.
+    // Since LDBA and STBA may perform memory ops, they need
+    // an operand capable of accessing the entire address space.
+
+    // Tests the maximum acceptable values of
+    // decimal, hex, string, and character operands
+    // for word sized instruction.
+    QStringList inRange;
+    inRange << "-1" << "-128" << "254" << "255"
+            << "-129" << "-32768" << "256" << "65535"
+            << "\'\\x00\'" << "\'\\xff\'"
+            << "\"\\x00\"" << "\"\\xff\"" << "\"\\x00\\x00\"" << "\"\\xff\\xff\""
+            << "\"a\"" << "\"ab\""
+            << "0x00" << "0xff" << "0x100" << "0xffff";
+
+    for(auto ident : inRange) {
+        QTest::addRow("%s", QString("Word constant in range: ldba %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldba %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+        QTest::addRow("%s", QString("Word constant in range: stbx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stbx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+        QTest::addRow("%s", QString("Word constant in range: ldwa %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldwa %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+        QTest::addRow("%s", QString("Word constant in range: stwx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stwx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+        QTest::addRow("%s", QString("Word constant in range: .WORD %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".WORD %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+
+    }
+
+    // Check that word mnemonics, pseudo-ops fail when given a 3,4,8 byte decimal const.
+    QStringList decOutOfRange;
+    decOutOfRange << "-32769" << "65536" << "655350"
+    // Some versions of Pep10 have issue parsing a string that is
+    // out of bounds of a 32 bit signed integer.
+                  << "2147483647" << "2147483648"
+                  << "4294967295" << "4294967296"
+                  << "-2147483648" << "-2147483649"
+                  << "-9223372036854775808";
+    for(auto ident : decOutOfRange) {
+        // BLOCK is the only instruction in the ilanguage requiring
+        // a signed integer
+        QTest::addRow("%s", QString("Word constant out of range: .BLOCK %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BLOCK %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordUnsignDecOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: ldba %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldba %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordSignDecOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: stbx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stbx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::wordSignDecOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: ldwa %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldwa %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordSignDecOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: stwx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stwx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::wordSignDecOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: .WORD %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".WORD %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordSignDecOutOfRange
+                << false;
+
+    }
+
+    // Check that word mnemonics, pseudo-ops fail when given a 3,4,8 byte hex const.
+    QStringList hexOutOfRange;
+    hexOutOfRange << "0x10000" << "0xFFFF1"
+    // Some versions of Pep10 have issues with very large hex constants.
+                  << "0xFFFFFF" << "0xFFFFFFFF" << "0xFFFFFFFFFFFFF";
+    for(auto ident : hexOutOfRange) {
+        QTest::addRow("%s", QString("Word constant out of range: ldba %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldba %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordHexOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: stbx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stbx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::wordHexOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: ldwa %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldwa %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordHexOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: stwx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stwx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::wordHexOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: .WORD %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".WORD %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordHexOutOfRange
+                << false;
+
+    }
+
+    // Check that word mnemonics, pseudo-ops fail when given a 3+ byte string const.
+    QStringList strOutOfRange;
+    strOutOfRange << "\"abc\"" << "\"\\x00\\x00\\x00\""
+                  << "\"String way too long.\"";
+    for(auto ident : strOutOfRange) {
+        QTest::addRow("%s", QString("Word constant out of range: ldba %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldba %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordStringOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: stbx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stbx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::wordStringOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: ldwa %1,i")
+                      .arg(ident).toStdString().c_str())
+                << QString("ldwa %1, i\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordStringOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: stwx %1,d")
+                      .arg(ident).toStdString().c_str())
+                << QString("stwx %1, d\n.END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::wordStringOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: .WORD %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".WORD %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordStringOutOfRange
+                << false;
+    }
+
+}
+
+void AssemblerTest::case_wordOutOfRange()
+{
+    execute();
+}
+
+void AssemblerTest::case_badAddrssArg_data()
+{
+
+}
+
+void AssemblerTest::case_badAddrssArg()
+{
+
+}
+
+void AssemblerTest::case_badAlignArg_data()
+{
+
+}
+
+void AssemblerTest::case_badAlignArg()
+{
+
 }
 
 void AssemblerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType moduleType)
