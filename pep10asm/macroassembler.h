@@ -113,7 +113,7 @@ public:
     static const inline QString wordSignDecOutOfRange = ";ERROR: Decimal constant is out of range (-32768..65535).";
     static const inline QString wordUnsignDecOutOfRange = ";ERROR: Decimal constant is out of range (0..65535).";
 
-    static const inline QString addrssSymbolicArg = ";ERROR: .ADDRSS requires a symbolic argument.";
+    static const inline QString badAddrssArgument = ";ERROR: .ADDRSS requires a symbolic argument.";
     static const inline QString badAsciiArgument = ";ERROR: .ASCII requires a string constant argument.";
 
     static const inline QString decConst248 = ";ERROR: Decimal constant is out of range (2, 4, 8).";

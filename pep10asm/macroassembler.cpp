@@ -587,7 +587,7 @@ QSharedPointer<DotAddrss>
         return dotAddrss;
     }
     else {
-        errorMessage = addrssSymbolicArg;
+        errorMessage = badAddrssArgument;
         return nullptr;
     }
 }

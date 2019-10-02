@@ -914,8 +914,8 @@ void AssemblerTest::case_wordOutOfRange_data()
                   << "-2147483648" << "-2147483649"
                   << "-9223372036854775808";
     for(auto ident : decOutOfRange) {
-        // BLOCK is the only instruction in the ilanguage requiring
-        // a signed integer
+        // BLOCK is the only instruction in the language requiring
+        // an unsigned integer
         QTest::addRow("%s", QString("Word constant out of range: .BLOCK %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BLOCK %1\n.END").arg(ident)
@@ -1040,22 +1040,87 @@ void AssemblerTest::case_wordOutOfRange()
 
 void AssemblerTest::case_badAddrssArg_data()
 {
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
 
+
+    // Check that .ADDRSS will assemble when given a symbolic argument.
+    QTest::newRow("Good argument for ADDRSS.")
+            << "sy:.ADDRSS sy \n.END"
+            << ModuleType::USER_PROGRAM
+            << ""
+            << true;
+
+    QStringList badArgs;
+    badArgs << "-1" << "0" << "asra" << "udefsym"
+            << "\"hi\"" << "'c'" << "65535";
+    // Check that .ADDRSS fails to assemble when given any other value as an argument.
+    for(auto ident : badArgs) {
+        QTest::addRow("%s", QString("Bad argument for .ADDRSS: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".ADDRSS %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::badAddrssArgument
+                << false;
+    }
 }
 
 void AssemblerTest::case_badAddrssArg()
 {
-
+    execute();
 }
 
 void AssemblerTest::case_badAlignArg_data()
 {
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
 
+
+    // Check that .ADDRSS will assemble when given a symbolic argument.
+    QStringList goodArgs;
+    goodArgs << "2" << "4" << "8";
+    for(auto ident : goodArgs) {
+        QTest::addRow("%s", QString("Good argument for .ALIGN: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".ALIGN %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+    }
+
+    QStringList nonIntArgs;
+    nonIntArgs << "0x0" << "0x1" << "0x7" << "asra" << "udefsym"
+               << "\"hi\"" << "'c'";
+    // Check that .ALIGN fails to assemble when given a non-integer argument.
+    for(auto ident : nonIntArgs) {
+        QTest::addRow("%s", QString("Bad argument for .ALIGN: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".ALIGN %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::badAlignArgument
+                << false;
+    }
+
+    QStringList badIntArgs;
+    badIntArgs << "0" << "1" << "7" << "65535" << "65536";
+    // Check that .ALIGN fails to assemble when given a non-integer argument.
+    for(auto ident : badIntArgs) {
+        QTest::addRow("%s", QString("Bad argument for .ALIGN: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".ALIGN %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::decConst248
+                << false;
+    }
 }
 
 void AssemblerTest::case_badAlignArg()
 {
-
+    execute();
 }
 
 void AssemblerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType moduleType)
