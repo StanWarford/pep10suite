@@ -513,10 +513,10 @@ QSharedPointer<AsmArgument>
     // Hex constant in range [0000, FFFF]
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT) {
         tokenString.remove(0, 2); // Remove "0x" prefix.
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 16);
         // If the value is in range for a 16 bit int.
-        if (value < 65536) {
+        if (ok && value < 65536) {
             return QSharedPointer<HexArgument>::create(value);
         }
         else {
@@ -526,9 +526,9 @@ QSharedPointer<AsmArgument>
     }
     // Decimal constant in range [-32768, 65535]
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT) {
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 10);
-        if ((-32768 <= value) && (value <= 65535)) {
+        if (ok && (-32768 <= value) && (value <= 65535)) {
             // Negative, so store as signed.
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
@@ -623,9 +623,9 @@ QSharedPointer<DotAlign>
         if(symbol.has_value()) {
             dotAlign->setSymbolEntry(optional_helper(symbol));
         }
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 10);
-        if (value == 2 || value == 4 || value == 8) {
+        if (ok && (value == 2 || value == 4 || value == 8)) {
             dotAlign->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             // Number of bytes generated is now calculated by linker.
             return dotAlign;
@@ -647,9 +647,9 @@ QSharedPointer<DotBlock>
 {
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 10);
-        if ((0 <= value) && (value <= 65535)) {
+        if (ok && (0 <= value) && (value <= 65535)) {
             QSharedPointer<DotBlock> dotBlock = QSharedPointer<DotBlock>::create();
             if(symbol.has_value()) {
                 dotBlock->setSymbolEntry(optional_helper(symbol));
@@ -666,9 +666,9 @@ QSharedPointer<DotBlock>
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
+        if (ok && value < 65536) {
             QSharedPointer<DotBlock> dotBlock = QSharedPointer<DotBlock>::create();
             if(symbol.has_value()) {
                 dotBlock->setSymbolEntry(optional_helper(symbol));
@@ -694,9 +694,9 @@ QSharedPointer<DotBurn>
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
+        if (ok && value < 65536) {
             QSharedPointer<DotBurn> dotBurn = QSharedPointer<DotBurn>::create();
             if(symbol.has_value()) {
                 dotBurn->setSymbolEntry(optional_helper(symbol));
@@ -799,7 +799,7 @@ QSharedPointer<DotEquate>
         return nullptr;
     }
 
-    bool ok;
+    bool ok = false;
     QSharedPointer<DotEquate> dotEquate = QSharedPointer<DotEquate>::create();
     if(symbol.has_value()) {
         dotEquate->setSymbolEntry(optional_helper(symbol));
@@ -807,7 +807,7 @@ QSharedPointer<DotEquate>
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         int value = tokenString.toInt(&ok, 10);
-        if ((-32768 <= value) && (value <= 65535)) {
+        if (ok && (-32768 <= value) && (value <= 65535)) {
 
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
@@ -827,7 +827,7 @@ QSharedPointer<DotEquate>
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
+        if (ok && value < 65536) {
             dotEquate->setArgument(QSharedPointer<HexArgument>::create(value));
             dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
         }
@@ -944,7 +944,7 @@ QSharedPointer<DotWord>
         MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > symbol,
                                   ModuleInstance&, QString &errorMessage)
 {
-    bool ok;
+    bool ok = false;
     QSharedPointer<DotWord> dotWord = QSharedPointer<DotWord>::create();
     if(symbol.has_value()) {
         dotWord->setSymbolEntry(optional_helper(symbol));
@@ -957,7 +957,7 @@ QSharedPointer<DotWord>
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         int value = tokenString.toInt(&ok, 10);
-        if ((-32768 <= value) && (value < 65536)) {
+        if (ok && (-32768 <= value) && (value < 65536)) {
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
                 dotWord->setArgument(QSharedPointer<DecArgument>::create(value));
@@ -975,7 +975,7 @@ QSharedPointer<DotWord>
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
+        if (ok && value < 65536) {
             dotWord->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
