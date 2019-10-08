@@ -901,6 +901,12 @@ void AssemblerTest::case_wordOutOfRange_data()
                 << ModuleType::USER_PROGRAM
                 << ""
                 << true;
+        QTest::addRow("%s", QString("Word constant in range: sy:.EQUATE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString("sy:.EQUATE %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
 
     }
 
@@ -952,6 +958,12 @@ void AssemblerTest::case_wordOutOfRange_data()
                 << ModuleType::USER_PROGRAM
                 << MacroAssembler::wordSignDecOutOfRange
                 << false;
+        QTest::addRow("%s", QString("Word constant out of range: sy:.EQUATE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString("sy:.EQUATE %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordSignDecOutOfRange
+                << false;
 
     }
 
@@ -991,6 +1003,12 @@ void AssemblerTest::case_wordOutOfRange_data()
                 << ModuleType::USER_PROGRAM
                 << MacroAssembler::wordHexOutOfRange
                 << false;
+        QTest::addRow("%s", QString("Word constant out of range: sy:.EQUATE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString("sy:.EQUATE %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordHexOutOfRange
+                << false;
 
     }
 
@@ -1026,6 +1044,12 @@ void AssemblerTest::case_wordOutOfRange_data()
         QTest::addRow("%s", QString("Word constant out of range: .WORD %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".WORD %1 \n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::wordStringOutOfRange
+                << false;
+        QTest::addRow("%s", QString("Word constant out of range: sy:.EQUATE %1")
+                      .arg(ident).toStdString().c_str())
+                << QString("sy:.EQUATE %1 \n.END").arg(ident)
                 << ModuleType::USER_PROGRAM
                 << MacroAssembler::wordStringOutOfRange
                 << false;
