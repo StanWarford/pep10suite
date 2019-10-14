@@ -13,7 +13,7 @@ class TokenizerTest : public QObject
 
 public:
     TokenizerTest();
-    ~TokenizerTest();
+    ~TokenizerTest() override;
 
 private slots:
     void initTestCase();

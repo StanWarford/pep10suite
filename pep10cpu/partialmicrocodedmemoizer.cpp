@@ -4,7 +4,7 @@
 #include "amemorydevice.h"
 #include "cpudata.h"
 #include "registerfile.h"
-#include <assert.h>
+#include <cassert>
 #include <QString>
 #include <QtCore>
 #include <QDebug>

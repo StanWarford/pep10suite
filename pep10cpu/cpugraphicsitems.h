@@ -41,7 +41,7 @@ public:
 
     bool aluHasCorrectOutput();
 
-    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                QWidget *widget) override;
     void darkModeChanged(bool darkMode, QString styleSheet);
     void CPUTypeChanged(Enu::CPUType newType);

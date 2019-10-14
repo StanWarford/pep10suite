@@ -25,20 +25,18 @@
 
 #include "amemorydevice.h"
 #include "cpudata.h"
-BoundExecMicroCpu::BoundExecMicroCpu(quint64 cycleCount, const AsmProgramManager *manager,
+BoundExecMicroCpu::BoundExecMicroCpu(quint64 maxCycles, const AsmProgramManager *manager,
                                    QSharedPointer<AMemoryDevice> memDevice, QObject *parent):
-    FullMicrocodedCPU(manager, memDevice, parent), maxCycles(cycleCount)
+    FullMicrocodedCPU(manager, memDevice, parent), maxCycles(maxCycles)
 
 {
     // This version of the CPU does not respond to breakpoints, and as such
     // does not register any handlers with the InterruptHandler.
 }
 
-BoundExecMicroCpu::~BoundExecMicroCpu()
-{
-    // All of our memory is owned by sharedpointers, so we
-    // should not attempt to delete anything ourselves.
-}
+// All of our memory is owned by sharedpointers, so we
+// should not attempt to delete anything ourselves.
+BoundExecMicroCpu::~BoundExecMicroCpu() = default;
 
 quint64 BoundExecMicroCpu::getDefaultMaxCycles()
 {

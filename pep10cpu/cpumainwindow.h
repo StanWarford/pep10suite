@@ -70,11 +70,11 @@ protected:
 
 private:
     Ui::CPUMainWindow *ui;
-    DebugState debugState;
+    DebugState debugState {DebugState::DISABLED};
     QString curPath;
     QFont codeFont;
     UpdateChecker *updateChecker;
-    bool isInDarkMode;
+    bool isInDarkMode {false};
 
     // Byte converter
     ByteConverterBin *byteConverterBin;
@@ -130,7 +130,7 @@ private:
     // Which debug buttons to enable, based on integer cracking of the above struct. It is not strongly typed with an enum, because all of the casting
     // would add signifcant code volume, and it would not increase code clarity.
     // To enable only the run and stop buttons one would call "buttonEnableHelper(DebugButtons::RUN | DebugButtons::STOP)".
-    void debugButtonEnableHelper(const int which);
+    void debugButtonEnableHelper(int which);
 
     // Coordinates higlighting of memory, microcode pane, micro object code pane.
     void highlightActiveLines();
@@ -219,7 +219,7 @@ private slots:
     void setUndoability(bool b);
     void setRedoability(bool b);
 
-    void appendMicrocodeLine(QString string);
+    void appendMicrocodeLine(QString line);
 
     void onCopyToMicrocodeClicked();
 

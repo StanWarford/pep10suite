@@ -49,7 +49,7 @@ class MacroRegistry;
 class ASMBuildHelper: public QObject, public QRunnable {
     Q_OBJECT
 public:
-    explicit ASMBuildHelper(const QString source, QFileInfo objFileInfo,
+    explicit ASMBuildHelper(QString source, QFileInfo objFileInfo,
                             AsmProgramManager& manager,
                             QSharedPointer<MacroRegistry> registry,
                             QObject *parent = nullptr);

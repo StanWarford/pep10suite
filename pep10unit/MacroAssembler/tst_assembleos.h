@@ -10,7 +10,7 @@ class AssembleOS : public QObject
 
 public:
     AssembleOS();
-    ~AssembleOS();
+    ~AssembleOS() override;
 
 private slots:
     void initTestCase();

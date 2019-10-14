@@ -3,6 +3,7 @@
 #include "tst_tokenizer.h"
 #include "tst_tokenbuffer.h"
 #include "tst_assembler.h"
+#include "tst_linker.h"
 #include "tst_assembleos.h"
 #include "tst_assembleprograms.h"
 #include "pep.h"
@@ -31,7 +32,10 @@ int main(int argc, char *argv[])
     AssemblerTest assemblerTest;
     ret += QTest::qExec(&assemblerTest, argc, argv);
 
-    // Followed by the linker.
+    // Test the operation of the linker.
+    LinkerTest linkerTest;
+    ret += QTest::qExec(&linkerTest, argc, argv);
+
     // Then try out the stack annotator.
     // Now attempt to assemble the operating system.
     AssembleOS os;

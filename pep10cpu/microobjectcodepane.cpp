@@ -37,7 +37,7 @@
 #include "symbolvalue.h"
 MicroObjectCodePane::MicroObjectCodePane(QWidget *parent) :
     QWidget(parent), ui(new Ui::MicroObjectCodePane), cpu(nullptr),
-    rowCount(0), model(new QStandardItemModel()), inSimulation(false), showCtrlSectionSignals(false)
+    model(new QStandardItemModel())
 {
     ui->setupUi(this);
     QFont font(Pep::codeFont);

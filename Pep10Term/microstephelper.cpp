@@ -38,7 +38,7 @@ MicroStepHelper::MicroStepHelper(const quint64 maxCycleCount,
                                  QFileInfo microcodeProgramFile,
                                  const QString preconditionsProgram,
                                  QFileInfo programOutput, QObject *parent) :
-    QObject(parent), QRunnable(), maxStepCount(maxCycleCount),
+    QObject(parent), maxStepCount(maxCycleCount),
     microcodeProgram(microcodeProgram), microcodeProgramFile(microcodeProgramFile),
     preconditionsProgram(preconditionsProgram), programOutput(programOutput),
     // Explicitly initialize both simulation objects to nullptr,
@@ -103,7 +103,7 @@ void MicroStepHelper::runProgram()
         // Iterate over all microcde, and select any that have post conditions.
         for (AMicroCode* x : preconditionProgram->getObjectCode()) {
             if(x->hasUnitPost()) {
-                UnitPostCode* code = dynamic_cast<UnitPostCode*>(x);
+                auto* code = dynamic_cast<UnitPostCode*>(x);
                 // Check if postcondition holds. If not, errorString will be set.
                 if(!code->testPostcondition(data, memory, errorString)) {
                     qDebug().noquote() << errorString;
@@ -144,7 +144,7 @@ void MicroStepHelper::assembleMicrocode()
         else {
             QTextStream errAsStream(&errorLog);
             auto textList = microcodeProgram.split("\n");
-            for(auto errorPair : programResult.elist) {
+            for(const auto& errorPair : programResult.elist) {
                 // The first element of the error pair is the line number which
                 // caused the error, allowing us to write the offending line
                 // and error message to the console.
@@ -182,7 +182,7 @@ void MicroStepHelper::assembleMicrocode()
             else {
                 QTextStream errAsStream(&errorLog);
                 auto textList = microcodeProgram.split("\n");
-                for(auto errorPair : preconditionResult.elist) {
+                for(const auto& errorPair : preconditionResult.elist) {
                     // The first element of the error pair is the line number which
                     // caused the error, allowing us to write the offending line
                     // and error message to the console.

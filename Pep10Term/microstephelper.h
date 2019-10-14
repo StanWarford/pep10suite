@@ -57,9 +57,9 @@ class MicroStepHelper: public QObject, public QRunnable {
 public:
     // Program input may be an empty file. If it is empty or does not
     // exist, then it will be ignored.
-    explicit MicroStepHelper(const quint64 maxCycleCount,
-                             const QString microcodeProgram, QFileInfo microcodeProgramFile,
-                             const QString preconditionsProgram,
+    explicit MicroStepHelper(quint64 maxCycleCount,
+                             QString microcodeProgram, QFileInfo microcodeProgramFile,
+                             QString preconditionsProgram,
                              QFileInfo programOutput,
                              QObject *parent = nullptr);
     ~MicroStepHelper() override;

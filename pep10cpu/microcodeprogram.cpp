@@ -2,22 +2,22 @@
 #include "microcode.h"
 #include "symbolentry.h"
 #include "symbolvalue.h"
-MicrocodeProgram::MicrocodeProgram(): programVec(), preconditionsVec(), postconditionsVec(), microcodeVec()
+MicrocodeProgram::MicrocodeProgram()
 {
 
 }
 
 MicrocodeProgram::~MicrocodeProgram()
 {
-    // Since ever item in the program vector was allocated with new by the microcode pane, make sure to explicitly delete it.
-    for(int it = 0;it< programVec.length();it++) {
-        delete programVec[it];
+    // Since ever item in the program vector was allocated with new by
+    // the microcode pane, make sure to explicitly delete it.
+    for(auto& it : programVec) {
+        delete it;
     }
 }
 
 MicrocodeProgram::MicrocodeProgram(QVector<AMicroCode*>objectCode, QSharedPointer<SymbolTable> symbolTable):
-    symTable(symbolTable), programVec(objectCode),
-    preconditionsVec(), postconditionsVec(), microcodeVec()
+    symTable(symbolTable), programVec(objectCode)
 {
     AMicroCode* item;
     for(int it=0; it<objectCode.size();it++) {

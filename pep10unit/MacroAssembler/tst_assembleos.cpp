@@ -9,9 +9,7 @@ AssembleOS::AssembleOS(): registry(new MacroRegistry())
 }
 
 AssembleOS::~AssembleOS()
-{
-
-}
+= default;
 
 void AssembleOS::initTestCase()
 {
@@ -22,7 +20,6 @@ void AssembleOS::initTestCase()
 void AssembleOS::assembleOS()
 {
     QSharedPointer<AsmProgram> prog;
-    auto elist = QList<QPair<int, QString>>();
     MacroAssemblerDriver assembler(registry);
     auto asmResult = assembler.assembleOperatingSystem(osText);
     QVERIFY2(asmResult.success, "Assembly of operating system did not succede");

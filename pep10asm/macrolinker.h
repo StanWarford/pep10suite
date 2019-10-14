@@ -40,11 +40,20 @@ private:
     // Adjust the addresses of all code lines to allow for burning in of operating system.
     bool shiftForBURN(ModuleAssemblyGraph& graph);
 
+    bool overflowedMemory;
     quint32 nextSourceLine;
     quint32 nextAddress;
     bool forceBurn0xFFFF;
     std::optional<QSharedPointer<const SymbolTable>> osSymbolTable;
 
+public:
+    static const inline QString multidefinedSymbol = ";ERROR: Symbol \"%1\" was previously defined.";
+    static const inline QString undefinedSymbol = ";ERROR: Symbol \"%1\" is undefined.";
+    static const inline QString noBURN = ";ERROR: Only operating systems may contain a .BURN.";
+    static const inline QString oneBURN = ";ERROR: Operating systems must contain exactly 1 .BURN.";
+    static const inline QString BURNat0xFFFF = ";ERROR: .BURN must have an argument of 0xFFFF.";
+    static const inline QString noOperatingSystem = ";ERROR: Attempted to pull in symbols for operating system, but not OS was defined.";
+    static const inline QString exceededMemory = ";ERROR: Program requires more than 64k bytes of memory.";
 };
 
 #endif // MACROLINKER_H

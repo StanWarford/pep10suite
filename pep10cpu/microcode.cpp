@@ -29,8 +29,10 @@
 #include "cpupane.h"
 #include "cpudata.h"
 
-MicroCode::MicroCode(Enu::CPUType cpuType, bool extendedFeatures): cpuType(cpuType), controlSignals(Pep::numControlSignals(), Enu::signalDisabled),
-    clockSignals(Pep::numClockSignals(), false), breakpoint(false), extendedFeatures(extendedFeatures), branchFunc(Enu::Assembler_Assigned),
+MicroCode::MicroCode(Enu::CPUType cpuType, bool useExtendedFatures): cpuType(cpuType),
+    controlSignals(Pep::numControlSignals(), Enu::signalDisabled),
+    clockSignals(Pep::numClockSignals(), false), breakpoint(false),
+    extendedFeatures(useExtendedFatures), branchFunc(Enu::Assembler_Assigned),
     symbol(nullptr), trueTargetAddr(nullptr), falseTargetAddr(nullptr)
 {
     // Initialize all memory controls, normal controls, and clocklines to disabled.
@@ -41,7 +43,7 @@ MicroCode::MicroCode(Enu::CPUType cpuType, bool extendedFeatures): cpuType(cpuTy
         controlSignals[mainCtrlLines] = Enu::signalDisabled;
     }
     for(auto clockLines : Pep::clockControlToMnemonMap.keys()) {
-        clockSignals[clockLines] = 0;
+        clockSignals[clockLines] = false;
     }
 }
 

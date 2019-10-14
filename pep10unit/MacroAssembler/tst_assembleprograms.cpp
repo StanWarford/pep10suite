@@ -5,10 +5,7 @@ AssemblePrograms::AssemblePrograms(): registry(new MacroRegistry())
 
 }
 
-AssemblePrograms::~AssemblePrograms()
-{
-
-}
+AssemblePrograms::~AssemblePrograms() = default;
 
 void AssemblePrograms::initTestCase()
 {
@@ -16,7 +13,6 @@ void AssemblePrograms::initTestCase()
     QVERIFY2(!osText.isEmpty(), "Default operating system was empty.");
 
     QSharedPointer<AsmProgram> prog;
-    auto elist = QList<QPair<int, QString>>();
     MacroAssemblerDriver assembler(registry);
     auto asmResult = assembler.assembleOperatingSystem(osText);
 

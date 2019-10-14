@@ -41,7 +41,7 @@ class ASMRunHelper: public QObject, public QRunnable {
 public:
     // Program input may be an empty file. If it is empty or does not
     // exist, then it will be ignored.
-    explicit ASMRunHelper(const QString objectCodeString, quint64 maxSimSteps,
+    explicit ASMRunHelper(QString objectCodeString, quint64 maxSimSteps,
                           QFileInfo programOutput, QFileInfo programInput,
                           AsmProgramManager& manager,
                           QObject *parent = nullptr);

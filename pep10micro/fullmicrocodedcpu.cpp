@@ -687,14 +687,12 @@ void FullMicrocodedCPU::breakpointAsmHandler()
 {
     asmBreakpointHit = true;
     emit hitBreakpoint(Enu::BreakpointTypes::ASSEMBLER);
-    return;
 }
 
 void FullMicrocodedCPU::breakpointMicroHandler()
 {
     microBreakpointHit = true;
     emit hitBreakpoint(Enu::BreakpointTypes::MICROCODE);
-    return;
 }
 
 void FullMicrocodedCPU::setSignalsFromMicrocode(const MicroCode *line)

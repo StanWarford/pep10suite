@@ -168,11 +168,9 @@ bool PartialMicrocodedCPU::onRun()
         }
     }
 
-    // If a breakpoint was reached, return before final statistics are computed or the simulation is finished.
-    if(microBreakpointHit) {
-        return false;
-    }
-    return true;
+    // If a breakpoint was reached, return before final statistics
+    // are computed or the simulation is finished.
+    return !microBreakpointHit;
 }
 
 void PartialMicrocodedCPU::onResetCPU()

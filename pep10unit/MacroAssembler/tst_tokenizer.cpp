@@ -8,10 +8,7 @@ TokenizerTest::TokenizerTest(): registry(new MacroRegistry())
 
 }
 
-TokenizerTest::~TokenizerTest()
-{
-
-}
+TokenizerTest::~TokenizerTest() = default;
 
 void TokenizerTest::initTestCase()
 {
@@ -565,27 +562,27 @@ void TokenizerTest::case_malformedStringConst_data()
 
     // Tests designed to fail.
     QTest::newRow("Invalid escape sequence \\k.")
-            << "\"\\k\""
+            << R"("\k")"
             << MacroTokenizer::malformedStringConst
             << false;
 
     QTest::newRow("Invalid escape sequence \\N.")
-            << "\"\\N\""
+            << R"("\N")"
             << MacroTokenizer::malformedStringConst
             << false;
 
     QTest::newRow("Invalid escape sequence \\x2 9.")
-            << "\"\\x2 9\""
+            << R"("\x2 9")"
             << MacroTokenizer::malformedStringConst
             << false;
 
     QTest::newRow("Invalid escape sequence \\x 29.")
-            << "\"\\x 29\""
+            << R"("\x 29")"
             << MacroTokenizer::malformedStringConst
             << false;
 
     QTest::newRow("Invalid escape sequence \\x0.")
-            << "\"\\x0\""
+            << R"("\x0")"
             << MacroTokenizer::malformedStringConst
             << false;
 
@@ -611,18 +608,18 @@ void TokenizerTest::case_malformedStringConst_data()
 
     // Tests designed to pass.
     QTest::newRow("Escape quote \".")
-            << "\"\\\"\""
+            << R"("\"")"
             << ""
             << true;
 
     // Demonstrate that hex escape sequence will parse
     QTest::newRow("Escape sequence \\xff.")
-            << "\"\\xff\""
+            << R"("\xff")"
             << ""
             << true;
     // Demonstrate that two escape sequences in a row will parse.
     QTest::newRow("Escape sequence \\xfe\\xed.")
-            << "\"\\xfe\\xed\""
+            << R"("\xfe\xed")"
             << ""
             << true;
 }
@@ -662,14 +659,14 @@ void TokenizerTest::case_syntaxError()
 void TokenizerTest::preprocess(ModuleAssemblyGraph &graph)
 {
     QFETCH(QString, ProgramText);
-    QFETCH(QString, ExpectedError);
+    //QFETCH(QString, ExpectedError);
 
     auto [rootPrototype, startRootInstance] = graph.createRoot(ProgramText, ModuleType::USER_PROGRAM);
     //preprocessor->setTarget(&graph);
     //auto result = preprocessor->preprocess();
 
     //QVERIFY2(!result.error.isNull(), "Expected an error message.");
-            //QCOMPARE(result.error->getErrorMessage(), ExpectedError);
+    //QCOMPARE(result.error->getErrorMessage(), ExpectedError);
 }
 
 void TokenizerTest::execute()

@@ -7,9 +7,7 @@ PreprocessorFailure::PreprocessorFailure(): registry(new MacroRegistry()),
 }
 
 PreprocessorFailure::~PreprocessorFailure()
-{
-
-}
+= default;
 
 void PreprocessorFailure::initTestCase()
 {
@@ -78,7 +76,7 @@ void PreprocessorFailure::case_macroRequiresIdentifier_data()
                    << "ÁASRA4";
 
         registry->clearCustomMacros();
-        for(auto macro : fakeMacros) {
+        for(const auto& macro : fakeMacros) {
             registry->registerCustomMacro(macro, "@"+macro+" 0\n.END");
         }
 

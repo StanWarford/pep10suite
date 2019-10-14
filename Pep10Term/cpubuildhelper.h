@@ -31,7 +31,7 @@
 // Result of a microcode assembler invocation.
 struct MicrocodeAssemblyResult
 {
-    bool success;
+    bool success{};
     QList<QPair<int, QString>> elist;
     QSharedPointer<MicrocodeProgram> program;
 
@@ -40,7 +40,7 @@ struct MicrocodeAssemblyResult
 // Helper function that assemble a microcode source program given a parameter list
 MicrocodeAssemblyResult buildMicroprogramHelper(Enu::CPUType type,
                                                 bool useExtendedFeatures,
-                                                const QString source);
+                                                QString source);
 /*
  * This class is responsible for assembling a single microcode language source file.
  * Since there are many combinations of CPU data bus sizes and control section
@@ -58,7 +58,7 @@ class CPUBuildHelper: public QObject, public QRunnable {
     Q_OBJECT
 public:
     explicit CPUBuildHelper(Enu::CPUType type, bool useExtendedFeatures,
-                            const QString source, QFileInfo logFileInfo,
+                            QString source, QFileInfo logFileInfo,
                             QObject *parent = nullptr);
     ~CPUBuildHelper() override;
 

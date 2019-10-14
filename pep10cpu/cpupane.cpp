@@ -40,7 +40,7 @@ using namespace Enu;
 CpuPane::CpuPane( QWidget *parent) :
         QWidget(parent),
         cpu(nullptr), dataSection(nullptr),
-        cpuPaneItems(nullptr), ui(new Ui::CpuPane)
+        type(Enu::CPUType::OneByteDataBus), ui(new Ui::CpuPane)
 {
     ui->setupUi(this);
     connect(ui->spinBox, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &CpuPane::zoomFactorChanged);
@@ -277,7 +277,7 @@ void CpuPane::setRegister(Enu::ECPUKeywords reg, int value)
 
 void CpuPane::setRegisterByte(quint8 reg, quint8 value)
 {
-    QLatin1Char ch = QLatin1Char('0');
+    auto ch = QLatin1Char('0');
     switch (reg) {
     case 0:
         cpuPaneItems->aRegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(1), 4, 16, ch).toUpper());
@@ -719,7 +719,6 @@ void CpuPane::labelClicked()
 
 void CpuPane::clockButtonPushed()
 {
-    QString errorString;
     cpu->onClock();
     if (dataSection->hadErrorOnStep()) {
         // simulation had issues.
@@ -954,7 +953,7 @@ void CpuPane::onRegisterChanged(quint8 which, quint8 , quint8 newVal)
 
 void CpuPane::onMemoryRegisterChanged(EMemoryRegisters reg, quint8, quint8 newVal)
 {
-    QLatin1Char x = QLatin1Char('0');
+    auto x = QLatin1Char('0');
     switch(reg){
     case Enu::MEM_MARA:
         cpuPaneItems->MARALabel->setText("0x" + QString("%1").arg(newVal, 2, 16, x).toUpper());

@@ -65,7 +65,7 @@ protected:
     void onISAStep() override;
 
 private:
-    bool isPrefetchValid;
+    bool isPrefetchValid {false};
     QElapsedTimer timer;
     CPUDataSection *data;
     QSharedPointer<CPUDataSection> dataShared;
@@ -82,14 +82,14 @@ private:
     // done each time a microprogram is run to account for mnemonic redefinitons.
     // Any modification to the Pep:: instruction mappings while the simulator is running
     // could cause the microprogram to error in unexpected ways.
-    std::array<decoder_entry, 256> instrSpecJT;
+    std::array<decoder_entry, 256> instrSpecJT {};
 
     // For each of the 256 instruction specifier values, map the
     // addressing mode associated with that IS to the first line of
     // microcode implementing that addressing mode. Do not modify
     // any of the Pep:: addressing mode maps while the simulator
     // is running, else a microprogram might fail unexpectedly.
-    std::array<decoder_entry, 256> addrModeJT;
+    std::array<decoder_entry, 256> addrModeJT {};
     quint16 startLine = 0;
 
     void breakpointAsmHandler();

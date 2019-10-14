@@ -59,8 +59,8 @@
 
 CPUMainWindow::CPUMainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::CPUMainWindow), debugState(DebugState::DISABLED), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
-    updateChecker(new UpdateChecker()),  isInDarkMode(false),
+    ui(new Ui::CPUMainWindow), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
+    updateChecker(new UpdateChecker()),
     memDevice(new MainMemory(nullptr)), controlSection(new PartialMicrocodedCPU(Enu::CPUType::OneByteDataBus, memDevice)),
     dataSection(controlSection->getDataSection()),
     cpuModesGroup(new QActionGroup(this))
@@ -109,39 +109,59 @@ CPUMainWindow::CPUMainWindow(QWidget *parent) :
     ui->byteConverterToolBar->addWidget(byteConverterBin);
     byteConverterChar = new ByteConverterChar();
     ui->byteConverterToolBar->addWidget(byteConverterChar);
-    connect(byteConverterBin, &ByteConverterBin::textEdited, this, &CPUMainWindow::slotByteConverterBinEdited);
-    connect(byteConverterChar, &ByteConverterChar::textEdited, this, &CPUMainWindow::slotByteConverterCharEdited);
-    connect(byteConverterDec, &ByteConverterDec::textEdited, this, &CPUMainWindow::slotByteConverterDecEdited);
-    connect(byteConverterHex, &ByteConverterHex::textEdited, this, &CPUMainWindow::slotByteConverterHexEdited);
+    connect(byteConverterBin, &ByteConverterBin::textEdited,
+            this, &CPUMainWindow::slotByteConverterBinEdited);
+    connect(byteConverterChar, &ByteConverterChar::textEdited,
+            this, &CPUMainWindow::slotByteConverterCharEdited);
+    connect(byteConverterDec, &ByteConverterDec::textEdited,
+            this, &CPUMainWindow::slotByteConverterDecEdited);
+    connect(byteConverterHex, &ByteConverterHex::textEdited,
+            this, &CPUMainWindow::slotByteConverterHexEdited);
 
-    connect((QApplication*)QApplication::instance(), &QApplication::focusChanged, this, &CPUMainWindow::focusChanged);
+    connect(dynamic_cast<QApplication*>(QApplication::instance()), &QApplication::focusChanged,
+            this, &CPUMainWindow::focusChanged);
 
     // Connect Undo / Redo events
-    connect(ui->microcodeWidget, &MicrocodePane::undoAvailable, this, &CPUMainWindow::setUndoability);
-    connect(ui->microcodeWidget, &MicrocodePane::redoAvailable, this, &CPUMainWindow::setRedoability);
+    connect(ui->microcodeWidget, &MicrocodePane::undoAvailable,
+            this, &CPUMainWindow::setUndoability);
+    connect(ui->microcodeWidget, &MicrocodePane::redoAvailable,
+            this, &CPUMainWindow::setRedoability);
 
     // Connect simulation events.
     // Events that fire on simulationUpdate should be UniqueConnections, as they will be repeatedly connected and disconnected
     // via connectMicroDraw() and disconnectMicroDraw().
-    connect(this, &CPUMainWindow::simulationUpdate, ui->cpuWidget, &CpuPane::onSimulationUpdate, Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationUpdate, ui->memoryWidget, &MemoryDumpPane::updateMemory, Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationStarted, ui->memoryWidget, &MemoryDumpPane::onSimulationStarted);
-    connect(controlSection.get(), &PartialMicrocodedCPU::hitBreakpoint, this, &CPUMainWindow::onBreakpointHit);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            ui->cpuWidget, &CpuPane::onSimulationUpdate, Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            ui->memoryWidget, &MemoryDumpPane::updateMemory, Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationStarted,
+            ui->memoryWidget, &MemoryDumpPane::onSimulationStarted);
+    connect(controlSection.get(), &PartialMicrocodedCPU::hitBreakpoint,
+            this, &CPUMainWindow::onBreakpointHit);
 
 
-    connect(this, &CPUMainWindow::simulationStarted, ui->microobjectWidget, &MicroObjectCodePane::onSimulationStarted);
+    connect(this, &CPUMainWindow::simulationStarted,
+            ui->microobjectWidget, &MicroObjectCodePane::onSimulationStarted);
     // Post finished events to the event queue so that they are processed after simulation updates.
-    connect(this, &CPUMainWindow::simulationFinished, ui->microobjectWidget, &MicroObjectCodePane::onSimulationFinished, Qt::QueuedConnection);
-    connect(this, &CPUMainWindow::simulationFinished, controlSection.get(), &PartialMicrocodedCPU::onSimulationFinished, Qt::QueuedConnection);
-    connect(this, &CPUMainWindow::simulationFinished, ui->cpuWidget, &CpuPane::onSimulationFinished, Qt::QueuedConnection);
-    connect(this, &CPUMainWindow::simulationFinished, ui->memoryWidget, &MemoryDumpPane::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            ui->microobjectWidget, &MicroObjectCodePane::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            controlSection.get(), &PartialMicrocodedCPU::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            ui->cpuWidget, &CpuPane::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            ui->memoryWidget, &MemoryDumpPane::onSimulationFinished, Qt::QueuedConnection);
     // Connect MainWindow so that it can propogate simulationFinished event and clean up when execution is finished.
-    connect(controlSection.get(), &PartialMicrocodedCPU::simulationFinished, this, &CPUMainWindow::onSimulationFinished);
+    connect(controlSection.get(), &PartialMicrocodedCPU::simulationFinished,
+            this, &CPUMainWindow::onSimulationFinished);
 
     // Connect simulation events that are internal to the class.
-    connect(this, &CPUMainWindow::simulationUpdate, this, &CPUMainWindow::handleDebugButtons, Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationUpdate, this, static_cast<void(CPUMainWindow::*)()>(&CPUMainWindow::highlightActiveLines), Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationStarted, this, &CPUMainWindow::handleDebugButtons);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            this, &CPUMainWindow::handleDebugButtons, Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            this, static_cast<void(CPUMainWindow::*)()>(&CPUMainWindow::highlightActiveLines), Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationStarted,
+            this, &CPUMainWindow::handleDebugButtons);
 
     // Connect font change events.
     connect(this, &CPUMainWindow::fontChanged, ui->microcodeWidget, &MicrocodePane::onFontChanged);

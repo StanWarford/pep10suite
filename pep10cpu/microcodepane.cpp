@@ -34,7 +34,7 @@
 #include "cpudata.h"
 MicrocodePane::MicrocodePane(QWidget *parent) :
         QWidget(parent), dataSection(nullptr),
-        ui(new Ui::MicrocodePane), inDarkMode(false), symbolTable(nullptr), program(nullptr), currentFile(), microASM(nullptr)
+        ui(new Ui::MicrocodePane), symbolTable(nullptr), program(nullptr), currentFile()
 {
     ui->setupUi(this);
 
@@ -103,7 +103,7 @@ bool MicrocodePane::microAssemble()
     AMicroCode *code;
     int lineNum = 0;
 
-    if(isModified() == false && program != nullptr) {
+    if(!isModified() && program != nullptr) {
         return true;
     }
 

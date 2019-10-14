@@ -32,7 +32,6 @@
  */
 class DisableSelectionModel : public QItemSelectionModel
 {
-    bool disableSelection;
     Q_OBJECT
 public:
     DisableSelectionModel(QAbstractItemModel *model = Q_NULLPTR) noexcept;
@@ -48,6 +47,8 @@ public:
 public slots:
     void onDisableSelection();
     void onEnableSelection();
+private:
+    bool disableSelection {false};
 };
 
 #endif // DISABLESELECTIONMODEL_H

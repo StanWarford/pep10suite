@@ -28,19 +28,17 @@
 #include "termhelper.h"
 
 CPUBuildHelper::CPUBuildHelper(Enu::CPUType type,bool useExtendedFeatures,
-                               const QString source, QFileInfo sourceFileInfo,
+                               const QString source, QFileInfo logFileInfo,
                                QObject *parent):
-    QObject(parent), QRunnable(), type(type), useExtendedFeatures(useExtendedFeatures),
-    source(source), logFileInfo(sourceFileInfo)
+    QObject(parent), type(type), useExtendedFeatures(useExtendedFeatures),
+    source(source), logFileInfo(logFileInfo)
 {
 
 }
 
-CPUBuildHelper::~CPUBuildHelper()
-{
-    // All of our memory is owned by sharedpointers, so we
-    // should not attempt to delete anything ourselves.
-}
+// All of our memory is owned by sharedpointers, so we
+// should not attempt to delete anything ourselves.
+CPUBuildHelper::~CPUBuildHelper() = default;
 
 bool CPUBuildHelper::buildMicroprogram()
 {
@@ -60,7 +58,7 @@ bool CPUBuildHelper::buildMicroprogram()
             // Write all errors to the error log.
             QTextStream errAsStream(&errorLog);
             auto textList = source.split("\n");
-            for(auto errorPair : result.elist) {
+            for(const auto& errorPair : result.elist) {
                 // The first element of the error pair is the line number which
                 // caused the error, allowing us to write the offending line
                 // and error message to the console.
@@ -157,7 +155,7 @@ MicrocodeAssemblyResult buildMicroprogramHelper(Enu::CPUType type,
 
     // If assembly succeeded, we must now perform additional sanity checks
     // on the symbol table entries
-    for(auto sym : symbolTable->getSymbolEntries()) {
+    for(const auto& sym : symbolTable->getSymbolEntries()) {
         if(sym->isUndefined()){
             result.elist.append({0,"// ERROR: Undefined symbol "+sym->getName()});
             result.success = false;

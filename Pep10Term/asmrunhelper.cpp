@@ -41,7 +41,7 @@
 ASMRunHelper::ASMRunHelper(const QString objectCodeString,quint64 maxSimSteps,
                      QFileInfo programOutput, QFileInfo programInput, AsmProgramManager &manager,
                      QObject *parent):
-    QObject(parent), QRunnable (), objectCodeString(objectCodeString),
+    QObject(parent), objectCodeString(objectCodeString),
     programOutput(programOutput), programInput(programInput) ,manager(manager),
     // Explicitly initialize both simulation objects to nullptr,
     // so that it is clear to that neither object has been allocated

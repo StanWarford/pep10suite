@@ -10,7 +10,7 @@ class MicrocodeProgram
 private:
     QSharedPointer<SymbolTable> symTable;
     QVector<AMicroCode*> programVec;
-    QVector<int> preconditionsVec,postconditionsVec,microcodeVec;
+    QVector<int> preconditionsVec, postconditionsVec, microcodeVec;
 public:
     MicrocodeProgram();
     ~MicrocodeProgram();

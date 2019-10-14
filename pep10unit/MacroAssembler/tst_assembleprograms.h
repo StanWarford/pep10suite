@@ -10,7 +10,7 @@ class AssemblePrograms : public QObject
 
 public:
     AssemblePrograms();
-    ~AssemblePrograms();
+    ~AssemblePrograms() override;
 
 private slots:
     void initTestCase();

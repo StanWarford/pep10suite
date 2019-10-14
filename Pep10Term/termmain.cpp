@@ -27,6 +27,7 @@
 #include <QThreadPool>
 
 #include <optional>
+#include <utility>
 
 #include "asmbuildhelper.h"
 #include "asmrunhelper.h"
@@ -66,7 +67,7 @@ std::optional<QRunnable*> handle_cpurun(QCommandLineParser& parser, QCoreApplica
 std::optional<QRunnable*> handle_microasm(QCommandLineParser& parser, QCoreApplication &app);
 std::optional<QRunnable*> handle_microrun(QCommandLineParser& parser, QCoreApplication &app);
 std::optional<QRunnable*> handle_macros(QCommandLineParser& parser, QCoreApplication &app);
-std::optional<QRunnable*> handle_microrun(QCommandLineParser& parser, QCoreApplication &app);
+
 
 int main(int argc, char *argv[])
 {
@@ -311,7 +312,7 @@ std::optional<QRunnable*> handle_asm(QCommandLineParser& parser, QCoreApplicatio
 
         ASMBuildHelper *helper = new ASMBuildHelper(sourceText, objectFileString,
                                                     *AsmProgramManager::getInstance(),
-                                                    registry);
+                                                    std::move(registry));
         QObject::connect(helper, &ASMBuildHelper::finished, &app, &QCoreApplication::quit);
 
         return helper;

@@ -34,9 +34,10 @@ QT_END_NAMESPACE
 class PepMicroHighlighter : public QSyntaxHighlighter /*, RestyleableItem*/
 {
 public:
-    PepMicroHighlighter(Enu::CPUType type, bool fullCtrlSection, const PepColors::Colors colors, QTextDocument *parent = nullptr);
+    PepMicroHighlighter(Enu::CPUType type, bool fullCtrlSection, PepColors::Colors colors,
+                        QTextDocument *parent = nullptr);
     void forceAllFeatures(bool features);
-    void rebuildHighlightingRules(const PepColors::Colors color);
+    void rebuildHighlightingRules(PepColors::Colors color);
     void setCPUType(Enu::CPUType type);
 
 protected:

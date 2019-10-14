@@ -35,7 +35,7 @@
 ASMBuildHelper::ASMBuildHelper(const QString source, QFileInfo objFileInfo,
                          AsmProgramManager &manager, QSharedPointer<MacroRegistry> registry,
                          QObject *parent): QObject(parent),
-    QRunnable(), source(source), objFileInfo(objFileInfo),
+    source(source), objFileInfo(objFileInfo),
     manager(manager), registry(std::move(std::move(registry)))
 {
 
@@ -80,8 +80,8 @@ bool ASMBuildHelper::buildProgram()
         else {
             QTextStream errAsStream(&errorLog);
             auto textList = source.split("\n");
-            for(auto errorList : asmResult.errors.sourceMapped) {
-                for(auto error : errorList) {
+            for(const auto& errorList : asmResult.errors.sourceMapped) {
+                for(const auto& error : errorList) {
                     int index = error->getSourceLineNumber();
                     // Sometimes errors will be at (or past) the end of the source list.
                     // This occurs when a .END isn't specified.

@@ -74,9 +74,9 @@
 
 MicroMainWindow::MicroMainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MicroMainWindow), debugState(DebugState::DISABLED),
+    ui(new Ui::MicroMainWindow),
     codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
-    updateChecker(new UpdateChecker()), isInDarkMode(false),
+    updateChecker(new UpdateChecker()),
     memDevice(new MainMemory(nullptr)),
     controlSection(new FullMicrocodedCPU(AsmProgramManager::getInstance(), memDevice)),
     dataSection(controlSection->getDataSection()),
@@ -780,7 +780,6 @@ QString MicroMainWindow::strippedName(const QString &fullFileName)
 void MicroMainWindow::print(Enu::EPane which)
 {
     //Don't use a pointer for the text, because toPlainText() returns a temporary object
-    QString text;
     const QString base = "Print %1";
     const QString source = base.arg("Assembler Source Code");
     const QString object = base.arg("Object Code");
@@ -831,7 +830,7 @@ void MicroMainWindow::print(Enu::EPane which)
         // to silence compiler warnings.
         break;
     }
-    QPrintDialog *dialog = new QPrintDialog(&printer, this);
+    auto* dialog = new QPrintDialog(&printer, this);
 
     dialog->setWindowTitle(*title);
     if (dialog->exec() == QDialog::Accepted) {
@@ -1037,7 +1036,7 @@ bool MicroMainWindow::initializeSimulation()
     // Load microprogram into the micro control store
     if (ui->microcodeWidget->microAssemble()) {
         ui->statusBar->showMessage("MicroAssembly succeeded", 4000);
-        if(ui->microcodeWidget->getMicrocodeProgram()->hasMicrocode() == false)
+        if(!ui->microcodeWidget->getMicrocodeProgram()->hasMicrocode())
         {
             ui->statusBar->showMessage("No microcode program to build", 4000);
             return false;
@@ -1756,7 +1755,7 @@ void MicroMainWindow::onSimulationFinished()
     for (AMicroCode* x : prog) {
         if(x->hasUnitPost()) {
             hadPostTest = true;
-            UnitPostCode* code = dynamic_cast<UnitPostCode*>(x);
+            auto* code = dynamic_cast<UnitPostCode*>(x);
             if(!code->testPostcondition(data, memory, errorString)) {
                 ui->microcodeWidget->appendMessageInSourceCodePaneAt(-1, errorString);
                 QMessageBox::warning(this, "Pep/10 Micro", "Failed unit test");

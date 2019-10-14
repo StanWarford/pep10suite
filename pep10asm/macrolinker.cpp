@@ -4,12 +4,6 @@
 #include "symbolvalue.h"
 #include "optional_helper.h"
 #include "asmargument.h"
-static QString multidefinedSymbol = ";ERROR: Symbol \"%1\" was previously defined.";
-static QString undefinedSymbol = ";ERROR: Symbol \"%1\" is undefined.";
-static QString noBURN = ";ERROR: Only operating systems may contain a .BURN.";
-static QString oneBURN = ";ERROR: Operating systems must contain exactly 1 .BURN.";
-static QString BURNat0xFFFF = ";ERROR: .BURN must have an argument of 0xFFFF.";
-static QString noOperatingSystem = ";ERROR: Attempted to pull in symbols for operating system, but not OS was defined.";
 
 MacroLinker::MacroLinker(): nextAddress(0), forceBurn0xFFFF(false)
 {
@@ -24,6 +18,7 @@ MacroLinker::~MacroLinker()
 LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
 {
     // Reset address counter, as a linker may be reused
+    overflowedMemory = false;
     nextAddress = 0;
     nextSourceLine = 0;
     LinkResult result;
@@ -51,8 +46,12 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
     }
     graph.instanceMap = newMap;
 
+    if(overflowedMemory) {
+        result.errorList.append({0, exceededMemory});
+        result.success = false;
+    }
     // Operating system needs to have its code list adjusted to be burned in to high memory.
-    if(rootModuleInstance->prototype->moduleType == ModuleType::OPERATING_SYSTEM) {
+    else if(rootModuleInstance->prototype->moduleType == ModuleType::OPERATING_SYSTEM) {
         shiftForBURN(graph);
     }
     // If a user program has a burn, return an error.
@@ -199,6 +198,9 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph graph,
         // Otherwise, we don't have a macro invocation, and we can assign addresses normally.
         else {
             line->setMemoryAddress(nextAddress);
+            if(0xFFFF - line->objectCodeLength() <= nextAddress) {
+                overflowedMemory = true;
+            }
             nextAddress += line->objectCodeLength();
         }
     }

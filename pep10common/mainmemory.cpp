@@ -27,8 +27,8 @@
 #include "memorychips.h"
 #include "mainmemory.h"
 
-MainMemory::MainMemory(QObject* parent) noexcept: AMemoryDevice (parent), updateMemMap(true),
-    endChip(new NilChip(0xffff, 0, this)), addressToChipLookupTable(1 << 16), maxAddr(0)
+MainMemory::MainMemory(QObject* parent) noexcept: AMemoryDevice (parent),
+    endChip(new NilChip(0xffff, 0, this)), addressToChipLookupTable(1 << 16)
 {
 
 }

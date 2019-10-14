@@ -60,10 +60,10 @@ public:
     // Program input may be an empty file. If it is empty or does not
     // exist, then it will be ignored.
     explicit CPURunHelper(Enu::CPUType type,
-                       const QString microcodeProgram, QFileInfo microcodeProgramFile,
-                       const QString preconditionsProgram,
-                       QFileInfo programOutput,
-                       QObject *parent = nullptr);
+                          QString microcodeProgram, QFileInfo microcodeProgramFile,
+                          QString preconditionsProgram,
+                          QFileInfo programOutput,
+                          QObject *parent = nullptr);
     ~CPURunHelper() override;
 
 signals:

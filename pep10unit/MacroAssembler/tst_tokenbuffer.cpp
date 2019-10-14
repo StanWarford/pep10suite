@@ -8,10 +8,7 @@ TokenBufferTest::TokenBufferTest(): registry(new MacroRegistry())
 
 }
 
-TokenBufferTest::~TokenBufferTest()
-{
-
-}
+TokenBufferTest::~TokenBufferTest() = default;
 
 void TokenBufferTest::initTestCase()
 {
@@ -35,7 +32,7 @@ void TokenBufferTest::case_malformedDecConst_data()
     // Tests expected to fail.
     QStringList interestingChars;
     interestingChars << ":" << "()"<< "!";
-    for(auto combo : interestingChars) {
+    for(const auto& combo : interestingChars) {
         QTest::newRow(QString("Special character inside decimal constant %1.")
                       .arg(combo).toStdString().c_str())
                 << QString("6%1").arg(combo)+"7"
@@ -84,7 +81,7 @@ void TokenBufferTest::case_malformedHexConst_data()
     // Tests expected to fail.
     QStringList interestingChars;
     interestingChars << ":" << "()"<< "!";
-    for(auto combo : interestingChars) {
+    for(const auto& combo : interestingChars) {
         QTest::newRow(QString("Special character %1 inside hex constant.")
                       .arg(combo).toStdString().c_str())
                 << QString("0x6%1").arg(combo)+"7"
@@ -168,7 +165,7 @@ void TokenBufferTest::case_malformedDot_data()
     // Tests expected to fail.
     QStringList interestingChars;
     interestingChars << ":" << "()"<< "!";
-    for(auto combo : interestingChars) {
+    for(const auto& combo : interestingChars) {
         QTest::newRow(QString("Special character %1 inside dot command.")
                       .arg(combo).toStdString().c_str())
                 << QString(".EQU%1").arg(combo)+"TE"
@@ -216,7 +213,7 @@ void TokenBufferTest::case_malformedIdentifier_data()
     // Tests expected to fail.
     QStringList interestingChars;
     interestingChars << "::" << "()"<< "!";
-    for(auto combo : interestingChars) {
+    for(const auto& combo : interestingChars) {
         QTest::newRow(QString("Special character inside symbol definition %1.")
                       .arg(combo).toStdString().c_str())
                 << QString("hell%1").arg(combo)+"lo:"
@@ -296,7 +293,7 @@ void TokenBufferTest::execute()
                  "Mistmatched tokens in buffer");
     }
     // If we expected an error, and were given an error message, compare the errors.
-    if(ExpectedMatches.size()>=1 &&
+    if(!ExpectedMatches.empty() &&
             ExpectedMatches.first() == MacroTokenizerHelper::ELexicalToken::LTE_ERROR &&
             !ExpectedError.isEmpty()) {
         QCOMPARE(buffer->getMatches().first().second.toString(),

@@ -15,7 +15,7 @@ class PreprocessorFailure : public QObject
     Q_OBJECT
 public:
     PreprocessorFailure();
-    ~PreprocessorFailure();
+    ~PreprocessorFailure() override;
 
 private slots:
     void initTestCase();

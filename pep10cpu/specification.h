@@ -67,7 +67,7 @@ public:
     StatusBitSpecification(Enu::ECPUKeywords statusBitAddress, bool statusBitValue) noexcept;
     void setUnitPre(CPUDataSection *data, AMemoryDevice*) noexcept override;
     bool testUnitPost(const CPUDataSection *data, const AMemoryDevice*,
-                      QString &errString) const noexcept override;
+                      QString &errorString) const noexcept override;
     QString getSourceCode() const noexcept override;
 private:
     Enu::ECPUKeywords nzvcsAddress;

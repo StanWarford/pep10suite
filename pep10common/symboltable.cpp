@@ -129,7 +129,7 @@ bool SymbolTable::exists(SymbolID symbolID) const
 quint32 SymbolTable::numMultiplyDefinedSymbols() const
 {
     quint32 count = 0;
-    for(SymbolTable::SymbolEntryPtr ptr : this->symbolDictionary) {
+    for(const auto& ptr : this->symbolDictionary) {
         count += ptr->isMultiplyDefined() ? 1 : 0;
     }
     return count;
@@ -138,7 +138,7 @@ quint32 SymbolTable::numMultiplyDefinedSymbols() const
 quint32 SymbolTable::numUndefinedSymbols() const
 {
     quint32 count = 0;
-    for(SymbolTable::SymbolEntryPtr ptr : this->symbolDictionary) {
+    for(const auto& ptr : this->symbolDictionary) {
         count += ptr->isUndefined() ? 1 : 0;
     }
     return count;
@@ -146,7 +146,7 @@ quint32 SymbolTable::numUndefinedSymbols() const
 
 void SymbolTable::setOffset(quint16 value, quint16 threshhold)
 {
-    for(SymbolEntryPtr ptr:this->symbolDictionary) {
+    for(SymbolEntryPtr ptr : this->symbolDictionary) {
         if(ptr->getRawValue()->getSymbolType() == SymbolType::ADDRESS && ptr->getValue() >= threshhold) {
             static_cast<SymbolValueLocation*>(ptr->getRawValue().data())->setOffset(value);
         }

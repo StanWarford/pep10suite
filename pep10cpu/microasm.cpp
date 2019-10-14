@@ -857,7 +857,7 @@ bool MicroAsm::processSourceLine(SymbolTable* symTable, QString sourceLine, AMic
                 state = MicroAsm::PSE_FALSE_TARGET;
             }
             else {
-                errorString = "// Error: expected \"else\" after \"if\".";
+                errorString = R"(// Error: expected "else" after "if".)";
                 delete code;
                 return false;
             }
@@ -911,8 +911,7 @@ bool MicroAsm::startsWithHexPrefix(QString str)
 {
     if (str.length() < 2) return false;
     if (str[0] != '0') return false;
-    if (str[1] == 'x' || str[1] == 'X') return true;
-    return false;
+    return str[1] == 'x' || str[1] == 'X';
 }
 
 void MicroAsm::setCPUType(Enu::CPUType type)

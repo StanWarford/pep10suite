@@ -15,7 +15,7 @@ class TokenBufferTest : public QObject
     Q_OBJECT
 public:
     TokenBufferTest();
-    ~TokenBufferTest();
+    ~TokenBufferTest() override;
 
 private slots:
     void initTestCase();

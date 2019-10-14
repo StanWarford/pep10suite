@@ -22,9 +22,12 @@
 #include "pepmicrohighlighter.h"
 #include "pep.h"
 #include <QTextDocument>
-PepMicroHighlighter::PepMicroHighlighter(Enu::CPUType type, bool fullCtrlSection, const PepColors::Colors color, QTextDocument *parent)
+PepMicroHighlighter::PepMicroHighlighter(Enu::CPUType type, bool fullCtrlSection,
+                                         const PepColors::Colors color,
+                                         QTextDocument *parent)
     : QSyntaxHighlighter(parent), cpuType(type),
-      /*RestyleableItem(color, parent),*/ forcedFeatures(false), fullCtrlSection(fullCtrlSection)
+      /*RestyleableItem(color, parent),*/ forcedFeatures(false),
+      fullCtrlSection(fullCtrlSection)
 {
     // Trigger an update whenever a style is changed.
     // connect(this, &RestyleableItem::styleChanged, this, &PepMicroHighlighter::onStyleChange);

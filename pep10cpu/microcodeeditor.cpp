@@ -24,7 +24,7 @@
 #include "microcodeeditor.h"
 #include "pep.h"
 #include "microcodeprogram.h"
-#include <limits.h>
+#include <climits>
 #include "interfacemccpu.h"
 #include <QScrollBar>
 
@@ -121,7 +121,7 @@ void MicrocodeEditor::onTextChanged()
 
     for (int i = 0; i < sourceCodeList.size(); i++) {
         // The following regular expression will find a match in any non-microcode line
-        if (QRegExp("^\\s*//|^\\s*$|^\\s*unitpre|^\\s*unitpost", Qt::CaseInsensitive).indexIn(sourceCodeList.at(i)) == 0) {
+        if (QRegExp(R"(^\s*//|^\s*$|^\s*unitpre|^\s*unitpost)", Qt::CaseInsensitive).indexIn(sourceCodeList.at(i)) == 0) {
         }
         else {
             blockToCycle.insert(i, cycleNumber++);

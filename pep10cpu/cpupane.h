@@ -72,7 +72,7 @@ protected:
     QSharedPointer<InterfaceMCCPU> cpu;
     QSharedPointer<CPUDataSection> dataSection;
     QGraphicsScene *scene;
-    CpuGraphicsItems *cpuPaneItems;
+    CpuGraphicsItems *cpuPaneItems {nullptr};
     Enu::CPUType type;
 
 private:

@@ -117,8 +117,8 @@ protected:
 private:
     Ui::MicrocodePane *ui;
     QSharedPointer<CPUDataSection> dataSection;
-    MicroAsm *microASM;
-    bool inDarkMode, fullCtrlSection;
+    MicroAsm *microASM{nullptr};
+    bool inDarkMode{false}, fullCtrlSection{false};
     QSharedPointer<SymbolTable> symbolTable;
     PepMicroHighlighter *highlighter;
     MicrocodeEditor *editor;

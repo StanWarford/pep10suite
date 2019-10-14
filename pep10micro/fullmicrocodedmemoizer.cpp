@@ -6,14 +6,14 @@
 #include "asmprogrammanager.h"
 #include "cpudata.h"
 #include "registerfile.h"
-#include <assert.h>
+#include <cassert>
 #include <QString>
 #include <QtCore>
 #include <QDebug>
 #include <QStack>
 
-FullMicrocodedMemoizer::FullMicrocodedMemoizer(FullMicrocodedCPU& item): cpu(item),
-    state(CPUState())
+FullMicrocodedMemoizer::FullMicrocodedMemoizer(FullMicrocodedCPU& item): cpu(item)
+    
 {
 
 }
