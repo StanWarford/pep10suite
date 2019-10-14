@@ -198,7 +198,7 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph graph,
         // Otherwise, we don't have a macro invocation, and we can assign addresses normally.
         else {
             line->setMemoryAddress(nextAddress);
-            if(0xFFFF - line->objectCodeLength() <= nextAddress) {
+            if(0xFFFF - line->objectCodeLength() < nextAddress) {
                 overflowedMemory = true;
             }
             nextAddress += line->objectCodeLength();
