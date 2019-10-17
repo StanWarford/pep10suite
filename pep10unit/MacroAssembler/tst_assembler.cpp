@@ -10,9 +10,7 @@ AssemblerTest::AssemblerTest():registry(new MacroRegistry())
 }
 
 AssemblerTest::~AssemblerTest()
-{
-
-}
+= default;
 
 void AssemblerTest::initTestCase()
 {
@@ -31,6 +29,8 @@ void AssemblerTest::case_missingEnd_data()
     QTest::addColumn<ModuleType>("MainModuleType");
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
+
+    // Validate that all program combinations must terminate in a .END
 
     QTest::addRow("Empty user program missing .END sentinel.")
             << "\n"
@@ -84,6 +84,8 @@ void AssemblerTest::case_syntaxError_data()
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
 
+    // Validate that various kinds of syntax errors are passed
+    // up from the tokenizer to the error output.
     QTest::addRow("Syntax error on an isolated line")
             << "!error"
             << ModuleType::USER_PROGRAM
@@ -134,6 +136,7 @@ void AssemblerTest::case_unexpectedToken_data()
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
 
+
     // Below are all tokens that may not appear at the start of the line.
     QTest::addRow("Unexpected addressing mode at start of line.")
             << ",i\n"
@@ -141,17 +144,22 @@ void AssemblerTest::case_unexpectedToken_data()
             << MacroAssembler::unexpectedToken.arg("i")
             << false;
 
-
     QTest::addRow("Unexpected char const at start of line.")
             << "'i'\n"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::unexpectedToken.arg("'i'")
             << false;
 
-    QTest::addRow("Unexpected decimal const at start of line.")
+    QTest::addRow("Unexpected unsigned decimal const at start of line.")
             << "6975\n"
             << ModuleType::USER_PROGRAM
             << MacroAssembler::unexpectedToken.arg("6975")
+            << false;
+
+    QTest::addRow("Unexpected unsigned decimal const at start of line.")
+            << "-6975\n"
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::unexpectedToken.arg("-6975")
             << false;
 
     QTest::addRow("Unexpected hex const at start of line.")
@@ -178,6 +186,7 @@ void AssemblerTest::case_unexpectedEOL_data()
     QTest::addColumn<ModuleType>("MainModuleType");
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
+
 
     // Unary instructions.
     QTest::addRow("Unexpected EOL in unary instruction.")
@@ -293,9 +302,13 @@ void AssemblerTest::case_unexpectedSymbolDeclaration_data()
 
     using element = typename std::tuple<QString,QString, bool, QString>;
     QList<element> identList;
+
     // For each token type, construct a test case with a symbol before it.
-    // For tokens that identify multiple code lines (identifiers, dot commands)
+    // For tokens that describe multiple unique code lines (identifiers, dot commands)
     // must test multiple permutations of these symbols.
+    // SCALL and USCALL provide a special error message when defining a symbol
+    // so they will be tested case_noSymbolUscall, and case_noSymbolScall
+    // respectively.
     identList  << element("addressing mode",",i", false, MacroAssembler::unexpectedSymbolDecl)
                << element("character const", "'l'", false, MacroAssembler::unexpectedSymbolDecl)
                << element("decimal const","72", false, MacroAssembler::unexpectedSymbolDecl)
@@ -303,12 +316,7 @@ void AssemblerTest::case_unexpectedSymbolDeclaration_data()
                << element(".BLOCK 5",".BLOCK 5\n.END\n", true, "")
                << element("sy:.BLOCK","sy:.BLOCK", false, MacroAssembler::unexpectedSymbolDecl)
                << element("sy:.BLOCK 5","sy:.BLOCK 5", false, MacroAssembler::unexpectedSymbolDecl)
-               << element("sy:.EQUATE","sy:.EQUATE", false, MacroAssembler::unexpectedSymbolDecl)
                << element("sy:.EQUATE","sy:.EQUATE 5", false, MacroAssembler::unexpectedSymbolDecl)
-               << element(".SCALL",".SCALL sy", false, MacroAssembler::unexpectedSymbolDecl)
-               << element("sy:.SCALL","sy:.SCALL sy", false, MacroAssembler::unexpectedSymbolDecl)
-               << element(".USCALL",".USCALL", false, MacroAssembler::unexpectedSymbolDecl)
-               << element("sy:.USCALL","sy:.USCALL sy", false, MacroAssembler::unexpectedSymbolDecl)
                << element("hex constant","0x99", false, MacroAssembler::unexpectedSymbolDecl)
                << element("unary instruction","ASRA\n.END\n", true, "")
                << element("nonunary instruction","LDWA 0,d\n.END\n", true, "")
@@ -316,6 +324,7 @@ void AssemblerTest::case_unexpectedSymbolDeclaration_data()
                << element("string constant","\"hi\"", false, MacroAssembler::unexpectedSymbolDecl)
                << element("symbol declaration","sy:", false, MacroAssembler::unexpectedSymbolDecl);
 
+    // Insert a symbol before each of the above lines, and check the resulting expression.
     QString symbol = "sy2:";
     for(auto ident : identList) {
         QTest::addRow("%s", QString("Symbol before %1.")
@@ -340,7 +349,8 @@ void AssemblerTest::case_invalidMnemonic_data()
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
 
-    // Tests expected to fail.
+
+    // Test that obviously incorrect mnemonics will not assemble.
     QTest::addRow("Invalid mnemonic hello.")
             << "hello\n.END\n"
             << ModuleType::USER_PROGRAM
@@ -365,14 +375,14 @@ void AssemblerTest::case_invalidMnemonic_data()
             << MacroAssembler::invalidMnemonic.arg("_hi")
             << false;
 
-    // Passing unary instructions
+    // Check that a sample unary instruction will assemble correctly.
     QTest::addRow("Parse unary instruction ASRA.")
             << "asra\n.END\n"
             << ModuleType::USER_PROGRAM
             << ""
             << true;
 
-    // Passing nonunary instructions
+    // Check that a sample nonunary instruction will assemble correctly.
     QTest::addRow("Parse nonunary instruction LDWA 10,d.")
             << "LDWA 10,d\n.END\n"
             << ModuleType::USER_PROGRAM
@@ -392,43 +402,76 @@ void AssemblerTest::case_onlyInOS_data()
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
 
-    using element = typename std::tuple<QString,QString, ModuleType, bool, QString>;
-    QList<element> identList;
-    // For each token type, construct a test case with a symbol before it.
-    // For tokens that identify multiple code lines (identifiers, dot commands)
-    // must test multiple permutations of these symbols.
-    identList  << element("User .SCALL", ".SCALL ld\n", ModuleType::USER_PROGRAM,
-                          false, MacroAssembler::onlyInOperatingSystem.arg(".SCALL"))
-               << element("OS .SCALL", ".SCALL ld\n", ModuleType::OPERATING_SYSTEM,
-                          false, MacroAssembler::missingEND)
-               << element("User .USCALL", ".USCALL ld\n", ModuleType::USER_PROGRAM,
-                          false, MacroAssembler::onlyInOperatingSystem.arg(".USCALL"))
-               << element("OS .USCALL", ".USCALL 0\n", ModuleType::OPERATING_SYSTEM,
-                          false, MacroAssembler::missingEND)
-               << element("User .BURN", ".BURN 0x9f\n", ModuleType::USER_PROGRAM,
-                          false, MacroAssembler::onlyInOperatingSystem.arg(".BURN"))
-               << element("OS .BURN", ".BURN 0x9f\n", ModuleType::OPERATING_SYSTEM,
-                          false, MacroAssembler::missingEND)
-               << element("User .EXPORT", ".EXPORT ld\n", ModuleType::USER_PROGRAM,
-                          false, MacroAssembler::onlyInOperatingSystem.arg(".EXPORT"))
-               << element("OS .EXPORT", ".EXPORT ld\n", ModuleType::OPERATING_SYSTEM,
-                          false, MacroAssembler::missingEND);
-    for(auto ident : identList) {
-        registry->clearCustomMacros();
-        QTest::addRow("%s", QString("Testing %1.")
-                      .arg(std::get<0>(ident)).toStdString().c_str())
-                << QString("%1").arg(std::get<1>(ident))
-                << std::get<2>(ident)
-                << std::get<4>(ident)
-                << std::get<3>(ident);
-        registry->registerCustomMacro("test",
-                                      QString("@test 0\n %1\n.END").arg(std::get<1>(ident)));
-        QTest::addRow("%s", QString("Testing %1 as an embedded macro.")
-                      .arg(std::get<0>(ident)).toStdString().c_str())
-                << "@test\n"
-                << std::get<2>(ident)
-                << std::get<4>(ident)
-                << std::get<3>(ident);
+    // Some dot command may only appear in the operating system -
+    // namely BURN, SCALL, USCALL, and EXPORT.
+    // Check that the assembler enforces these requirements
+
+    // Check that the operating system allows the symbol.
+    // Must use unique symbol per statement, to prevent collision
+    // in the macro registry
+    QList<QPair<QString,QString>> osList;
+    osList << QPair<QString,QString>{".SCALL", "os1"}
+    << QPair<QString,QString>{".USCALL", "os2"}
+    << QPair<QString,QString>{".BURN", "0xff"}
+    << QPair<QString,QString>{".EXPORT", "os4"};
+
+    // Create a assembly program for each input.
+    for(const auto& ident : osList) {
+        QTest::addRow("%s", QString("OS %1")
+                      .arg(ident.first).toStdString().c_str())
+                << QString("%1 %2 \n.END").arg(ident.first, ident.second)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+
+    }
+
+    // Check that there symbols are forbidden in a user program.
+    QList<QPair<QString,QString>> userList;
+    userList << QPair<QString,QString>{".SCALL", "up1"}
+    << QPair<QString,QString>{".USCALL", "up2"}
+    << QPair<QString,QString>{".BURN", "0xff"}
+    << QPair<QString,QString>{".EXPORT", "up4"};
+    for(const auto& ident : userList) {
+        QTest::addRow("%s", QString("User program %1")
+                      .arg(ident.first).toStdString().c_str())
+                << QString("%1 %2 \n.END").arg(ident.first, ident.second)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::onlyInOperatingSystem.arg(ident.first)
+                << false;
+    }
+
+    // Check that the symbols are banned inside a macro included from a user program,
+    // but they are allowed in macros included by the operating system
+    QList<QPair<QString,QString>> macroUse;
+    macroUse << QPair<QString,QString>{".SCALL", "em1"}
+    << QPair<QString,QString>{".USCALL", "em2"}
+    << QPair<QString,QString>{".BURN", "0xff"}
+    << QPair<QString,QString>{".EXPORT", "em4"};
+
+    // Must make each macro unique, to prevent collisions in the macro registry.
+    int count = 0;
+    for(const auto& ident : macroUse) {
+
+        registry->registerCustomMacro(QString("test%1").arg(count),
+                                      QString("@test%1 0\n%2 %3\n.END")
+                                      .arg(count)
+                                      .arg(ident.first, ident.second));
+
+        QTest::addRow("%s", QString("Embeded macro in user program %1")
+                      .arg(ident.first).toStdString().c_str())
+                << QString("@test%1 \n.END").arg(count)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::onlyInOperatingSystem.arg(ident.first)
+                << false;
+
+        QTest::addRow("%s", QString("Embeded macro in operating system %1")
+                      .arg(ident.first).toStdString().c_str())
+                << QString("@test%1 \n.END").arg(count)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+        count++;
     }
 
 }
@@ -446,7 +489,7 @@ void AssemblerTest::case_invalidDotCommand_data()
     QTest::addColumn<bool>("ExpectPass");
 
 
-    // Invalid dot commands
+    // Check that clearly invalid dot commands are rejected.
     QTest::addRow("Invalid dot command .WHAT.")
             << ".WHAT\n"
             << ModuleType::USER_PROGRAM
@@ -464,31 +507,9 @@ void AssemblerTest::case_invalidDotCommand_data()
             << ModuleType::USER_PROGRAM
             << MacroAssembler::invalidDotCommand.arg("W_9HAT")
             << false;
-    // Validate all remaining dot commands
-    #pragma message("TODO: Move validation to helper functions")
-    #pragma message("TODO: Finish purmuting dot commands / operands")
-    QTest::addRow("Validate .END.")
-            << ".END\n"
-            << ModuleType::USER_PROGRAM
-            << ""
-            << true;
 
-    // Validate other arguments in handler specifically for ADDRSS.
-    QTest::addRow("Validate .ADDRSS ld.")
-            << "ld:nop\n.ADDRSS ld\n.END\n"
-            << ModuleType::USER_PROGRAM
-            << ""
-            << true;
-
-    // Validate non {2,4,8} args in .ALIGN handler.
-    for(auto string : {"2","4","8"}) {
-        QTest::addRow("%s", QString("Validate .ALIGN %1.")
-                      .arg(string).toStdString().c_str())
-                << QString(".ALIGN %1\n.END\n").arg(string)
-                << ModuleType::USER_PROGRAM
-                << ""
-                << true;
-    }
+    // There are helpers that test the various conditions and properties
+    // of each valid dot command, therefore the code should not be duplicated here.
 
 }
 
@@ -503,6 +524,7 @@ void AssemblerTest::case_symbolTooLong_data()
     QTest::addColumn<ModuleType>("MainModuleType");
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
+
 
     // Tests that show the cutoff point between short and too long.
     QTest::newRow("Symbol of length 7.")
@@ -556,6 +578,7 @@ void AssemblerTest::case_badAddrMode_data()
     QTest::addColumn<ModuleType>("MainModuleType");
     QTest::addColumn<QString>("ExpectedError");
     QTest::addColumn<bool>("ExpectPass");
+
 
     // Failing tests that omit addressing modes on non-unary instructions
     QSet<QString> mnemonics;
@@ -788,11 +811,11 @@ void AssemblerTest::case_byteOutOfRange_data()
     // for byte sized instruction.
     QStringList inRange;
     inRange << "-1" << "-128" << "254" << "255"
-            << "\'\\x00\'" << "\'\\xff\'"
+            << R"('\x00')" << R"('\xff')"
             << "\"\\x00\"" << "\"\\xff\""
             << "0x00" << "0xff";
 
-    for(auto ident : inRange) {
+    for(const auto& ident : inRange) {
         QTest::addRow("%s", QString("Byte constant in range: .BYTE %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BYTE %1 \n.END").arg(ident)
@@ -806,7 +829,7 @@ void AssemblerTest::case_byteOutOfRange_data()
     QStringList decOutOfRange;
     decOutOfRange << "-129" << "-32768" << "-32769"
                   << "256" << "65535" << "65536";
-    for(auto ident : decOutOfRange) {
+    for(const auto& ident : decOutOfRange) {
         QTest::addRow("%s", QString("Byte constant out of range: .BYTE %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BYTE %1 \n.END").arg(ident)
@@ -818,7 +841,7 @@ void AssemblerTest::case_byteOutOfRange_data()
     // Check that byte mnemonics, pseudo-ops fail when given a 2,3 byte hex const.
     QStringList hexOutOfRange;
     hexOutOfRange << "0x0100" << "0xffff" << "0x10000";
-    for(auto ident : hexOutOfRange) {
+    for(const auto& ident : hexOutOfRange) {
         QTest::addRow("%s", QString("Byte constant out of range: .BYTE %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BYTE %1 \n.END").arg(ident)
@@ -829,9 +852,9 @@ void AssemblerTest::case_byteOutOfRange_data()
 
     // Check that byte mnemonics, pseudo-ops fail when given a 2,3 byte string.
     QStringList strOutOfRange;
-    strOutOfRange << "\"ab\"" << "\"\\x00\\x00\""
+    strOutOfRange << "\"ab\"" << R"("\x00\x00")"
                   << "\"abc\"" << "\"\\x00\\x00\\x00\"";
-    for(auto ident : strOutOfRange) {
+    for(const auto& ident : strOutOfRange) {
         QTest::addRow("%s", QString("Byte constant out of range: .BYTE %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BYTE %1 \n.END").arg(ident)
@@ -865,12 +888,12 @@ void AssemblerTest::case_wordOutOfRange_data()
     QStringList inRange;
     inRange << "-1" << "-128" << "254" << "255"
             << "-129" << "-32768" << "256" << "65535"
-            << "\'\\x00\'" << "\'\\xff\'"
-            << "\"\\x00\"" << "\"\\xff\"" << "\"\\x00\\x00\"" << "\"\\xff\\xff\""
+            << R"('\x00')" << R"('\xff')"
+            << R"("\x00")" << R"("\xff")" << R"("\x00\x00")" << R"("\xff\xff")"
             << "\"a\"" << "\"ab\""
             << "0x00" << "0xff" << "0x100" << "0xffff";
 
-    for(auto ident : inRange) {
+    for(const auto& ident : inRange) {
         QTest::addRow("%s", QString("Word constant in range: ldba %1,i")
                       .arg(ident).toStdString().c_str())
                 << QString("ldba %1, i\n.END").arg(ident)
@@ -919,7 +942,7 @@ void AssemblerTest::case_wordOutOfRange_data()
                   << "4294967295" << "4294967296"
                   << "-2147483648" << "-2147483649"
                   << "-9223372036854775808";
-    for(auto ident : decOutOfRange) {
+    for(const auto& ident : decOutOfRange) {
         // BLOCK is the only instruction in the language requiring
         // an unsigned integer
         QTest::addRow("%s", QString("Word constant out of range: .BLOCK %1")
@@ -972,7 +995,7 @@ void AssemblerTest::case_wordOutOfRange_data()
     hexOutOfRange << "0x10000" << "0xFFFF1"
     // Some versions of Pep10 have issues with very large hex constants.
                   << "0xFFFFFF" << "0xFFFFFFFF" << "0xFFFFFFFFFFFFF";
-    for(auto ident : hexOutOfRange) {
+    for(const auto& ident : hexOutOfRange) {
         QTest::addRow("%s", QString("Word constant out of range: ldba %1,i")
                       .arg(ident).toStdString().c_str())
                 << QString("ldba %1, i\n.END").arg(ident)
@@ -1014,9 +1037,9 @@ void AssemblerTest::case_wordOutOfRange_data()
 
     // Check that word mnemonics, pseudo-ops fail when given a 3+ byte string const.
     QStringList strOutOfRange;
-    strOutOfRange << "\"abc\"" << "\"\\x00\\x00\\x00\""
+    strOutOfRange << "\"abc\"" << R"("\x00\x00\x00")"
                   << "\"String way too long.\"";
-    for(auto ident : strOutOfRange) {
+    for(const auto& ident : strOutOfRange) {
         QTest::addRow("%s", QString("Word constant out of range: ldba %1,i")
                       .arg(ident).toStdString().c_str())
                 << QString("ldba %1, i\n.END").arg(ident)
@@ -1079,9 +1102,9 @@ void AssemblerTest::case_badAddrssArg_data()
 
     QStringList badArgs;
     badArgs << "-1" << "0" << "asra" << "udefsym"
-            << "\"hi\"" << "'c'" << "65535";
+            << "\"hi\"" << "'c'" << "65535" << "@asra2";
     // Check that .ADDRSS fails to assemble when given any other value as an argument.
-    for(auto ident : badArgs) {
+    for(const auto& ident : badArgs) {
         QTest::addRow("%s", QString("Bad argument for .ADDRSS: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".ADDRSS %1\n.END").arg(ident)
@@ -1107,7 +1130,7 @@ void AssemblerTest::case_badAlignArg_data()
     // Check that .ADDRSS will assemble when given a symbolic argument.
     QStringList goodArgs;
     goodArgs << "2" << "4" << "8";
-    for(auto ident : goodArgs) {
+    for(const auto& ident : goodArgs) {
         QTest::addRow("%s", QString("Good argument for .ALIGN: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".ALIGN %1\n.END").arg(ident)
@@ -1118,9 +1141,9 @@ void AssemblerTest::case_badAlignArg_data()
 
     QStringList nonIntArgs;
     nonIntArgs << "0x0" << "0x1" << "0x7" << "asra" << "udefsym"
-               << "\"hi\"" << "'c'";
+               << "\"hi\"" << "'c'" << "@asra2";
     // Check that .ALIGN fails to assemble when given a non-integer argument.
-    for(auto ident : nonIntArgs) {
+    for(const auto& ident : nonIntArgs) {
         QTest::addRow("%s", QString("Bad argument for .ALIGN: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".ALIGN %1\n.END").arg(ident)
@@ -1132,7 +1155,7 @@ void AssemblerTest::case_badAlignArg_data()
     QStringList badIntArgs;
     badIntArgs << "0" << "1" << "7" << "65535" << "65536";
     // Check that .ALIGN fails when given an integer outside of {2,4,8}
-    for(auto ident : badIntArgs) {
+    for(const auto& ident : badIntArgs) {
         QTest::addRow("%s", QString("Bad argument for .ALIGN: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".ALIGN %1\n.END").arg(ident)
@@ -1156,9 +1179,9 @@ void AssemblerTest::case_badAsciiArg_data()
 
 
     QStringList goodArgs;
-    goodArgs << "\"a\"" << "\"ab\"" << "\"abcdefgh\\x00\"";
+    goodArgs << "\"a\"" << "\"ab\"" << R"("abcdefgh\x00")";
     // Check that .ASCII assembles when given some string arguments.
-    for(auto ident : goodArgs) {
+    for(const auto& ident : goodArgs) {
         QTest::addRow("%s", QString("Good argument for .ASCII: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".ASCII %1\n.END").arg(ident)
@@ -1168,13 +1191,13 @@ void AssemblerTest::case_badAsciiArg_data()
     }
 
     QStringList badArgs;
-    badArgs << "-1" << "0" << "asra" << "udefsym"
-            << "0xffff" << "'c'" << "65535";
+    badArgs << "-1" << "0" << "asra" << "udefsym" <<"defSym"
+            << "0xffff" << "'c'" << "65535" << "@asra2";
     // Check that .ASCII fails to assemble when given a non-string argument.
-    for(auto ident : badArgs) {
+    for(const auto& ident : badArgs) {
         QTest::addRow("%s", QString("Bad argument for .ASCII: %1")
                       .arg(ident).toStdString().c_str())
-                << QString(".ASCII %1\n.END").arg(ident)
+                << QString("defSym: .ASCII %1\n.END").arg(ident)
                 << ModuleType::USER_PROGRAM
                 << MacroAssembler::badAsciiArgument
                 << false;
@@ -1198,7 +1221,7 @@ void AssemblerTest::case_badBlockArg_data()
     QStringList goodArgs;
     goodArgs << "0" << "1" << "67" << "65535"
              << "0x0" << "0x100" << "0xFFFF";
-    for(auto ident : goodArgs) {
+    for(const auto& ident : goodArgs) {
         QTest::addRow("%s", QString("Good argument for .BLOCK: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BLOCK %1\n.END").arg(ident)
@@ -1209,9 +1232,9 @@ void AssemblerTest::case_badBlockArg_data()
 
     QStringList nonIntArgs;
     nonIntArgs << "asra" << "udefsym"
-               << "\"hi\"" << "'c'";
+               << "\"hi\"" << "'c'" << "@asra2";
     // Check that .BLOCK fails to assemble when given a non-numeric argument.
-    for(auto ident : nonIntArgs) {
+    for(const auto& ident : nonIntArgs) {
         QTest::addRow("%s", QString("Bad argument for .BLOCK: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BLOCK %1\n.END").arg(ident)
@@ -1237,7 +1260,7 @@ void AssemblerTest::case_badBurnArg_data()
     // Check that .BURN assembles with a hex argument
     QStringList hexArgs;
     hexArgs << "0x0" << "0x100" << "0xFFFF";
-    for(auto ident : hexArgs) {
+    for(const auto& ident : hexArgs) {
         QTest::addRow("%s", QString("Good argument for .BURN: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BURN %1\n.END").arg(ident)
@@ -1249,9 +1272,9 @@ void AssemblerTest::case_badBurnArg_data()
     QStringList nonHexArgs;
     nonHexArgs << "asra" << "udefsym"
                << "\"hi\"" << "'c'"
-               << "0" << "1" << "65535";
+               << "0" << "1" << "65535" << "@asra2";
     // Check that .BURN fails to assemble when given a non-hex argument.
-    for(auto ident : nonHexArgs) {
+    for(const auto& ident : nonHexArgs) {
         QTest::addRow("%s", QString("Bad argument for .BURN: %1")
                       .arg(ident).toStdString().c_str())
                 << QString(".BURN %1\n.END").arg(ident)
@@ -1262,6 +1285,426 @@ void AssemblerTest::case_badBurnArg_data()
 }
 
 void AssemblerTest::case_badBurnArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_badByteArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Check that .BYTE assembles with a numeric, character, string argument.
+    QStringList validArgs;
+    validArgs << "0x0" << "0xFF" << R"("\x00")"<< R"('\x00')"
+              << "1" << "-128" << "255";
+    for(const auto& ident : validArgs) {
+        QTest::addRow("%s", QString("Good argument for .BYTE: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".BYTE %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+    }
+
+    QStringList invalidArgs;
+    invalidArgs << "asra" << "udefsym" << "defSym" << "@asra2";
+    // Check that BYTE fails when given a non-numeric argument.
+    for(const auto& ident : invalidArgs) {
+        QTest::addRow("%s", QString("Bad argument for .BYTE: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString("defSym:.BYTE %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::badByteArgument
+                << false;
+    }
+
+    //Out of range arguments are check with case_byteOutOfRange;
+}
+
+void AssemblerTest::case_badByteArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_badEnd_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Check that a symbol before .END fails to assemble.
+    QTest::addRow("No symbol before .END")
+            << QString("sym:.END")
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::endForbidsSymbol
+            << false;
+
+    QStringList nonCommentArgs;
+    nonCommentArgs <<"0x0" << "asra" <<"undefsym"
+               << "\"hi\"" << "'c'" << "0xFFFF"
+               << "1" << "@asra2";
+    // Check that .END fails if followed by any token other than a comment or newline.
+    for(const auto& ident : nonCommentArgs) {
+        QTest::addRow("%s", QString("Bad token following .END: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".END %1").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::endOnlyComment
+                << false;
+    }
+}
+
+void AssemblerTest::case_badEnd()
+{
+    execute();
+}
+
+void AssemblerTest::case_noSymbolEquate_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+
+    // Check that equate requires a symbol to assemble
+    QTest::addRow("Missing symbol before .EQUATE")
+            // Line with EQUATE must have a symbol for it to be well formed.
+            << QString(".EQUATE 5\n.END")
+            << ModuleType::USER_PROGRAM
+            << MacroAssembler::equateRequiresSymbol
+            << false;
+}
+
+void AssemblerTest::case_noSymbolEquate()
+{
+    execute();
+}
+
+void AssemblerTest::case_badEquateArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Check that .EQUATE assembles with a numeric, character, string argument.
+    QStringList validArgs;
+    validArgs << "0x0" << "0xFFff" << R"("\x01\x02")"<< R"('\x00')"
+              << "1" << "-128" << "65535";
+    for(const auto& ident : validArgs) {
+        QTest::addRow("%s", QString("Good argument for .EQUATE: %1")
+                      .arg(ident).toStdString().c_str())
+                // Line with EQUATE must have a symbol for it to be well formed.
+                << QString("sy:.EQUATE %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+    }
+
+    QStringList invalidArgs;
+    invalidArgs << "asra" << "udefsym" << "defSym" << "@asra2";
+    // Check that .EQUATE fails when given an identiifer, macro argument.
+    for(const auto& ident : invalidArgs) {
+        QTest::addRow("%s", QString("Bad argument for .EQUATE: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString("defSym:.EQUATE %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::badEquateArgument
+                << false;
+    }
+
+    //Out of range arguments are check with case_wordOutOfRange;
+}
+
+void AssemblerTest::case_badEquateArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_badExportArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Check that EXPORT may not define a symbol.
+    QTest::addRow(".EXPORT defines symbol")
+            << QString("sy:.EXPORT sy\n.END")
+            << ModuleType::OPERATING_SYSTEM
+            << MacroAssembler::exportForbidsSymbol
+            << false;
+
+    // Check that EXPORT works with various (valid) long symbols.
+    QStringList validSymbols;
+    validSymbols << "abcdef" << "abcdefgh";// << "abcdefghi";
+    for(const auto& ident : validSymbols) {
+        QTest::addRow("%s", QString("Good argument for .EXPORT: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n %1:.BYTE 0\n .EXPORT %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+    }
+
+    // Check that EXPORT fails symbols that are too long.
+    QStringList tooLongSymbols;
+    tooLongSymbols << "abcdefghi";
+    for(const auto& ident : tooLongSymbols) {
+        QTest::addRow("%s", QString("Bad argument for .EXPORT: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n %1:.BYTE 0\n .EXPORT %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::longSymbol.arg(ident)
+                << false;
+    }
+
+    QStringList nonSymbolArgs;
+    nonSymbolArgs <<"0x0"
+               << "\"hi\"" << "'c'" << "0xFFFF"
+               << "0" << "1" << "65535" << "@asra2";
+    // Check that .EXPORT fails to assemble when given a non-symbolic argument.
+    for(const auto& ident : nonSymbolArgs) {
+        QTest::addRow("%s", QString("Bad argument for .EXPORT: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n .BYTE 0\n .EXPORT %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::exportRequiresSymbol
+                << false;
+    }
+
+    // Undefined symbol check are performed in the linker test suite, so no checks
+    // for bad symbolic arguments may be performed in the assembler.
+
+}
+
+void AssemblerTest::case_badExportArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_noSymbolScall_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Check that .SCALL may not define a symbol.
+    QTest::addRow(".SCALL defines symbol")
+            << QString("sy:.SCALL sy\n.END")
+            << ModuleType::OPERATING_SYSTEM
+            << MacroAssembler::scallForbidsSymbol
+            << false;
+}
+
+void AssemblerTest::case_noSymbolScall()
+{
+    execute();
+}
+
+void AssemblerTest::case_badScallArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Purge any system calls added by other test cases.
+    registry->clearSystemCalls();
+
+    // Check that .SCALL works with various symbols.
+    QStringList validSymbols;
+    validSymbols << "abcdef" << "abcdefgh";
+    for(const auto& ident : validSymbols) {
+        QTest::addRow("%s", QString("Good argument for .SCALL: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n %1:.BYTE 0\n .SCALL %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+    }
+
+    // Check that .SCALL fails symbols that are too long.
+    QStringList tooLongSymbols;
+    tooLongSymbols << "abcdefghi";
+    for(const auto& ident : tooLongSymbols) {
+        QTest::addRow("%s", QString("Bad argument for .SCALL: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n %1:.BYTE 0\n .SCALL %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::longSymbol.arg(ident)
+                << false;
+    }
+
+    QStringList nonSymbolArgs;
+    nonSymbolArgs <<"0x0"
+               << "\"hi\"" << "'c'" << "0xFFFF"
+               << "0" << "1" << "65535" << "@asra2";
+    // Check that .EXPORT fails to assemble when given a non-symbolic argument.
+    for(const auto& ident : nonSymbolArgs) {
+        QTest::addRow("%s", QString("Bad argument for .SCALL: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n .BYTE 0\n .SCALL %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::scallRequiresSymbol
+                << false;
+    }
+
+    // Check that .SCALL may not define a symbol.
+    QTest::addRow("Multiple .SCALL for a single symbol")
+            << QString(".BURN 0xFFFF\n .SCALL sy\n sy:.BYTE 0\n .SCALL sy\n .END")
+            << ModuleType::OPERATING_SYSTEM
+            << MacroAssembler::failedToRegisterMacro.arg("sy")
+            << false;
+
+    // Undefined symbol check are performed in the linker test suite, so no checks
+    // for bad symbolic arguments may be performed in the assembler.
+}
+
+void AssemblerTest::case_badScallArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_noSymbolUscall_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Check that .USCALL may not define a symbol.
+    QTest::addRow(".USCALL defines symbol")
+            << QString("sy:.USCALL sy\n.END")
+            << ModuleType::OPERATING_SYSTEM
+            << MacroAssembler::uscallForbidsSymbol
+            << false;
+}
+
+void AssemblerTest::case_noSymbolUscall()
+{
+    execute();
+}
+
+void AssemblerTest::case_badUscallArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Purge any system calls added by other test cases.
+    registry->clearSystemCalls();
+
+    // Check that .USCALL works with various symbols.
+    QStringList validSymbols;
+    validSymbols << "abcdef" << "abcdefgh";
+    for(const auto& ident : validSymbols) {
+        QTest::addRow("%s", QString("Good argument for .USCALL: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n %1:.BYTE 0\n .USCALL %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << ""
+                << true;
+    }
+
+    // Check that .USCALL fails symbols that are too long.
+    QStringList tooLongSymbols;
+    tooLongSymbols << "abcdefghi";
+    for(const auto& ident : tooLongSymbols) {
+        QTest::addRow("%s", QString("Bad argument for .USCALL: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n %1:.BYTE 0\n .USCALL %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::longSymbol.arg(ident)
+                << false;
+    }
+
+    QStringList nonSymbolArgs;
+    nonSymbolArgs <<"0x0"
+               << "\"hi\"" << "'c'" << "0xFFFF"
+               << "0" << "1" << "65535" << "@asra2";
+    // Check that .EXPORT fails to assemble when given a non-symbolic argument.
+    for(const auto& ident : nonSymbolArgs) {
+        QTest::addRow("%s", QString("Bad argument for .USCALL: %1")
+                      .arg(ident).toStdString().c_str())
+                // Operating system must be well formed to prevent other errors.
+                << QString(".BURN 0xFFFF\n .BYTE 0\n .USCALL %1\n .END").arg(ident)
+                << ModuleType::OPERATING_SYSTEM
+                << MacroAssembler::uscallRequiresSymbol
+                << false;
+    }
+
+    // Check that .USCALL may not define a symbol.
+    QTest::addRow("Multiple .USCALL for a single symbol")
+            << QString(".BURN 0xFFFF\n .USCALL sy\n sy:.BYTE 0\n .USCALL sy\n .END")
+            << ModuleType::OPERATING_SYSTEM
+            << MacroAssembler::failedToRegisterMacro.arg("sy")
+            << false;
+
+    // Undefined symbol check are performed in the linker test suite, so no checks
+    // for bad symbolic arguments may be performed in the assembler.
+}
+
+void AssemblerTest::case_badUscallArg()
+{
+    execute();
+}
+
+void AssemblerTest::case_badWordArg_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QString>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+
+    // Check that .WORD assembles with a numeric, character, string argument.
+    QStringList validArgs;
+    validArgs << "0x0" << "0xFF" << "0xffff" << R"("\x00")" << R"('\x00')"
+              << "1" << "-128" << "255" << R"("\x00\x00")" << "65535"
+              << "-32768";
+    for(const auto& ident : validArgs) {
+        QTest::addRow("%s", QString("Good argument for .WORD: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString(".WORD %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << ""
+                << true;
+    }
+
+    QStringList invalidArgs;
+    invalidArgs << "asra" << "udefsym" << "defSym" << "@asra2";
+    // Check that .WORD fails when given a non-numeric argument.
+    for(const auto& ident : invalidArgs) {
+        QTest::addRow("%s", QString("Bad argument for .WORD: %1")
+                      .arg(ident).toStdString().c_str())
+                << QString("defSym:.WORD %1\n.END").arg(ident)
+                << ModuleType::USER_PROGRAM
+                << MacroAssembler::badWordArgument
+                << false;
+    }
+}
+
+void AssemblerTest::case_badWordArg()
 {
     execute();
 }

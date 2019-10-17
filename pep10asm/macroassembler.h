@@ -121,6 +121,22 @@ public:
     static const inline QString badBlockArgument = ";ERROR: .BLOCK requires a decimal or hex constant argument.";
     static const inline QString badBurnArgument = ";ERROR: .BURN requires a hex constant argument.";
     static const inline QString badByteArgument = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
+
+    static const inline QString endForbidsSymbol = ";ERROR: .END must not have a symbol definition." ;
+    static const inline QString endOnlyComment = ";ERROR: Only a comment can follow .END.";
+    static const inline QString badEquateArgument = ";ERROR: .EQUATE requires a dec, hex, or string constant argument.";
+    static const inline QString equateRequiresSymbol = ";ERROR: .EQUATE must have a symbol definition.";
+    static const inline QString exportForbidsSymbol = ";ERROR: .EXPORT must not have a symbol definition.";
+    static const inline QString exportRequiresSymbol = ";ERROR: .EXPORT requires a symbol argument.";
+
+    static const inline QString scallForbidsSymbol = ";ERROR: .SCALL must not have a symbol definition.";
+    static const inline QString scallRequiresSymbol = ";ERROR: .SCALL requires a symbol argument.";
+
+    static const inline QString uscallForbidsSymbol = ";ERROR: .USCALL must not have a symbol definition.";
+    static const inline QString uscallRequiresSymbol = ";ERROR: .USCALL requires a symbol argument.";
+
+    static const inline QString failedToRegisterMacro = ";ERROR: Failed to register system call %1.";
+    static const inline QString badWordArgument = ";ERROR: .WORD requires a char, dec, hex, or string constant argument.";
 };
 
 #endif // MACROASSEMBLER_H

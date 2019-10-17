@@ -13,7 +13,7 @@ class AssemblerTest : public QObject
     Q_OBJECT
 public:
     AssemblerTest();
-    ~AssemblerTest();
+    ~AssemblerTest() override;
 
 private slots:
     void initTestCase();
@@ -95,6 +95,11 @@ private slots:
     void case_wordOutOfRange_data();
     void case_wordOutOfRange();
 
+    /*
+     * Begin tests for dot commands.
+     * Unlike instructions, the operand type for each dot command is limited,
+     * and each test checks all operand types with each command.
+     */
     // Test cases where .ADDRSS is given a bad argument.
     void case_badAddrssArg_data();
     void case_badAddrssArg();
@@ -116,26 +121,54 @@ private slots:
     void case_badBurnArg();
 
     // Test cases where .BYTE is given a bad argument.
-    //void case_badByteArg_data();
-    //void case_badByteArg();
+    void case_badByteArg_data();
+    void case_badByteArg();
 
-    // Test cases where .USCALL is given a bad argument.
-    //void case_badUExportArg_data();
-    //void case_badUExportArg();
+    // Test cases where .END is not alone or followed by a comment.
+    void case_badEnd_data();
+    void case_badEnd();
+
+    // Test cases where .EQUATE does not define a symbol.
+    void case_noSymbolEquate_data();
+    void case_noSymbolEquate();
+
+    // Test cases where .EQUATE is given a bad argument.
+    void case_badEquateArg_data();
+    void case_badEquateArg();
+
+    // Test cases where .EXPORT is given a bad argument,
+    // or it is used in a non-operating system module.
+    // Validation of .EXPORT injecting symbols into user programs
+    // requires validation of the linker, so see dedicated
+    // tests in tst_userosintegration.h
+    void case_badExportArg_data();
+    void case_badExportArg();
+
+    // Test cases where .SCALL defines a symbol
+    void case_noSymbolScall_data();
+    void case_noSymbolScall();
 
     // Test cases where .SCALL is given a bad argument.
-    //void case_badScallArg_data();
-    //void case_badScallArg();
+    void case_badScallArg_data();
+    void case_badScallArg();
+
+    // Test cases where .USCALL defines a symbol
+    void case_noSymbolUscall_data();
+    void case_noSymbolUscall();
 
     // Test cases where .USCALL is given a bad argument.
-    //void case_badUScallArg_data();
-    //void case_badUScallArg();
+    void case_badUscallArg_data();
+    void case_badUscallArg();
+
+    // Test cases where .WORD is given a bad argument.
+    void case_badWordArg_data();
+    void case_badWordArg();
 
 private:
     QSharedPointer<MacroRegistry> registry;
     QSharedPointer<MacroPreprocessor> preprocessor;
     QSharedPointer<MacroAssembler> assembler;
-    void preprocess(ModuleAssemblyGraph& graph, ModuleType programType);
+    void preprocess(ModuleAssemblyGraph& graph, ModuleType moduleType);
     void execute();
 };
 

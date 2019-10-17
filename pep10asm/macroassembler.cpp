@@ -778,12 +778,12 @@ QSharedPointer<DotEnd>
                                  ModuleInstance&, QString &errorMessage)
 {
     if(symbol.has_value()) {
-        errorMessage = ";ERROR: .END directive may not define a symbol.";
+        errorMessage = endForbidsSymbol;
         return nullptr;
     }
     if (!(tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)
           || tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_EMPTY))) {
-        errorMessage = ";ERROR: Only a comment can follow .END.";
+        errorMessage = endOnlyComment;
         return nullptr;
     }
 
@@ -795,7 +795,7 @@ QSharedPointer<DotEquate>
                                     ModuleInstance&, QString &errorMessage)
 {
     if (!symbol.has_value()) {
-        errorMessage = ";ERROR: .EQUATE must have a symbol definition.";
+        errorMessage = equateRequiresSymbol;
         return nullptr;
     }
 
@@ -851,7 +851,7 @@ QSharedPointer<DotEquate>
         dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::charStringToInt(tokenString)));
     }
     else {
-        errorMessage = ";ERROR: .EQUATE requires a dec, hex, or string constant argument.";
+        errorMessage = badEquateArgument;
         return nullptr;
     }
     return dotEquate;
@@ -862,7 +862,7 @@ QSharedPointer<DotExport>
                                  ModuleInstance &instance, QString &errorMessage)
 {
     if (symbol.has_value()) {
-        errorMessage = ";ERROR: .EXPORT must not have a symbol definition.";
+        errorMessage = exportForbidsSymbol;
         return nullptr;
     }
 
@@ -879,7 +879,7 @@ QSharedPointer<DotExport>
         return dotExport;
     }
     else {
-        errorMessage = ";ERROR: .EXPORT requires a symbol argument.";
+        errorMessage = exportRequiresSymbol;
         return nullptr;
     }
 }
@@ -887,7 +887,7 @@ QSharedPointer<DotExport>
 QSharedPointer<DotSycall> MacroAssembler::parseSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
     if (symbol.has_value()) {
-        errorMessage = ";ERROR: .SYCALL must not have a symbol definition.";
+        errorMessage = scallForbidsSymbol;
         return nullptr;
     }
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
@@ -901,13 +901,13 @@ QSharedPointer<DotSycall> MacroAssembler::parseSCALL(std::optional<QSharedPointe
         // Export declares a symbol from the operating system to be visible in user code.
         bool success = registry->registerNonunarySystemCall(tokenString);
         if(!success) {
-            errorMessage = ";ERROR: Failed to register system call.";
+            errorMessage = failedToRegisterMacro.arg(tokenString);
             return nullptr;
         }
         return dotSycall;
     }
     else {
-        errorMessage = ";ERROR: .SYCALL requires a symbol argument.";
+        errorMessage = scallRequiresSymbol;
         return nullptr;
     }
 }
@@ -915,7 +915,7 @@ QSharedPointer<DotSycall> MacroAssembler::parseSCALL(std::optional<QSharedPointe
 QSharedPointer<DotUSycall> MacroAssembler::parseUSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
     if (symbol.has_value()) {
-        errorMessage = ";ERROR: .USYCALL must not have a symbol definition.";
+        errorMessage = uscallForbidsSymbol;
         return nullptr;
     }
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
@@ -929,13 +929,13 @@ QSharedPointer<DotUSycall> MacroAssembler::parseUSCALL(std::optional<QSharedPoin
         // Export declares a symbol from the operating system to be visible in user code.
         bool success = registry->registerUnarySystemCall(tokenString);
         if(!success) {
-            errorMessage = ";ERROR: Failed to register system call.";
+            errorMessage = failedToRegisterMacro.arg(tokenString);
             return nullptr;
         }
         return dotUSycall;
     }
     else {
-        errorMessage = ";ERROR: .USYCALL requires a symbol argument.";
+        errorMessage = uscallRequiresSymbol;
         return nullptr;
     }
 }
@@ -992,7 +992,7 @@ QSharedPointer<DotWord>
         dotWord->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
-        errorMessage = ";ERROR: .WORD requires a char, dec, hex, or string constant argument.";
+        errorMessage = badWordArgument;
         return nullptr;
     }
     return dotWord;
