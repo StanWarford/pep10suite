@@ -127,7 +127,7 @@ void LinkerTest::case_osNoBurn_data()
     QTest::newRow("No burn in OS.")
             << "\n.END"
             << ModuleType::OPERATING_SYSTEM
-            << QStringList({MacroLinker::noBURN})
+            << QStringList({MacroLinker::oneBURN})
             << false;
 }
 

@@ -50,9 +50,16 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
         result.errorList.append({0, exceededMemory});
         result.success = false;
     }
+
     // Operating system needs to have its code list adjusted to be burned in to high memory.
-    else if(rootModuleInstance->prototype->moduleType == ModuleType::OPERATING_SYSTEM) {
-        shiftForBURN(graph);
+    if(rootModuleInstance->prototype->moduleType == ModuleType::OPERATING_SYSTEM) {
+        result.success = shiftForBURN(graph);
+        for(auto errorList : graph.errors.sourceMapped) {
+            for(auto error : errorList) {
+               result.errorList.append({error->getSourceLineNumber(),
+                                        error->getErrorMessage()});
+            }
+        }
     }
     // If a user program has a burn, return an error.
     else if(rootModuleInstance->burnInfo.burnCount != 0) {
@@ -120,6 +127,7 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph graph,
         // the .BURN statement.
         else if(auto asBurn = dynamic_cast<DotBurn*>(line.get()); asBurn != nullptr) {
             instance.burnInfo.burnAddress = nextAddress;
+
         }
         // Check for symbol declarations.
         if(line->hasSymbolEntry()) {
