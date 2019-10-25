@@ -136,6 +136,10 @@ private slots:
     void case_badEquateArg_data();
     void case_badEquateArg();
 
+    // Test cases where .EXPORT attempts to define a symbol.
+    void case_symbolExport_data();
+    void case_symbolExport();
+
     // Test cases where .EXPORT is given a bad argument,
     // or it is used in a non-operating system module.
     // Validation of .EXPORT injecting symbols into user programs

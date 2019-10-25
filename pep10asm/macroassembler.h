@@ -135,7 +135,7 @@ public:
     static const inline QString uscallForbidsSymbol = ";ERROR: .USCALL must not have a symbol definition.";
     static const inline QString uscallRequiresSymbol = ";ERROR: .USCALL requires a symbol argument.";
 
-    static const inline QString failedToRegisterMacro = ";ERROR: Failed to register system call %1.";
+    static const inline QString failedToRegisterMacro = ";ERROR: Failed to register duplicate system call %1.";
     static const inline QString badWordArgument = ";ERROR: .WORD requires a char, dec, hex, or string constant argument.";
 };
 
