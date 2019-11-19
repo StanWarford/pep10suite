@@ -560,12 +560,13 @@ void AssemblerTest::case_symbolTooLong_data()
             << ModuleType::USER_PROGRAM
             << ""
             << true;
-
-    QTest::newRow("Well formed symbol with accented character.")
+#pragma message("TODO: Decide how to handle Unicode strings \
+(See https://github.com/StanWarford/pep10suite/issues/8)")
+    /*QTest::newRow("Well formed symbol with accented character.")
             << "hÁi: asra\n.END\n"
             << ModuleType::USER_PROGRAM
             << ""
-            << true;
+            << true;*/
 }
 
 void AssemblerTest::case_symbolTooLong()
