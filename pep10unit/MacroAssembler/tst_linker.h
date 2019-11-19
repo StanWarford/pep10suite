@@ -40,11 +40,11 @@ private slots:
     void case_osManyBurn_data();
     void case_osManyBurn();
 
-    // Explicitly check that an EXPORT statement with an undefined symbol raises an error.
-    //void case_osExportUndefinedOperand_data();
-    //void case_osExportUndefinedOperand();
-
-    // Check that ADDRSS, EXPORT, SCALL, USCALL fail when given an undefined symbol.
+    // Explicitly check that ADDRSS, EXPORT, SCALL, USCALL fail when given an undefined symbol.
+    // While these should be caught by noSuchSymbol, failures in these instructions could "leak"
+    // errors into user programs from the operating system.
+    void case_osDotCommandUndefined_data();
+    void case_osDotCommandUndefined();
 
 private:
     QSharedPointer<MacroRegistry> registry;

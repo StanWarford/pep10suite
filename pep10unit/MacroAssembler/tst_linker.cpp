@@ -156,6 +156,36 @@ void LinkerTest::case_osManyBurn()
     execute();
 }
 
+void LinkerTest::case_osDotCommandUndefined_data()
+{
+    QTest::addColumn<QString>("ProgramText");
+    QTest::addColumn<ModuleType>("MainModuleType");
+    QTest::addColumn<QStringList>("ExpectedError");
+    QTest::addColumn<bool>("ExpectPass");
+
+    // Check that the following dot commands fail when given
+    // an undefined symbolic operand.
+    QStringList commands = {"ADDRSS", "EXPORT", "SCALL", "USCALL"};
+    for(auto command : commands) {
+        QTest::newRow(QString("Undefined symbol for %1.")
+                      .arg(command).toStdString().c_str())
+                << QString(".BURN 0xffff\n .%1 sym\n.END").arg(command)
+                << ModuleType::OPERATING_SYSTEM
+                << QStringList({MacroLinker::undefinedSymbol.arg("sym")})
+                << false;
+    }
+
+
+}
+
+void LinkerTest::case_osDotCommandUndefined()
+{
+    // Must clear system calls every time, otherwise
+    // assembly will fail due to duplicate system call entries.
+    registry->clearSystemCalls();
+    execute();
+}
+
 void LinkerTest::execute()
 {
     //QFETCH(QString, ProgramText);
