@@ -108,6 +108,19 @@ std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance> > Mod
     return {rootPrototype, rootInstance};
 }
 
+QSharedPointer<ModuleInstance> ModuleAssemblyGraph::getRootInstance()
+{
+    auto index = instanceMap.find(rootModule);
+    // Check that there exists a root module intance.
+    if(index == instanceMap.end()) {
+        return nullptr;
+    // Check that there is at least one root module instance.
+    } else if(index.value().length() != 1) {
+        return nullptr;
+    }
+    return index.value().first();
+}
+
 ModuleInstance::ModuleInstance(const ModuleInstance &other)
 {
     this->burnInfo = other.burnInfo;

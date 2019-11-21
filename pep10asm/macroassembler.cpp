@@ -41,7 +41,7 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
     AssemblerResult retVal;
     retVal.success = true;
     std::list<ModuleInstance*> toAssemble;
-    toAssemble.emplace_back(graph.instanceMap[graph.rootModule][0].get());
+    toAssemble.emplace_back(graph.getRootInstance().get());
 
 
     // All modules in a single compilation will share the same symbol table
@@ -239,7 +239,7 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &gra
         tokenString = tokenString.mid(1);
         // Some instructions (like BURN) may only occur in the operating system,
         // and we need access to the root instance to determine what is being compiled.
-        auto rootInstance = graph.instanceMap[graph.rootModule].first();
+        auto rootInstance = graph.getRootInstance();
 
         // Use compare(...) instead of == because tokenizer does not
         // automatically capitalize dot command strings.

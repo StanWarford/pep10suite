@@ -53,7 +53,7 @@ void UserOSIntegrationTest::case_testExport()
     auto osGraph = ModuleAssemblyGraph();
     auto userGraph = ModuleAssemblyGraph();
     execute(osGraph, userGraph);
-    auto addressCode = userGraph.instanceMap[userGraph.rootModule].first()->codeList[0];
+    auto addressCode = userGraph.getRootInstance()->codeList[0];
     auto addressLine = dynamic_cast<DotAddrss*>(addressCode.get());
     QVERIFY2(addressLine->getArgument()->getArgumentValue()==10,
              "Expected exported value to be equal to 10");
@@ -84,8 +84,6 @@ void UserOSIntegrationTest::case_testScall()
     auto osGraph = ModuleAssemblyGraph();
     auto userGraph = ModuleAssemblyGraph();
     execute(osGraph, userGraph);
-    auto a = userGraph.instanceMap[userGraph.rootModule].first()->symbolTable->getValue("sym");
-
 }
 
 void UserOSIntegrationTest::case_testUScall_data()

@@ -56,7 +56,7 @@ StackAnnotationResult MacroStackAnnotater::annotateStack(ModuleAssemblyGraph &gr
     resultCache = {};
 
     // Begin extracting symbol data recursively from root module.
-    auto rootInstance = graph.instanceMap[graph.rootModule].first();
+    auto rootInstance = graph.getRootInstance();
     symbolTable = rootInstance->symbolTable;
     discoverLines(*rootInstance);
     parseEquateLines();

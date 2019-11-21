@@ -49,7 +49,7 @@ ProgramOutput MacroAssemblerDriver::assembleUserProgram(QString input,
         output.errors = graph.errors;
         return output;
     }
-    auto rootInstance = graph.instanceMap[graph.rootModule].first();
+    auto rootInstance = graph.getRootInstance();
 
     if(!annotate()) {
         output.success = false;

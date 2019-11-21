@@ -24,7 +24,7 @@ LinkResult MacroLinker::link(ModuleAssemblyGraph &graph)
     LinkResult result;
     result.success = true;
 
-    auto rootModuleInstance = graph.instanceMap[graph.rootModule].first();
+    auto rootModuleInstance = graph.getRootInstance();
     // Pull in any symbols declared in operating system if we are not assembling an operating system.
     if(rootModuleInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
         auto exportsResults = pullInExports(graph);
@@ -91,7 +91,7 @@ LinkResult MacroLinker::pullInExports(ModuleAssemblyGraph &graph)
         return {false, {{0, noOperatingSystem}} };
     }
     auto symList = optional_helper(osSymbolTable)->getExternalSymbols();
-    auto rootInstance = graph.instanceMap[graph.rootModule].first();
+    auto rootInstance = graph.getRootInstance();
     for(auto symbol : symList) {
         if(rootInstance->symbolTable->exists(symbol->getName())) {
             rootInstance->symbolTable->define(symbol->getName());
@@ -235,7 +235,7 @@ bool MacroLinker::shiftForBURN(ModuleAssemblyGraph& graph)
      * the user linker.
      */
 
-    auto rootInstance = graph.instanceMap[graph.rootModule].first();
+    auto rootInstance = graph.getRootInstance();
     bool success = true;
     QString errorString;
     if (rootInstance->burnInfo.burnCount != 1) {

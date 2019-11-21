@@ -197,6 +197,8 @@ struct ModuleAssemblyGraph
     // Allow easy creation of root, since the root module has no dependencies.
     // If the root has already been created, then the function will return nullptr's.
     std::tuple<QSharedPointer<ModulePrototype>, QSharedPointer<ModuleInstance>> createRoot(QString text, ModuleType type);
+    // Return the root instance (if present) or nullptr otherwise.
+    QSharedPointer<ModuleInstance> getRootInstance();
     // Helper functions to build macro modules are not included, since the macro
     // modules may suffer from complex errors during construction.
     // Construction of other modules should be handled by preprocessor.
