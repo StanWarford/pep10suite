@@ -2,6 +2,7 @@
 #define TST_LINKER_H
 
 #include <QTest>
+
 #include "macromodules.h"
 
 class AsmProgram;
@@ -12,7 +13,7 @@ class MacroRegistry;
 
 class LinkerTest: public QObject
 {
-       Q_OBJECT
+    Q_OBJECT
 public:
     LinkerTest();
     ~LinkerTest() override;

@@ -21,7 +21,8 @@ SOURCES +=  \
     tst_linker.cpp \
     tst_prepreocessorfail.cpp \
     tst_tokenbuffer.cpp \
-    tst_tokenizer.cpp
+    tst_tokenizer.cpp \
+    tst_userosintegration.cpp
 
 HEADERS += \
     tst_assembleos.h \
@@ -30,7 +31,8 @@ HEADERS += \
     tst_linker.h \
     tst_prepreocessorfail.h \
     tst_tokenbuffer.h \
-    tst_tokenizer.h
+    tst_tokenizer.h \
+    tst_userosintegration.h
 
 INCLUDEPATH += $$PWD/../../pep10common
 INCLUDEPATH += $$PWD/../../pep10asm

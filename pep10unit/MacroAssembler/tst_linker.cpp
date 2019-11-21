@@ -226,7 +226,6 @@ void LinkerTest::preprocess(ModuleAssemblyGraph &graph, ModuleType programType)
 
 void LinkerTest::assemble(ModuleAssemblyGraph &graph)
 {
-    //QFETCH(QString, ProgramText);
     auto result = assembler->assemble(graph);
     QVERIFY2(result.success, "Assembly should have no errors.");
     QVERIFY2(result.error.isNull(), "Assembly error should be nullptr.");

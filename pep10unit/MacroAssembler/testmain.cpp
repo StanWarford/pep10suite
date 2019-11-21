@@ -6,6 +6,7 @@
 #include "tst_linker.h"
 #include "tst_assembleos.h"
 #include "tst_assembleprograms.h"
+#include "tst_userosintegration.h"
 #include "pep.h"
 int main(int argc, char *argv[])
 {
@@ -36,10 +37,15 @@ int main(int argc, char *argv[])
     LinkerTest linkerTest;
     ret += QTest::qExec(&linkerTest, argc, argv);
 
+    // Check that information exported from the OS reaches user programs
+    UserOSIntegrationTest userOSTest;
+    ret += QTest::qExec(&userOSTest, argc, argv);
+
     // Then try out the stack annotator.
     // Now attempt to assemble the operating system.
     AssembleOS os;
     ret += QTest::qExec(&os, argc, argv);
+
     // Lastly, try assembling all sample programs.
     AssemblePrograms progs;
     ret += QTest::qExec(&progs, argc, argv);
