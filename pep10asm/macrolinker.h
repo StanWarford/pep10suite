@@ -48,11 +48,12 @@ private:
 
 public:
     static const inline QString multidefinedSymbol = ";ERROR: Symbol \"%1\" was previously defined.";
+    static const inline QString redefineExportSymbol = ";ERROR: Attempted to redefine symbol\"%1\", which was exported from the operating system.";
     static const inline QString undefinedSymbol = ";ERROR: Symbol \"%1\" is undefined.";
     static const inline QString noBURN = ";ERROR: Only operating systems may contain a .BURN.";
     static const inline QString oneBURN = ";ERROR: Operating systems must contain exactly 1 .BURN.";
     static const inline QString BURNat0xFFFF = ";ERROR: .BURN must have an argument of 0xFFFF.";
-    static const inline QString noOperatingSystem = ";ERROR: Attempted to pull in symbols for operating system, but not OS was defined.";
+    static const inline QString noOperatingSystem = ";ERROR: Attempted to pull in symbols for operating system, but no OS was defined.";
     static const inline QString exceededMemory = ";ERROR: Program requires more than 64k bytes of memory.";
 };
 

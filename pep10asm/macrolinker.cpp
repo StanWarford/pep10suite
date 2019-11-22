@@ -134,10 +134,20 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph graph,
             auto symbolPtr = line->getSymbolEntry();
             // Check if line has a multiply defined symbol declaration.
             if(symbolPtr->isMultiplyDefined()) {
-                QString symbolName = line->getSymbolEntry()->getName();
-                retVal.success = false;
-                retVal.errorList.append({lineNum, multidefinedSymbol.arg(symbolName)});
-                continue;
+                if(auto asExtern = dynamic_cast<SymbolValueExternal*>(symbolPtr->getRawValue().get());
+                        asExtern != nullptr){
+                    QString symbolName = line->getSymbolEntry()->getName();
+                    retVal.success = false;
+                    retVal.errorList.append({lineNum, redefineExportSymbol.arg(symbolName)});
+                    continue;
+                }
+                else {
+                    QString symbolName = line->getSymbolEntry()->getName();
+                    retVal.success = false;
+                    retVal.errorList.append({lineNum, multidefinedSymbol.arg(symbolName)});
+                    continue;
+                }
+
             }
             else if(dynamic_cast<DotEquate*>(line.get()) != nullptr)
             {

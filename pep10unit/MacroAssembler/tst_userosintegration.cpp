@@ -45,7 +45,7 @@ void UserOSIntegrationTest::case_testExport_data()
             << ".BURN 0xFFFF\n sym:.EQUATE 10\n .EXPORT sym\n.END"
             << ".ADDRSS sym\n sym: .EQUATE 20 \n .END"
             << false
-            << QStringList({MacroLinker::multidefinedSymbol.arg("sym")});
+            << QStringList({MacroLinker::redefineExportSymbol.arg("sym")});
 }
 
 void UserOSIntegrationTest::case_testExport()
