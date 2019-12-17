@@ -1,0 +1,136 @@
+name: Build All & Run Regressions
+
+on: [push]
+
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Install libmesa
+      run:  sudo apt install libglu1-mesa-dev freeglut3-dev
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+    - uses: actions/checkout@v1
+    - name: list
+      run: ls -a
+    - name: qmake
+      run: qmake BUILD-ALL.pro CONFIG+=debug
+    - name: make qmake_all
+      run: make qmake_all
+    - name: make
+      run: make -j2 && ls -a
+    - name: Upload MacroAssembler Unit Tests
+      uses: actions/upload-artifact@v1
+      with:
+          name: MacroAssembler
+          path: pep10unit/MacroAssembler/MacroAssembler
+    - name: Upload pep10asm
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10-Linux
+          path: pep10asm/Pep10
+    - name: Upload pep10cpu
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10CPU-Linux
+          path: pep10cpu/Pep10CPU
+    - name: Upload pep10micro
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10Micro-Linux
+          path: pep10micro/Pep10Micro
+    - name: Upload pep10term
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10Term-Linux
+          path: pep10term/Pep10Term
+      
+  run_asm_test:
+    runs-on: ubuntu-18.04
+    needs: [build-linux]
+    steps:
+    - name: Download math result for job 1
+      uses: actions/download-artifact@v1
+      with:
+          name: MacroAssembler
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v1
+    - name: Run MacroAssembler Tests
+      run:  cd MacroAssembler && sudo chmod +x MacroAssembler && ./MacroAssembler -silent > MacroAsmUnits.txt
+    - name: Upload error logs
+      if: failure()
+      uses: actions/upload-artifact@master
+      with:
+          name: MacroTestErrLog
+          path: MacroAssembler/MacroAsmUnits.txt      
+  build-windows:
+    runs-on: windows-latest
+  
+    steps:
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v1
+    - uses: actions/checkout@v1
+    - name: VC encironment
+      run: cd "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\" ; ./vcvars64.bat
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: qmake
+      run: qmake BUILD-ALL.pro CONFIG+=debug
+    - name: make qmake_all
+      run: nmake
+    - name: Upload pep10asm
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10-Win
+          path: pep10asm/Pep10.exe
+    - name: Upload pep10cpu
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10CPU-Win
+          path: pep10cpu/Pep10CPU.exe
+    - name: Upload pep10micro
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10Micro-Win
+          path: pep10micro/Pep10Micro.exe
+    - name: Upload pep10term
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10Term-Win
+          path: pep10term/Pep10Term.exe
+
+      
+  build-mac:
+    runs-on: macOS-latest
+    steps:
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v1
+    - uses: actions/checkout@v1
+    - name: list
+      run: ls -a
+    - name: qmake
+      run: qmake BUILD-ALL.pro CONFIG+=debug
+    - name: make qmake_all
+      run: make qmake_all
+    - name: make
+      run: make -j2 && ls -a
+    - name: Upload pep10asm
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10-Mac
+          path: pep10asm/Pep10.app
+    - name: Upload pep10cpu
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10CPU-Mac
+          path: pep10cpu/Pep10CPU.app
+    - name: Upload pep10micro
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10Micro-Mac
+          path: pep10micro/Pep10Micro.app
+    - name: Upload pep10term
+      uses: actions/upload-artifact@v1
+      with:
+          name: Pep10Term-Mac
+          path: pep10term/Pep10Term.app
