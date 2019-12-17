@@ -10,7 +10,9 @@ jobs:
     - name: Install libmesa
       run:  sudo apt install libglu1-mesa-dev freeglut3-dev
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: Matthew-McRaven/install-qt-action
+      with:
+        modules: qtwebengine
     - uses: actions/checkout@v1
     - name: list
       run: ls -a
@@ -55,7 +57,9 @@ jobs:
       with:
           name: MacroAssembler
     - name: Install Qt
-      uses: jurplel/install-qt-action@v1
+      uses: Matthew-McRaven/install-qt-action
+      with:
+        modules: qtwebengine
     - name: Run MacroAssembler Tests
       run:  cd MacroAssembler && sudo chmod +x MacroAssembler && ./MacroAssembler -silent > MacroAsmUnits.txt
     - name: Upload error logs
@@ -69,7 +73,9 @@ jobs:
   
     steps:
     - name: Install Qt
-      uses: jurplel/install-qt-action@v1
+      uses: Matthew-McRaven/install-qt-action
+      with:
+        modules: qtwebengine
     - uses: actions/checkout@v1
     - name: VC encironment
       run: cd "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\" ; ./vcvars64.bat
@@ -101,10 +107,12 @@ jobs:
 
       
   build-mac:
-    runs-on: macOS-latest
+    runs-on: macos-latest
     steps:
     - name: Install Qt
-      uses: jurplel/install-qt-action@v1
+      uses: Matthew-McRaven/install-qt-action
+      with:
+        modules: qtwebengine
     - uses: actions/checkout@v1
     - name: list
       run: ls -a
