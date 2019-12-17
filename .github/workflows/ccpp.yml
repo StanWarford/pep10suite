@@ -10,7 +10,7 @@ jobs:
     - name: Install libmesa
       run:  sudo apt install libglu1-mesa-dev freeglut3-dev
     - name: Install Qt
-      uses: Matthew-McRaven/install-qt-action
+      uses: Matthew-McRaven/install-qt-action@v2
       with:
         modules: qtwebengine
     - uses: actions/checkout@v1
@@ -57,7 +57,7 @@ jobs:
       with:
           name: MacroAssembler
     - name: Install Qt
-      uses: Matthew-McRaven/install-qt-action
+      uses: Matthew-McRaven/install-qt-action@v2
       with:
         modules: qtwebengine
     - name: Run MacroAssembler Tests
@@ -73,7 +73,7 @@ jobs:
   
     steps:
     - name: Install Qt
-      uses: Matthew-McRaven/install-qt-action
+      uses: Matthew-McRaven/install-qt-action@v2
       with:
         modules: qtwebengine
     - uses: actions/checkout@v1
@@ -110,7 +110,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - name: Install Qt
-      uses: Matthew-McRaven/install-qt-action
+      uses: Matthew-McRaven/install-qt-action@v2
       with:
         modules: qtwebengine
     - uses: actions/checkout@v1
