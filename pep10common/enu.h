@@ -39,9 +39,8 @@ namespace Enu {
         A = 0, X = 2, SP = 4, PC = 6, OS = 11,
         TR = 8,
         // Present in any derivative of Pep9CPU
-        T2 = 14,
-        T3 = 16, T4 = 18, T5 = 20, M1 = 22, M2 = 24, M3 = 26,
-        M4 = 28, M5 = 30,
+        T2 = 14, T3 = 16, T4 = 18, T5 = 20,
+        M1 = 22, M2 = 24, M3 = 26, M4 = 28, M5 = 30,
         // "Fictitious" registers for Pep9micro
         MicroProgramCounter = 128,
 

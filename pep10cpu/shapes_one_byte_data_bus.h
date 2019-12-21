@@ -297,14 +297,14 @@ const QRect xRegLineEdit  = QRect(Col1X, Row2Y, regLineEditW, regLineEditH);
 const QRect spRegLineEdit = QRect(Col1X, Row3Y, regLineEditW, regLineEditH);
 const QRect pcRegLineEdit = QRect(Col1X, Row4Y, regLineEditW, regLineEditH);
 
-const QRect irRegLineEdit = QRect(Col2X, Row1Y, regLineEditW + 15, regLineEditH);
-const QRect t1RegLineEdit = QRect(Col2X, Row2Y, regLineEditW - 15, regLineEditH);
-const QRect t2RegLineEdit = QRect(Col2X, Row3Y, regLineEditW, regLineEditH);
-const QRect t3RegLineEdit = QRect(Col2X, Row4Y, regLineEditW, regLineEditH);
+const QRect trRegLineEdit = QRect(Col2X, Row1Y, regLineEditW, regLineEditH);
+const QRect irRegLineEdit = QRect(Col2X, Row2Y, regLineEditW + 15, regLineEditH);
+const QRect t1RegLineEdit = QRect(Col2X, Row3Y, regLineEditW - 15, regLineEditH);
+const QRect t2RegLineEdit = QRect(Col2X, Row4Y, regLineEditW, regLineEditH);
 
-const QRect t4RegLineEdit = QRect(Col3X, Row1Y, regLineEditW, regLineEditH);
-const QRect t5RegLineEdit = QRect(Col3X, Row2Y, regLineEditW, regLineEditH);
-const QRect t6RegLineEdit = QRect(Col3X, Row3Y, regLineEditW, regLineEditH);
+const QRect t3RegLineEdit = QRect(Col3X, Row1Y, regLineEditW, regLineEditH);
+const QRect t4RegLineEdit = QRect(Col3X, Row2Y, regLineEditW, regLineEditH);
+const QRect t5RegLineEdit = QRect(Col3X, Row3Y, regLineEditW, regLineEditH);
 const QRect m1RegLabel    = QRect(Col3X, Row4Y, regLineEditW - 10, regLineEditH);
 
 const QRect m2RegLabel    = QRect(Col4X, Row1Y, regLineEditW - 10, regLineEditH);

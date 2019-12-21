@@ -207,11 +207,11 @@ public:
     QLineEdit *pcRegLineEdit;
     QLineEdit *irRegLineEdit;
     QLineEdit *t1RegLineEdit;
+    QLineEdit *trRegLineEdit;
     QLineEdit *t2RegLineEdit;
     QLineEdit *t3RegLineEdit;
     QLineEdit *t4RegLineEdit;
     QLineEdit *t5RegLineEdit;
-    QLineEdit *t6RegLineEdit;
 
     // One byte data bus model features;
     QCheckBox  *MDRCk;

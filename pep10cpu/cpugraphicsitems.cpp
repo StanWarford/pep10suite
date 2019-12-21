@@ -294,13 +294,13 @@ CpuGraphicsItems::CpuGraphicsItems(Enu::CPUType type, CPUDataSection *dataSectio
     addEditableRegister(&xRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::xRegLineEdit, colorScheme);
     addEditableRegister(&spRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::spRegLineEdit, colorScheme);
     addEditableRegister(&pcRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::pcRegLineEdit, colorScheme);
+    addEditableRegister(&trRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::trRegLineEdit, colorScheme);
     addEditableRegister(&irRegLineEdit, editorVector, scene, "0x000000", irRegExp, TwoByteShapes::irRegLineEdit, colorScheme);
     addEditableRegister(&t1RegLineEdit, editorVector, scene, "0x00", byteRegExp, TwoByteShapes::t1RegLineEdit, colorScheme);
     addEditableRegister(&t2RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t2RegLineEdit, colorScheme);
     addEditableRegister(&t3RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t3RegLineEdit, colorScheme);
     addEditableRegister(&t4RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t4RegLineEdit, colorScheme);
     addEditableRegister(&t5RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t5RegLineEdit, colorScheme);
-    addEditableRegister(&t6RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t6RegLineEdit, colorScheme);
     addStaticRegister(labelVec, scene, "0x0001", OneByteShapes::m1RegLabel, colorScheme);
     addStaticRegister(labelVec, scene, "0x0203", OneByteShapes::m2RegLabel, colorScheme);
     addStaticRegister(labelVec, scene, "0x0408", OneByteShapes::m3RegLabel, colorScheme);
@@ -319,26 +319,26 @@ CpuGraphicsItems::CpuGraphicsItems(Enu::CPUType type, CPUDataSection *dataSectio
     addRegisterText(labelVec, scene, "6,7", OneByteShapes::getRegNoRect(1, 4), colorScheme);
     addRegisterText(labelVec, scene, "PC", OneByteShapes::getRegLabelRect(1, 4), colorScheme);
 
-    addRegisterText(labelVec, scene, "8-10",OneByteShapes::getRegNoRect(2, 1), colorScheme);
-    addRegisterText(labelVec, scene, "IR",OneByteShapes::getRegLabelRect(2, 1), colorScheme);
+    addRegisterText(labelVec, scene, "8,9",OneByteShapes::getRegNoRect(2, 1), colorScheme);
+    addRegisterText(labelVec, scene, "TR",OneByteShapes::getRegLabelRect(2, 1), colorScheme);
 
-    addRegisterText(labelVec, scene, "11", OneByteShapes::getRegNoRect(2, 2), colorScheme);
-    addRegisterText(labelVec, scene, "T1", OneByteShapes::getRegLabelRect(2, 2), colorScheme);
+    addRegisterText(labelVec, scene, "10-13", OneByteShapes::getRegNoRect(2, 2), colorScheme);
+    addRegisterText(labelVec, scene, "IR", OneByteShapes::getRegLabelRect(2, 2), colorScheme);
 
-    addRegisterText(labelVec, scene, "12,13", OneByteShapes::getRegNoRect(2, 3), colorScheme);
-    addRegisterText(labelVec, scene, "T2", OneByteShapes::getRegLabelRect(2, 3), colorScheme);
+    addRegisterText(labelVec, scene, "14", OneByteShapes::getRegNoRect(2, 3), colorScheme);
+    addRegisterText(labelVec, scene, "T1", OneByteShapes::getRegLabelRect(2, 3), colorScheme);
 
-    addRegisterText(labelVec, scene, "14,15",OneByteShapes::getRegNoRect(2, 4), colorScheme);
-    addRegisterText(labelVec, scene, "T3",OneByteShapes::getRegLabelRect(2, 4), colorScheme);
+    addRegisterText(labelVec, scene, "16,17",OneByteShapes::getRegNoRect(2, 4), colorScheme);
+    addRegisterText(labelVec, scene, "T2",OneByteShapes::getRegLabelRect(2, 4), colorScheme);
 
-    addRegisterText(labelVec, scene, "16,17", OneByteShapes::getRegNoRect(3, 1), colorScheme);
-    addRegisterText(labelVec, scene, "T4", OneByteShapes::getRegLabelRect(3, 1), colorScheme);
+    addRegisterText(labelVec, scene, "18,19", OneByteShapes::getRegNoRect(3, 1), colorScheme);
+    addRegisterText(labelVec, scene, "T3", OneByteShapes::getRegLabelRect(3, 1), colorScheme);
 
     addRegisterText(labelVec, scene, "18,19", OneByteShapes::getRegNoRect(3, 2), colorScheme);
-    addRegisterText(labelVec, scene, "T5", OneByteShapes::getRegLabelRect(3, 2), colorScheme);
+    addRegisterText(labelVec, scene, "T4", OneByteShapes::getRegLabelRect(3, 2), colorScheme);
 
     addRegisterText(labelVec, scene, "20,21", OneByteShapes::getRegNoRect(3, 3), colorScheme);
-    addRegisterText(labelVec, scene, "T6", OneByteShapes::getRegLabelRect(3, 3), colorScheme);
+    addRegisterText(labelVec, scene, "T5", OneByteShapes::getRegLabelRect(3, 3), colorScheme);
 
     addRegisterText(labelVec, scene, "22,23", OneByteShapes::getRegNoRect(3, 4), colorScheme);
     addRegisterText(labelVec, scene, "M1", OneByteShapes::getRegLabelRect(3, 4), colorScheme);
@@ -417,13 +417,14 @@ CpuGraphicsItems::~CpuGraphicsItems()
     delete xRegLineEdit;
     delete spRegLineEdit;
     delete pcRegLineEdit;
+    delete trRegLineEdit;
     delete irRegLineEdit;
     delete t1RegLineEdit;
+    delete trRegLineEdit;
     delete t2RegLineEdit;
     delete t3RegLineEdit;
     delete t4RegLineEdit;
     delete t5RegLineEdit;
-    delete t6RegLineEdit;
 
     // Delete one byte items
     delete MDRCk;

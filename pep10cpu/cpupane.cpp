@@ -159,11 +159,11 @@ void CpuPane::initModel()
     connect(cpuPaneItems->pcRegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
     connect(cpuPaneItems->irRegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
     connect(cpuPaneItems->t1RegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
+    connect(cpuPaneItems->trRegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
     connect(cpuPaneItems->t2RegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
     connect(cpuPaneItems->t3RegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
     connect(cpuPaneItems->t4RegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
     connect(cpuPaneItems->t5RegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
-    connect(cpuPaneItems->t6RegLineEdit, &QLineEdit::textEdited, this, &CpuPane::regTextEdited);
 
     connect(cpuPaneItems->aRegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
     connect(cpuPaneItems->xRegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
@@ -171,11 +171,11 @@ void CpuPane::initModel()
     connect(cpuPaneItems->pcRegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
     connect(cpuPaneItems->irRegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
     connect(cpuPaneItems->t1RegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
+    connect(cpuPaneItems->trRegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
     connect(cpuPaneItems->t2RegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
     connect(cpuPaneItems->t3RegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
     connect(cpuPaneItems->t4RegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
     connect(cpuPaneItems->t5RegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
-    connect(cpuPaneItems->t6RegLineEdit, &QLineEdit::editingFinished, this, &CpuPane::regTextFinishedEditing);
 
     connect(cpuPaneItems->ALULineEdit, &QLineEdit::textChanged, this, &CpuPane::ALUTextEdited);
 
@@ -231,9 +231,7 @@ void CpuPane::setRegister(Enu::ECPUKeywords reg, int value)
         cpuPaneItems->pcRegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
         break;
     case Enu::Trap:
-        #pragma message("Must create real register line editor for Trap.")
-        // Use t6 register for the moment.
-        cpuPaneItems->t6RegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
+        cpuPaneItems->trRegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
         break;
     case Enu::IR:
         cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(value, 6, 16, QLatin1Char('0')).toUpper());
@@ -253,10 +251,6 @@ void CpuPane::setRegister(Enu::ECPUKeywords reg, int value)
     case Enu::T5:
         cpuPaneItems->t5RegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
         break;
-    /*case Enu::T6:
-        // T6 register no longer exists.
-        cpuPaneItems->t6RegLineEdit->setText("0x" + QString("%1").arg(value, 4, 16, QLatin1Char('0')).toUpper());
-        break;*/
     case Enu::MARAREG:
         cpuPaneItems->MARALabel->setText("0x" + QString("%1").arg(value, 2, 16, QLatin1Char('0')).toUpper());
         break;
@@ -304,46 +298,46 @@ void CpuPane::setRegisterByte(quint8 reg, quint8 value)
         cpuPaneItems->pcRegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(6) * 256 + value, 4, 16, ch).toUpper());
         break;
     case 8:
-        cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(value * 65536 + dataSection->getRegisterBankByte(9) * 256 + dataSection->getRegisterBankByte(10), 6, 16, ch).toUpper());
+        cpuPaneItems->trRegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(9), 4, 16, ch).toUpper());
         break;
     case 9:
-        cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(8) * 65536 + value * 256 + dataSection->getRegisterBankByte(10), 6, 16, ch).toUpper());
+        cpuPaneItems->trRegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(8) * 256 + value, 4, 16, ch).toUpper());
         break;
     case 10:
-        cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(8) * 65536 + dataSection->getRegisterBankByte(9) * 256 + value, 6, 16, ch).toUpper());
+        cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(value * 65536 + dataSection->getRegisterBankByte(11) * 256 + dataSection->getRegisterBankByte(12), 6, 16, ch).toUpper());
         break;
     case 11:
-        cpuPaneItems->t1RegLineEdit->setText("0x" + QString("%1").arg(value, 2, 16, ch).toUpper());
+        cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(10) * 65536 + value * 256 + dataSection->getRegisterBankByte(12), 6, 16, ch).toUpper());
         break;
     case 12:
-        cpuPaneItems->t2RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(13), 4, 16, ch).toUpper());
+        cpuPaneItems->irRegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(10) * 65536 + dataSection->getRegisterBankByte(11) * 256 + value, 6, 16, ch).toUpper());
         break;
     case 13:
-        cpuPaneItems->t2RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(12) * 256 + value, 4, 16, ch).toUpper());
+        cpuPaneItems->t1RegLineEdit->setText("0x" + QString("%1").arg(value, 2, 16, ch).toUpper());
         break;
     case 14:
-        cpuPaneItems->t3RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(15), 4, 16, ch).toUpper());
+        cpuPaneItems->t2RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(15), 4, 16, ch).toUpper());
         break;
     case 15:
-        cpuPaneItems->t3RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(14) * 256 + value, 4, 16, ch).toUpper());
+        cpuPaneItems->t2RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(14) * 256 + value, 4, 16, ch).toUpper());
         break;
     case 16:
-        cpuPaneItems->t4RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(17), 4, 16, ch).toUpper());
+        cpuPaneItems->t3RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(17), 4, 16, ch).toUpper());
         break;
     case 17:
-        cpuPaneItems->t4RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(16) * 256 + value, 4, 16, ch).toUpper());
+        cpuPaneItems->t3RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(16) * 256 + value, 4, 16, ch).toUpper());
         break;
     case 18:
-        cpuPaneItems->t5RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(19), 4, 16, ch).toUpper());
+        cpuPaneItems->t4RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(19), 4, 16, ch).toUpper());
         break;
     case 19:
         cpuPaneItems->t5RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(18) * 256 + value, 4, 16, ch).toUpper());
         break;
     case 20:
-        cpuPaneItems->t6RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(21), 4, 16, ch).toUpper());
+        cpuPaneItems->t5RegLineEdit->setText("0x" + QString("%1").arg(value * 256 + dataSection->getRegisterBankByte(21), 4, 16, ch).toUpper());
         break;
     case 21:
-        cpuPaneItems->t6RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(20) * 256 + value, 4, 16, ch).toUpper());
+        cpuPaneItems->t5RegLineEdit->setText("0x" + QString("%1").arg(dataSection->getRegisterBankByte(20) * 256 + value, 4, 16, ch).toUpper());
         break;
     default:
         // the remainder of the array is 'read only' in our simulated CPU, or outside the bounds
@@ -561,32 +555,32 @@ void CpuPane::regTextFinishedEditing()
         emit registerChanged(6, static_cast<quint8>(regValue / 256));
         emit registerChanged(7, static_cast<quint8>(regValue % 256));
     }
+    else if (lineEdit == cpuPaneItems->trRegLineEdit) {
+        emit registerChanged(8, static_cast<quint8>(regValue / 256));
+        emit registerChanged(9, static_cast<quint8>(regValue % 256));
+    }
     else if (lineEdit == cpuPaneItems->irRegLineEdit) {
-        emit registerChanged(8,static_cast<quint8>(regValue / 65536));
-        emit registerChanged(9, static_cast<quint8>(regValue / 256));
-        emit registerChanged(10,static_cast<quint8>(regValue % 256));
+        emit registerChanged(10, static_cast<quint8>(regValue / 65536));
+        emit registerChanged(11, static_cast<quint8>(regValue / 256));
+        emit registerChanged(12,  static_cast<quint8>(regValue % 256));
 
     }
     else if (lineEdit == cpuPaneItems->t1RegLineEdit) {
-        emit registerChanged(11, static_cast<quint8>(regValue % 256));
-    }
-    else if (lineEdit == cpuPaneItems->t2RegLineEdit) {
-        emit registerChanged(12, static_cast<quint8>(regValue / 256));
         emit registerChanged(13, static_cast<quint8>(regValue % 256));
     }
-    else if (lineEdit == cpuPaneItems->t3RegLineEdit) {
+    else if (lineEdit == cpuPaneItems->t2RegLineEdit) {
         emit registerChanged(14, static_cast<quint8>(regValue / 256));
         emit registerChanged(15, static_cast<quint8>(regValue % 256));
     }
-    else if (lineEdit == cpuPaneItems->t4RegLineEdit) {
+    else if (lineEdit == cpuPaneItems->t3RegLineEdit) {
         emit registerChanged(16, static_cast<quint8>(regValue / 256));
         emit registerChanged(17, static_cast<quint8>(regValue % 256));
     }
-    else if (lineEdit == cpuPaneItems->t5RegLineEdit) {
+    else if (lineEdit == cpuPaneItems->t4RegLineEdit) {
         emit registerChanged(18, static_cast<quint8>(regValue / 256));
         emit registerChanged(19, static_cast<quint8>(regValue % 256));
     }
-    else if (lineEdit == cpuPaneItems->t6RegLineEdit) {
+    else if (lineEdit == cpuPaneItems->t5RegLineEdit) {
         emit registerChanged(20, static_cast<quint8>(regValue / 256));
         emit registerChanged(21, static_cast<quint8>(regValue % 256));
     }
