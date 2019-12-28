@@ -1,9 +1,9 @@
 // File: asmbuildhelper.cpp
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaevn, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "asmbuildhelper.h"
 
 #include "asmcode.h"
@@ -38,7 +39,8 @@ ASMBuildHelper::ASMBuildHelper(const QString source, QFileInfo objFileInfo,
     source(source), objFileInfo(objFileInfo),
     manager(manager), registry(std::move(std::move(registry)))
 {
-
+    // Default error log name to the base name of the file with an _errLog.txt extension.
+    this->error_log = objFileInfo.absoluteDir().absoluteFilePath(objFileInfo.baseName() + "_errLog.txt");
 }
 
 // All of our memory is owned by sharedpointers, so we
@@ -56,12 +58,16 @@ void ASMBuildHelper::run()
     emit finished();
 }
 
+void ASMBuildHelper::set_error_file(QString error_file)
+{
+    this->error_log = error_file;
+}
+
 bool ASMBuildHelper::buildProgram()
 {
     // Construct files that will be needed for assembly
     QFile objectFile(objFileInfo.absoluteFilePath());
-    QFile errorLog(QFileInfo(objectFile).absoluteDir().absoluteFilePath(
-                       QFileInfo(objectFile).baseName() + "_errLog.txt"));
+    QFile errorLog(error_log.absoluteFilePath());
 
     MacroAssemblerDriver assembler(registry);
     //QString osText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);

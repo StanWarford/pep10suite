@@ -1,9 +1,9 @@
 // File: main.cpp
 /*
-    Pep10Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaevn, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,17 +47,19 @@
 
 const QString asmInputFileText = "Input Pep/10 source program for assembler.";
 const QString asmOutputFileText = "Output object code generated from source.";
+const QString asm_run_log = "Override the default error log file, which contains assembly errors. \
+If no errors are present, no data will be written to the file.";
 const QString objInputFileText = "Input Pep/10 object code program for simulator.";
 const QString charinFileText = "File which will be buffered behind the charIn.";
 const QString charoutFileText = "File which charOut will be written to.";
 const QString isaMaxStepText = "The maximum number of instructions executed before aborting. Defaults to %1.";
 const QString microMaxStepText = "The maximum number of CPU cycles executed before aborting. Defaults to %1.";
 const QString cpuasmInputFileText = "Input Pep/10 CPU source program for microassembler.";
-const QString cpuasmOutputFileText = "Output from Pep/10 CPU microassembler. Either contains an error log or \"success\".";
-const QString cpu1or2 = "Assemble the program with assuming a 2-byte data bus (default is 1).";
+const QString cpu_asm_log = "Override the default error log file, which contains assembly errors. \
+If no errors are present, no data will be written to the file.";const QString cpu1or2 = "Assemble the program with assuming a 2-byte data bus (default is 1).";
 const QString cpuPreconditions = "Pep10 Microcode file containg pre and post conditions, overriding and skipping any preconditions and postconditions in the main microcode source file.";
-const QString cpuRunLog = "Text file that will contain \"Succes\" if the program passes unit tests, or will contain the violated unit tests.";
-const QString listMacroText = "View the listing of a macro.";
+const QString cpu_run_log = "Override the default error log file, which contains assembly or postcondition errors. \
+If no errors are present, no data will be written to the file.";const QString listMacroText = "View the listing of a macro.";
 
 std::optional<QRunnable*> handle_asm(QCommandLineParser& parser, QCoreApplication &app,
                                      QSharedPointer<MacroRegistry> registry);
@@ -118,9 +120,10 @@ Run pep10term 'mode' --help for detailed options on how to run each mode.");
     else if (command == "asm") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("asm", "Assemble a Pep/10 source code program",
-                                     "pep10term asm -s source.pep -o assembled.pepo");
+                                     "pep10term asm -s source.pep -o assembled.pepo [-e error_log.txt]");
         parser.addOption(QCommandLineOption("s", asmInputFileText, "source_file"));
         parser.addOption(QCommandLineOption("o", asmOutputFileText, "object_file"));
+        parser.addOption(QCommandLineOption("e", asm_run_log, "error_log_file"));
     }
     else if (command == "run") {
         parser.clearPositionalArguments();
@@ -142,38 +145,38 @@ Run pep10term 'mode' --help for detailed options on how to run each mode.");
         parser.addPositionalArgument("cpuasm", "Assemble a Pep/10 CPU source code program. \
 It will write any errors to <output_log_file_name>_errLog.txt if assembly fails or \
 \"success\" to <output_log_file> if assembly succeeds.",
-                                     "pep10term cpuasm --mc source.pepcpu -o output.txt [--d2]");
+                                     "pep10term cpuasm --mc source.pepcpu [-e error_log.txt] [--d2]");
         parser.addOption(QCommandLineOption("mc", cpuasmInputFileText, "source_file"));
-        parser.addOption(QCommandLineOption("o", cpuasmOutputFileText, "output_log_file"));
+        parser.addOption(QCommandLineOption("e", cpu_asm_log, "error_log_file"));
         parser.addOption(QCommandLineOption("d2", cpu1or2));
     }
     else if (command == "cpurun") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("cpurun", "Run a microcode program with an optional list of preconditions.",
-                                     "pep10term cpurun --mc microcode.pepcpu [-p pre.pepcpu] -o log.txt [--d2]");
+                                     "pep10term cpurun --mc microcode.pepcpu [-p pre.pepcpu] [-e error_log.txt] [--d2]");
         parser.addOption(QCommandLineOption("mc", cpuasmInputFileText, "micro_source_file"));
         parser.addOption(QCommandLineOption("d2", cpu1or2));
         parser.addOption(QCommandLineOption("p", cpuPreconditions, "precondition_source_file"));
-        parser.addOption(QCommandLineOption("o", cpuRunLog, "output_log_file"));
+        parser.addOption(QCommandLineOption("e", cpu_run_log, "error_log_file"));
     }
     else if(command == "microasm") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("microasm", "Assemble a Pep/10 Micro source code program. \
 It will write any errors to <output_log_file_name>_errLog.txt if assembly fails or \"success\" \
 to <output_log_file> if assembly succeeds.",
-                                     "pep10term microasm --mc source.pepcpu -o output.txt");
+                                     "pep10term microasm --mc source.pepcpu [-e error_log.txt]");
         parser.addOption(QCommandLineOption("mc", cpuasmInputFileText, "source_file"));
-        parser.addOption(QCommandLineOption("o", cpuasmOutputFileText, "output_log_file"));
+        parser.addOption(QCommandLineOption("e", cpu_asm_log, "error_log_file"));
     }
     else if (command == "microrun") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("microstep", "Run a microcode program \
 using the Pep10Micro CPU with an optional list of preconditions.",
-                                     "pep10term microrun --mc microcode.pepcpu [-p pre.pepcpu] -o log.txt \
+                                     "pep10term microrun --mc microcode.pepcpu [-p pre.pepcpu] [-e error_log.txt] \
 [-m max_steps]");
         parser.addOption(QCommandLineOption("mc", cpuasmInputFileText, "micro_source_file"));
         parser.addOption(QCommandLineOption("p", cpuPreconditions, "precondition_source_file"));
-        parser.addOption(QCommandLineOption("o", cpuRunLog, "output_log_file"));
+        parser.addOption(QCommandLineOption("e", cpu_asm_log, "error_log_file"));
         // Maximum number of cycles to be executed.
         parser.addOption(QCommandLineOption("m",
                                             microMaxStepText.arg(BoundExecMicroCpu::getDefaultMaxCycles()),
@@ -313,6 +316,9 @@ std::optional<QRunnable*> handle_asm(QCommandLineParser& parser, QCoreApplicatio
         ASMBuildHelper *helper = new ASMBuildHelper(sourceText, objectFileString,
                                                     *AsmProgramManager::getInstance(),
                                                     std::move(registry));
+        if(parser.isSet("e")) {
+            helper->set_error_file(parser.value("e"));
+        }
         QObject::connect(helper, &ASMBuildHelper::finished, &app, &QCoreApplication::quit);
 
         return helper;
@@ -369,12 +375,6 @@ std::optional<QRunnable*> handle_cpuasm(QCommandLineParser& parser, QCoreApplica
         qDebug() << "Must set microcode input (--mc).";
         parser.showHelp(-1);
     }
-    // Needs an output log to be well defined.
-    else if(!parser.isSet("o")) {
-        qDebug() << "Must set output log (-o).";
-        parser.showHelp(-1);
-    }
-    QString outputFileName = parser.value("o");
 
     // Determine CPU type.
     Enu::CPUType type = Enu::CPUType::OneByteDataBus;
@@ -401,8 +401,10 @@ std::optional<QRunnable*> handle_cpuasm(QCommandLineParser& parser, QCoreApplica
         sourceText = Pep::removeCycleNumbers(sourceStream.readAll());
         sourceFile.close();
 
-        CPUBuildHelper *helper = new CPUBuildHelper(type, false, sourceText,
-                                              QFileInfo(outputFileName));
+        CPUBuildHelper *helper = new CPUBuildHelper(type, false, sourceText, sourceFile);
+        if(parser.isSet("e")) {
+            helper->set_error_file(parser.value("e"));
+        }
         QObject::connect(helper, &CPUBuildHelper::finished, &app, &QCoreApplication::quit);
 
         return helper;
@@ -418,11 +420,7 @@ std::optional<QRunnable*> handle_cpurun(QCommandLineParser& parser, QCoreApplica
         qDebug() << "Must set microcode input (--mc).";
         parser.showHelp(-1);
     }
-    // Needs an output log to be well defined.
-    else if(!parser.isSet("o")) {
-        qDebug() << "Must set output log (-o).";
-        parser.showHelp(-1);
-    }
+
     // Determine CPU type.
     Enu::CPUType type = Enu::CPUType::OneByteDataBus;
     if(parser.isSet("d2")) {
@@ -433,7 +431,6 @@ std::optional<QRunnable*> handle_cpurun(QCommandLineParser& parser, QCoreApplica
 
     // Microcode input file and unit test output file.
     QString microcodeFileName = parser.value("mc");
-    QString textOutputFileName = parser.value("o");
 
     // Load object code string from file if possible, else print error log.
     QFile microcodeFile(microcodeFileName);
@@ -465,7 +462,10 @@ std::optional<QRunnable*> handle_cpurun(QCommandLineParser& parser, QCoreApplica
 
     CPURunHelper *helper = new CPURunHelper(type, microprogramText,
                                            QFileInfo(microcodeFile), preconditionText,
-                                           textOutputFileName, nullptr);
+                                           nullptr);
+    if(parser.isSet("e")) {
+        helper->set_error_file(parser.value("e"));
+    }
     QObject::connect(helper, &CPURunHelper::finished, &app, &QCoreApplication::quit);
 
     return helper;
@@ -478,12 +478,6 @@ std::optional<QRunnable*> handle_microasm(QCommandLineParser& parser, QCoreAppli
         qDebug() << "Must set microcode input (--mc).";
         parser.showHelp(-1);
     }
-    // Needs an output log to be well defined.
-    else if(!parser.isSet("o")) {
-        qDebug() << "Must set output log (-o).";
-        parser.showHelp(-1);
-    }
-    QString outputFileName = parser.value("o");
 
     // Microcoded CPU is always two bytes.
     Enu::CPUType type = Enu::CPUType::TwoByteDataBus;
@@ -502,8 +496,11 @@ std::optional<QRunnable*> handle_microasm(QCommandLineParser& parser, QCoreAppli
         sourceText = Pep::removeCycleNumbers(sourceStream.readAll());
         sourceFile.close();
 
-        CPUBuildHelper *helper = new CPUBuildHelper(type, true, sourceText,
-                                              QFileInfo(outputFileName));
+        CPUBuildHelper *helper = new CPUBuildHelper(type, true, sourceText, sourceFile);
+        if(parser.isSet("e")) {
+            helper->set_error_file(parser.value("e"));
+        }
+
         QObject::connect(helper, &CPUBuildHelper::finished, &app, &QCoreApplication::quit);
 
         return helper;
@@ -517,18 +514,12 @@ std::optional<QRunnable*> handle_microrun(QCommandLineParser& parser, QCoreAppli
         qDebug() << "Must set microcode input (--mc).";
         parser.showHelp(-1);
     }
-    // Needs an output log to be well defined.
-    else if(!parser.isSet("o")) {
-        qDebug() << "Must set output log (-o).";
-        parser.showHelp(-1);
-    }
 
-    // Pep9Micro is always two byte.
+    // Pep10Micro is always two byte.
     Pep::initMicroEnumMnemonMaps(Enu::CPUType::TwoByteDataBus, true);
 
     // Microcode input file and unit test output file.
     QString microcodeFileName = parser.value("mc");
-    QString textOutputFileName = parser.value("o");
 
     // Load object code string from file if possible, else print error log.
     QFile microcodeFile(microcodeFileName);
@@ -569,7 +560,10 @@ std::optional<QRunnable*> handle_microrun(QCommandLineParser& parser, QCoreAppli
                                                   microprogramText,
                                                   QFileInfo(microcodeFile),
                                                   preconditionText,
-                                                  textOutputFileName, nullptr);
+                                                  nullptr);
+    if(parser.isSet("e")) {
+        helper->set_error_file(parser.value("e"));
+    }
     QObject::connect(helper, &MicroStepHelper::finished, &app, &QCoreApplication::quit);
 
     return helper;

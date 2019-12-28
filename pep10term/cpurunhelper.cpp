@@ -1,9 +1,9 @@
 // File: cpurunhelper.h
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "cpurunhelper.h"
 
 #include "amemorychip.h"
@@ -35,30 +36,20 @@
 CPURunHelper::CPURunHelper(Enu::CPUType type, const QString microcodeProgram,
                            QFileInfo microcodeProgramFile,
                            const QString preconditionsProgram,
-                           QFileInfo programOutput, QObject *parent) :
+                           QObject *parent) :
     QObject(parent), type(type), microcodeProgram(microcodeProgram),
     microcodeProgramFile(microcodeProgramFile),
-    preconditionsProgram(preconditionsProgram), programOutput(programOutput),
+    preconditionsProgram(preconditionsProgram),
     // Explicitly initialize both simulation objects to nullptr,
     // so that it is clear to that neither object has been allocated
-    memory(nullptr), cpu(nullptr), outputFile(nullptr)
+    memory(nullptr), cpu(nullptr)
 
 {
-
-
+    this->error_log = microcodeProgramFile.absoluteDir().absoluteFilePath(
+                microcodeProgramFile.baseName() + "_errLog.txt");
 }
 
-CPURunHelper::~CPURunHelper()
-{
-    // If we allocated an output file, we need to perform special work to free it.
-    if(outputFile != nullptr) {
-        outputFile->flush();
-        // It might seem like we should close the file here, but it causes read / write violations to do so.
-        // Instead, delete it later under the assumption that the operating system will handle that for us.
-        // Schedule the output file for deletion via the event loop.
-        outputFile->deleteLater();
-    }
-}
+CPURunHelper::~CPURunHelper() = default;
 
 void CPURunHelper::onSimulationFinished()
 {
@@ -72,8 +63,7 @@ void CPURunHelper::runProgram()
 {
 
     // Construct files that will be needed for assembly
-    QFile errorLog(QFileInfo(microcodeProgramFile).absoluteDir().absoluteFilePath(
-                       QFileInfo(microcodeProgramFile).baseName() + "_errLog.txt"));
+    QFile errorLog(error_log.absoluteFilePath());
 
     QVector<AMicroCode*> preconditionLines;
     auto programResult = buildMicroprogramHelper(type, false,
@@ -171,15 +161,10 @@ void CPURunHelper::runProgram()
         }
     }
 
-    // Open up program output file if possible.
-    // If output can't be opened up, abort.
-    QFile *output = new QFile(programOutput.absoluteFilePath());
-    if(!output->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-        qDebug().noquote() << errLogOpenErr.arg(output->fileName());
-        throw std::logic_error("Can't open output file.");
-    } else {
-        // Open up output so that we may indicate "success"
-        outputFile = output;
+    // Open up the error log if it is not already open.
+    if(errorLog.isOpen() && !errorLog.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        qDebug().noquote() << errLogOpenErr.arg(errorLog.fileName());
+        return;
     }
 
     // Make sure to set up any last minute flags needed by CPU to perform simulation.
@@ -191,7 +176,7 @@ void CPURunHelper::runProgram()
         qDebug().noquote()
                 << "The CPU failed for the following reason: "
                 << cpu->getErrorMessage();
-        QTextStream (&*outputFile)
+        QTextStream (&errorLog)
                 << "[["
                 << cpu->getErrorMessage()
                 << "]]";
@@ -207,7 +192,7 @@ void CPURunHelper::runProgram()
                 if(!code->testPostcondition(data, memory, errorString)) {
                     qDebug().noquote() << errorString;
                     // Write the precondition failures to the output file.
-                    QTextStream (&*outputFile) << errorString;
+                    QTextStream (&errorLog) << errorString;
                     // If any postcondition fails, then the entire execution failed.
                     passed = false;
                 }
@@ -216,10 +201,11 @@ void CPURunHelper::runProgram()
         // If all unit tests passed, and the CPU had no other issues,
         // we may report a success.
         if(passed) {
-            QTextStream (&*outputFile) << "success";
+            //QTextStream (&*outputFile) << "success";
             qDebug() << "Passed unit tests.";
         }
     }
+    if(errorLog.isOpen()) errorLog.close();
 
 }
 
@@ -252,4 +238,9 @@ void CPURunHelper::run()
 
     // Make sure any outstanding events are handled.
     QCoreApplication::processEvents();
+}
+
+void CPURunHelper::set_error_file(QString error_file)
+{
+    this->error_log = error_file;
 }

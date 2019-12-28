@@ -1,9 +1,9 @@
 // File: asmrunhelper.cpp
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "asmrunhelper.h"
 
 #include <utility>

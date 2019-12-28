@@ -1,9 +1,9 @@
 // File: microstephelper.h
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #ifndef MICROSTEPHELPER_H
 #define MICROSTEPHELPER_H
 
@@ -34,10 +35,10 @@ class MicrocodeProgram;
 
 /*
  * This class is responsible for executing a single microcode program using
- * the Pep/9 Micro CPU model. Since this CPU is capable of loops, a maximum
+ * the Pep/10 Micro CPU model. Since this CPU is capable of loops, a maximum
  * number of cycles should be specified.
  *
- * The microcode program must contain a valid Pep9CPU microcode program,
+ * The microcode program must contain a valid Pep10CPU microcode program,
  * with line numbers already stripped. The microcodeProgramFile should
  * contain the file from which the program to execute was loaded.
  *
@@ -47,7 +48,8 @@ class MicrocodeProgram;
  * If preconditionsProgram is empty, then unit tests from microcodeProgram
  * will work as expected.
  *
- * If unit tests are succesful, "success" will be written to programOutput
+ * If unit tests are succesful, no error log will be generated, and a message indicating success will
+ * be written to the console.
  *
  * When the simulation finishes running, or is terminated internally for taking too
  * long, finished() will be emitted so that the application may shut down safely.
@@ -60,7 +62,6 @@ public:
     explicit MicroStepHelper(quint64 maxCycleCount,
                              QString microcodeProgram, QFileInfo microcodeProgramFile,
                              QString preconditionsProgram,
-                             QFileInfo programOutput,
                              QObject *parent = nullptr);
     ~MicroStepHelper() override;
 
@@ -70,11 +71,10 @@ signals:
     void finished();
 
 public:
-    void onSimulationFinished();
     // Pre: All computations an outstanding processing events have been finished.
     // Post:The main thread has been signaled to shutdown.
+    void onSimulationFinished();
 
-    void run() override;
     // Pre: The Pep9 mnemonic maps have been initizialized correctly.
     // Pre: The MicrocodeProgram does not contain line numbers.
     // Pre: If present, preconditionsProgram does not contain line numbers.
@@ -83,6 +83,11 @@ public:
     // Post:The program is run to completion, or aborted if it executes for too long.
     //      If not aborted, CPU state is evaluated by any present unit tests.
     // Post:All program output is written to programOutput.
+    void run() override;
+
+    // Instead of using the output file as a base file name, manually specify
+    // error file path.
+    void set_error_file(QString error_file);
 protected:
     // Used to load any additional data by the program, such as assembly code
     // and OS, or unit pre conditions.
@@ -93,7 +98,7 @@ private:
    const QString microcodeProgram;
    QFileInfo microcodeProgramFile;
    const QString preconditionsProgram;
-   QFileInfo programOutput;
+   QFileInfo error_log;
 
    // Runnable will be executed in a separate thread, all objects being pointed to
    // must be constructed in this thread. The object is constructed in the main thread
@@ -107,7 +112,7 @@ private:
    QSharedPointer<BoundExecMicroCpu> cpu;
 
    // Potentially multiple output sources, but don't take time to simulate now.
-   QFile* outputFile;
+   // QFile* outputFile;
 
    // Pointer to the MicrocodeProgram that should be searched for unit pres
    // and unit posts.

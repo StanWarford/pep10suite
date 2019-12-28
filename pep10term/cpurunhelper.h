@@ -1,9 +1,9 @@
 // File: cpurunhelper.h
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #ifndef CPURUNHELPER_H
 #define CPURUNHELPER_H
 
@@ -33,10 +34,10 @@ class PartialMicrocodedCPU;
 
 /*
  * This class is responsible for executing a single microcode program using
- * the Pep/9 CPU model. The data bus size of the CPU may be specified through
+ * the Pep/10 CPU model. The data bus size of the CPU may be specified through
  * the type parameter.
  *
- * The microcode program must contain a valid Pep9CPU microcode program,
+ * The microcode program must contain a valid Pep10CPU microcode program,
  * with line numbers already stripped. The microcodeProgramFile should
  * contain the file from which the program to execute was loaded.
  *
@@ -48,8 +49,8 @@ class PartialMicrocodedCPU;
  *
  * If unit tests are succesful, "success" will be written to programOutput.
  *
- * It is only capable of executing programs from Pep9CPU-it does not support
- * the features of Pep9Micro. For Pep9Micro emulation, see MicroStepHelper.
+ * It is only capable of executing programs from Pep10CPU---it does not support
+ * the features of Pep10Micro. For Pep10Micro emulation, see MicroStepHelper.
  *
  * When the simulation finishes running, or is terminated internally for taking too
  * long, finished() will be emitted so that the application may shut down safely.
@@ -62,7 +63,6 @@ public:
     explicit CPURunHelper(Enu::CPUType type,
                           QString microcodeProgram, QFileInfo microcodeProgramFile,
                           QString preconditionsProgram,
-                          QFileInfo programOutput,
                           QObject *parent = nullptr);
     ~CPURunHelper() override;
 
@@ -72,11 +72,10 @@ signals:
     void finished();
 
 public:
-    void onSimulationFinished();
     // Pre: All computations an outstanding processing events have been finished.
     // Post:The main thread has been signaled to shutdown.
+    void onSimulationFinished();
 
-    void run() override;
     // Pre: CPU type is either one or two byte.
     // Pre: The Pep9 mnemonic maps have been initizialized correctly.
     // Pre: The MicrocodeProgram does not contain line numbers.
@@ -85,12 +84,17 @@ public:
     // Pre: programOutput is a valid file that can be written to by the program. Will abort otherwise.
     // Post:The program is run to completion and evaluated by any present unit tests.
     // Post:All program output is written to programOutput.
+    void run() override;
+
+    // Instead of using the output file as a base file name, manually specify
+    // error file path.
+    void set_error_file(QString error_file);
 private:
    Enu::CPUType type;
    const QString microcodeProgram;
    QFileInfo microcodeProgramFile;
    const QString preconditionsProgram;
-   QFileInfo programOutput;
+   QFileInfo error_log;
 
    // Runnable will be executed in a separate thread, all objects being pointed to
    // must be constructed in this thread. The object is constructed in the main thread
@@ -102,9 +106,6 @@ private:
    QSharedPointer<MainMemory> memory;
    // The CPU simulator that will perform the computation
    QSharedPointer<PartialMicrocodedCPU> cpu;
-
-   // Potentially multiple output sources, but don't take time to simulate now.
-   QFile* outputFile;
 
    // Helper method responsible for buffering input, opening output streams,
    // converting string object code to a byte list, and executing the object

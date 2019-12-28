@@ -1,9 +1,9 @@
 // File: asmbuildhelper.h
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 #ifndef ASMBUILDHELPER_H
 #define ASMBUILDHELPER_H
 
@@ -63,16 +62,21 @@ signals:
 
     // QRunnable interface
 public:
-    void run() override;
     // Pre: The operating system has been built and installed.
     // Pre: The Pep9 mnemonic maps have been initizialized correctly.
     // Pre: objFile's directory exists.
+    void run() override;
 
+    // Instead of using the output file as a base file name, manually specify
+    // error file path.
+    void set_error_file(QString error_file);
 private:
     const QString source;
     QFileInfo objFileInfo;
+    QFileInfo error_log;
     AsmProgramManager& manager;
     QSharedPointer<MacroRegistry> registry;
+
     // Helper method responsible for triggering program assembly.
     bool buildProgram();
 

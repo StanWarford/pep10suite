@@ -1,9 +1,9 @@
 // File: microstephelper.h
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "microstephelper.h"
 
 #include "amemorychip.h"
@@ -37,29 +38,30 @@ MicroStepHelper::MicroStepHelper(const quint64 maxCycleCount,
                                  const QString microcodeProgram,
                                  QFileInfo microcodeProgramFile,
                                  const QString preconditionsProgram,
-                                 QFileInfo programOutput, QObject *parent) :
+                                 QObject *parent) :
     QObject(parent), maxStepCount(maxCycleCount),
     microcodeProgram(microcodeProgram), microcodeProgramFile(microcodeProgramFile),
-    preconditionsProgram(preconditionsProgram), programOutput(programOutput),
+    preconditionsProgram(preconditionsProgram),
     // Explicitly initialize both simulation objects to nullptr,
     // so that it is clear to that neither object has been allocated
-    memory(nullptr), cpu(nullptr), outputFile(nullptr)
+    memory(nullptr), cpu(nullptr)//, outputFile(nullptr)
 
 {
-
-
+    // Default error log name to the base name of the file with an _errLog.txt extension.
+    this->error_log = microcodeProgramFile.absoluteDir().absoluteFilePath(
+                microcodeProgramFile.baseName() + "_errLog.txt");
 }
 
 MicroStepHelper::~MicroStepHelper()
 {
     // If we allocated an output file, we need to perform special work to free it.
-    if(outputFile != nullptr) {
+    /*if(outputFile != nullptr) {
         outputFile->flush();
         // It might seem like we should close the file here, but it causes read / write violations to do so.
         // Instead, delete it later under the assumption that the operating system will handle that for us.
         // Schedule the output file for deletion via the event loop.
         outputFile->deleteLater();
-    }
+    }*/
 }
 
 void MicroStepHelper::onSimulationFinished()
@@ -74,13 +76,18 @@ void MicroStepHelper::runProgram()
 {
     // Open up program output file if possible.
     // If output can't be opened up, abort.
-    QFile *output = new QFile(programOutput.absoluteFilePath());
+    /*QFile *output = new QFile(programOutput.absoluteFilePath());
     if(!output->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
         qDebug().noquote() << errLogOpenErr.arg(output->fileName());
         throw std::logic_error("Can't open output file.");
     } else {
         // If it could be opened, map charOut to the file.
         outputFile = output;
+    }*/
+    QFile error_log_file = QFile(error_log.absoluteFilePath());
+    if(!error_log_file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        qDebug().noquote() << errLogOpenErr.arg(error_log.fileName());
+        throw std::logic_error("Can't open error log.");
     }
 
     // Make sure to set up any last minute flags needed by CPU to perform simulation.
@@ -92,7 +99,7 @@ void MicroStepHelper::runProgram()
         qDebug().noquote()
                 << "The CPU failed for the following reason: "
                 << cpu->getErrorMessage();
-        QTextStream (&*outputFile)
+        QTextStream (&error_log_file)
                 << "[["
                 << cpu->getErrorMessage()
                 << "]]";
@@ -108,7 +115,7 @@ void MicroStepHelper::runProgram()
                 if(!code->testPostcondition(data, memory, errorString)) {
                     qDebug().noquote() << errorString;
                     // Write the precondition failures to the output file.
-                    QTextStream (&*outputFile) << errorString;
+                    QTextStream (&error_log_file) << errorString;
                     // If any postcondition fails, then the entire execution failed.
                     passed = false;
                 }
@@ -117,7 +124,7 @@ void MicroStepHelper::runProgram()
         // If all unit tests passed, and the CPU had no other issues,
         // we may report a success.
         if(passed) {
-            QTextStream (&*outputFile) << "success";
+            //QTextStream (&error_log_file) << "success";
             qDebug() << "Passed unit tests.";
         }
     }
@@ -170,7 +177,7 @@ void MicroStepHelper::assembleMicrocode()
     }
 
     if(!preconditionsProgram.isEmpty()) {
-        preconditionResult = buildMicroprogramHelper(Enu::CPUType::TwoByteDataBus, false,
+        preconditionResult = buildMicroprogramHelper(Enu::CPUType::TwoByteDataBus, true,
                                               preconditionsProgram);
         // If there were errors processing precondition microcode program,
         // attempt to write all of them to the error file.
@@ -252,6 +259,11 @@ void MicroStepHelper::run()
 
     // Make sure any outstanding events are handled.
     QCoreApplication::processEvents();
+}
+
+void MicroStepHelper::set_error_file(QString error_file)
+{
+    this->error_log = error_file;
 }
 
 void MicroStepHelper::loadAncilliaryData()

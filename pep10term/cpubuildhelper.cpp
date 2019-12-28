@@ -1,9 +1,9 @@
 // File: cpubuildhelper.cpp
 /*
-    Pep9Term is a  command line tool utility for assembling Pep/9 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "cpubuildhelper.h"
 
 #include "microasm.h"
@@ -28,12 +29,12 @@
 #include "termhelper.h"
 
 CPUBuildHelper::CPUBuildHelper(Enu::CPUType type,bool useExtendedFeatures,
-                               const QString source, QFileInfo logFileInfo,
+                               const QString source, QFileInfo source_file_info,
                                QObject *parent):
     QObject(parent), type(type), useExtendedFeatures(useExtendedFeatures),
-    source(source), logFileInfo(logFileInfo)
+    source(source)
 {
-
+    this->error_log = source_file_info.absoluteDir().absoluteFilePath(source_file_info.baseName() + "_errLog.txt");
 }
 
 // All of our memory is owned by sharedpointers, so we
@@ -43,8 +44,7 @@ CPUBuildHelper::~CPUBuildHelper() = default;
 bool CPUBuildHelper::buildMicroprogram()
 {
     // Construct files that will be needed for assembly
-    QFile errorLog(QFileInfo(logFileInfo).absoluteDir().absoluteFilePath(
-                       QFileInfo(logFileInfo).baseName() + "_errLog.txt"));
+    QFile errorLog(error_log.absoluteFilePath());
 
     auto result = buildMicroprogramHelper(type, useExtendedFeatures,
                                           source);
@@ -69,19 +69,15 @@ bool CPUBuildHelper::buildMicroprogram()
         }
     }
 
-    // Only open & write object code file if assembly was successful.
+    // Indicate to console if assembly was successful
     if(result.success) {
         // Program assembly can succeed despite the presence of errors in the
         // case of trace tag warnings. Must gaurd against this.
         if(result.elist.isEmpty()) {
             qDebug() << "Program assembled successfully.";
-            QFile output(logFileInfo.absoluteFilePath());
-            if(!output.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-                qDebug().noquote() << errLogOpenErr.arg(output.fileName());
-                throw std::logic_error("Can't open output file.");
-            }
-            output.write("success");
-            output.close();
+        }
+        else {
+            qDebug() << "Program assembled with warning(s).";
         }
     }
     else {
@@ -99,6 +95,11 @@ void CPUBuildHelper::run()
 
     // Application will live forever if we don't signal it to die.
     emit finished();
+}
+
+void CPUBuildHelper::set_error_file(QString error_file)
+{
+    this->error_log = error_file;
 }
 
 MicrocodeAssemblyResult buildMicroprogramHelper(Enu::CPUType type,
@@ -131,8 +132,8 @@ MicrocodeAssemblyResult buildMicroprogramHelper(Enu::CPUType type,
             // If it fails, add the line which
             result.success = false;
             result.elist.append({lineNumber, errorString});
-            // Do not break now, so that we may catch all syntax errors in one pass.
-            //break;
+            // Process remaning source program to detect all errors in one pass.
+            continue;
         }
         if(code->isMicrocode()
                 && static_cast<MicroCode*>(code)->hasControlSignal(Enu::EControlSignals::MemRead)
@@ -140,7 +141,6 @@ MicrocodeAssemblyResult buildMicroprogramHelper(Enu::CPUType type,
             result.success = false;
             result.elist.append({lineNumber, "\\ ERROR: Can't have memread and memwrite"});
             // Do not break now, so that we may catch all syntax errors in one pass.
-            //break;
         }
         codeList.append(code);
     }

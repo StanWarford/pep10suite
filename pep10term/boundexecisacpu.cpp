@@ -1,9 +1,9 @@
-// File: boundedexecisacpu.cpp
+// File: boundexecisacpu.cpp
 /*
-    Pep9 is a virtual machine for writing machine language and assembly
-    language programs.
+    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
+    object code and executing object code programs.
 
-    Copyright (C) 2019  J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,10 +18,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "boundexecisacpu.h"
-#include "amemorydevice.h"
-#include <QTimer>
+
 #include <QCoreApplication>
+#include <QTimer>
+
+#include "amemorydevice.h"
+
 BoundExecIsaCpu::BoundExecIsaCpu(quint64 stepCount, const AsmProgramManager *manager,
                                    QSharedPointer<AMemoryDevice> memDevice, QObject *parent):
     IsaCpu(manager, std::move(memDevice), parent), maxSteps(stepCount)
@@ -54,11 +58,11 @@ bool BoundExecIsaCpu::onRun()
     //If there was an error on the control flow
     if(hadErrorOnStep()) {
         if(IsaCpu::memory->hadError()) {
-            qDebug() << "Memory section reporting an error";
+            qDebug() << "Memory section reporting an error.";
             return false;
         }
         else {
-            qDebug() << "Control section reporting an error";
+            qDebug() << "Control section reporting an error.";
             return false;
         }
     }
