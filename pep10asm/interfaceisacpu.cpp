@@ -7,7 +7,7 @@
 #include "typetags.h"
 #include "symbolentry.h"
 #include "asmcode.h"
-InterfaceISACPU::InterfaceISACPU(const AMemoryDevice* dev, const AsmProgramManager* manager) noexcept:
+InterfaceISACPU::InterfaceISACPU(const AMemoryDevice* /*dev*/, const AsmProgramManager* manager) noexcept:
     manager(manager), opValCache(0),
     breakpointsISA(), asmInstructionCounter(0), asmBreakpointHit(false), doDebug(false),
     firstLineAfterCall(false), isTrapped(false), memTrace(QSharedPointer<MemoryTrace>::create()),

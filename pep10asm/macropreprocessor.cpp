@@ -41,7 +41,7 @@ PreprocessorResult MacroPreprocessor::preprocess()
         // At this point, we have only checked syntax errors like %*($&$#.
         // We will still need to process semantic errors %deco $1,d.
         auto link = addModuleLinksToPrototypes(module, extract.moduleDefinitionList);
-        qDebug().noquote() << graphIndex << ": "<< target->prototypeMap[graphIndex].get()->name;
+        //qDebug().noquote() << graphIndex << ": "<< target->prototypeMap[graphIndex].get()->name;
         if(link.semanticsError) {
             // Take the error message from the linker and place it on the line in root that
             // started the include chain that failed.

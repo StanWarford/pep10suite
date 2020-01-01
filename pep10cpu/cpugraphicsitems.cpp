@@ -1645,7 +1645,7 @@ void CpuGraphicsItems::repaintALUSelectOneByte(QPainter *painter)
     painter->drawEllipse(QPoint(416,446), 2, 2); //437+9
 }
 
-void CpuGraphicsItems::repaintMemCommonOneByte(QPainter */*painter*/)
+void CpuGraphicsItems::repaintMemCommonOneByte(QPainter* /*painter*/)
 {
     // Has not been split into common parts of read / write
 }

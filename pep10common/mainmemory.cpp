@@ -177,7 +177,8 @@ QVector<QSharedPointer<AMemoryChip> > MainMemory::removeAllChips()
     }
     if(temp.contains(endChip)) {
         auto isNilChip = [this](QSharedPointer<AMemoryChip> chip) {return chip == endChip;};
-        std::remove_if(temp.begin(),temp.begin(), isNilChip);
+        auto list = std::remove_if(temp.begin(),temp.begin(), isNilChip);
+        (void)list;
     }
     memoryChipMap.clear();
     ptrLookup.clear();
@@ -393,7 +394,7 @@ void MainMemory::onInputAborted(quint16 address)
 void MainMemory::onChipInputRequested(quint16 address)
 {
     if(inputBuffer.contains(address)) {
-        quint8 first = inputBuffer[address].front();
+        quint8 first = static_cast<quint8>(inputBuffer[address].front());
         quint16 offsetFromBase = address - chipAt(address)->getBaseAddress();
         inputBuffer[address].remove(0, 1);
         if(inputBuffer[address].length() == 0) {

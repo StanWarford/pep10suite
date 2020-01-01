@@ -222,7 +222,7 @@ LinkResult MacroLinker::linkModule(ModuleAssemblyGraph graph,
             nextAddress += line->objectCodeLength();
         }
     }
-    qDebug().noquote() << "Linked: "<< instance.prototype->name << instance.macroArgs;
+    //qDebug().noquote() << "Linked: "<< instance.prototype->name << instance.macroArgs;
     // Whether successfully or not, the module has finished the linking process.
     instance.alreadyLinked = true;
     return retVal;
