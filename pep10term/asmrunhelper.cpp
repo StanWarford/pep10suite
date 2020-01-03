@@ -104,7 +104,6 @@ void ASMRunHelper::onInputRequested(quint16 address)
     memory->onInputAborted(address);
 }
 
-static QDebug* dbg = new QDebug(QtDebugMsg);
 void ASMRunHelper::onOutputReceived(quint16 address, quint8 value)
 {
     if(address == powerOff) {
@@ -115,7 +114,9 @@ void ASMRunHelper::onOutputReceived(quint16 address, quint8 value)
         QTextStream (&*outputFile) << QChar(value);
         // Try to block and make sure the IO actually completes.
         outputFile->waitForBytesWritten(300);
-        dbg->noquote().nospace() << QChar(value);
+        if(echo) {
+            std::cout << static_cast<char>(value);
+        }
     }
 
 }
@@ -218,4 +219,9 @@ void ASMRunHelper::run()
 
     // Make sure any outstanding events are handled.
     QCoreApplication::processEvents();
+}
+
+void ASMRunHelper::set_echo_charout(bool echo)
+{
+    this->echo = echo;
 }

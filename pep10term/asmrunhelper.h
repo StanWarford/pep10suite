@@ -76,6 +76,8 @@ public:
     // Post:The program is run to completion, or is terminated for taking too long.
     // Post:All program output is written to programOutput.
 
+    // Echo the values written to CharOut to the console.
+    void set_echo_charout(bool echo);
 private:
     const QString objectCodeString;
     QFileInfo programOutput, programInput;
@@ -101,6 +103,9 @@ private:
     quint16 powerOff{};
     // Maximum number of steps the simulator should execute before force quitting.
     quint64 maxSimSteps;
+
+    // Control if the values written to CharOut get echoed to the console.
+    bool echo = false;
 
     // Helper method responsible for buffering input, opening output streams,
     // converting string object code to a byte list, and executing the object
