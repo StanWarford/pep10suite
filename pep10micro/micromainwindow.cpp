@@ -60,7 +60,7 @@
 #include "decodertabledialog.h"
 #include "fullmicrocodedcpu.h"
 #include "microhelpdialog.h"
-#include "isaasm.h"
+#include "macroassemblerdriver.h"
 #include "mainmemory.h"
 #include "memorychips.h"
 #include "memorydumppane.h"
@@ -81,9 +81,11 @@ MicroMainWindow::MicroMainWindow(QWidget *parent) :
     controlSection(new FullMicrocodedCPU(AsmProgramManager::getInstance(), memDevice)),
     dataSection(controlSection->getDataSection()),
     decoderTableDialog(new DecoderTableDialog(nullptr)),
-    programManager(AsmProgramManager::getInstance())
+    programManager(AsmProgramManager::getInstance()),
+    macro_registry(QSharedPointer<MacroRegistry>::create())
 
 {
+
     // Initialize the memory subsystem
     QSharedPointer<RAMChip> ramChip(new RAMChip(1<<16, 0, memDevice.get()));
     memDevice->insertChip(ramChip, 0);
@@ -103,6 +105,8 @@ MicroMainWindow::MicroMainWindow(QWidget *parent) :
     ui->microcodeWidget->init(controlSection, dataSection, true);
     ui->microObjectCodePane->init(controlSection, true);
     ui->executionStatisticsWidget->init(controlSection, true);
+
+    programManager->setMacroRegistry(macro_registry);
 
     // Create & connect all dialogs.
     helpDialog = new MicroHelpDialog(this);
@@ -881,24 +885,30 @@ void MicroMainWindow::print(Enu::EPane which)
 void MicroMainWindow::assembleDefaultOperatingSystem()
 {
     // Need to assemble operating system.
-    QString defaultOSText = Pep::resToString(":/help-micro/alignedIO-OS.pep", false);
+    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
     // If there is text, attempt to assemble it
     if(!defaultOSText.isEmpty()) {
         QSharedPointer<AsmProgram> prog;
         auto elist = QList<QPair<int, QString>>();
-        IsaAsm assembler(*programManager);
-        if(assembler.assembleOperatingSystem(defaultOSText, true, prog, elist)) {
-            programManager->setOperatingSystem(prog);
+        qDebug() << macro_registry->getCoreMacros();
+        for(auto macro : macro_registry->getCoreMacros()) {
+            qDebug() << macro->macroText;
         }
+        MacroAssemblerDriver assembler(macro_registry);
+        auto output = assembler.assembleOperatingSystem(defaultOSText);
         // If the operating system failed to assembly, we can't progress any further.
         // All application functionality depends on the operating system being defined.
-        else {
+        if(!output.success){
             qDebug() << "OS failed to assemble.";
             auto textList = defaultOSText.split("\n");
-            for(const auto& errorPair : elist) {
-                qDebug() << textList[errorPair.first] << errorPair.second << endl;
+            auto os_errors = output.errors.getModuleErrors(ModuleAssemblyGraph::defaultRootIndex);
+            for(const auto& error : os_errors.keys()) {
+                qDebug().noquote() << textList[error] << os_errors[error].first()->getErrorMessage() << endl;
             }
             throw std::logic_error("The default operating system failed to assemble.");
+        }
+        else {
+            programManager->setOperatingSystem(output.program);
         }
     }
     // If the operating system couldn't be found, we can't progress any further.

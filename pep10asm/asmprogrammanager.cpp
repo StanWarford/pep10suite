@@ -1,8 +1,13 @@
 #include "asmprogrammanager.h"
-#include "asmprogram.h"
+
 #include <QSharedPointer>
+
 #include "asmcode.h"
+#include "asmprogram.h"
+#include "macroassembler.h"
+#include "macroassemblerdriver.h"
 #include "symbolentry.h"
+
 AsmProgramManager* AsmProgramManager::instance = nullptr;
 AsmProgramManager::AsmProgramManager(QObject *parent): QObject(parent), operatingSystem(nullptr), userProgram(nullptr)
 {
@@ -145,17 +150,19 @@ void AsmProgramManager::onRemoveAllBreakpoints()
 QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleOS(QString sourceCode, bool forceBurnAt0xFFFF)
 {
     QSharedPointer<AsmProgramManager::AsmOutput> out = QSharedPointer<AsmProgramManager::AsmOutput>::create();
-    IsaAsm assembler(*this);
+    MacroAssemblerDriver assembler(getMacroRegistry());
     // List of errors and warnings and the lines on which they occured
-    bool success = assembler.assembleOperatingSystem(sourceCode, forceBurnAt0xFFFF, out->prog, out->errors);
+    #pragma message("Figure out how to propogate errors correctly")
+    auto output = assembler.assembleOperatingSystem(sourceCode);
     // Add all warnings and errors to source files
     // If assemble failed, don't perform any more work
-    if(!success) {
+    if(!output.success) {
         out->success = false;
         return out;
     }
     else {
         out->success = true;
+        out->prog = output.program;
     }
     return out;
 }
@@ -163,17 +170,19 @@ QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleOS(QStri
 QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleProgram(QString sourceCode)
 {
     QSharedPointer<AsmProgramManager::AsmOutput> out = QSharedPointer<AsmProgramManager::AsmOutput>::create();
-    IsaAsm assembler(*this);
+    MacroAssemblerDriver assembler(getMacroRegistry());
     // List of errors and warnings and the lines on which they occured
-    bool success = assembler.assembleUserProgram(sourceCode, out->prog, out->errors);
+    #pragma message("Figure out how to propogate errors correctly")
+    auto output = assembler.assembleUserProgram(sourceCode, operatingSystem->getSymbolTable());
     // Add all warnings and errors to source files
     // If assemble failed, don't perform any more work
-    if(!success) {
+    if(!output.success) {
         out->success = false;
         return out;
     }
     else {
         out->success = true;
+        out->prog = output.program;
     }
     return out;
 }

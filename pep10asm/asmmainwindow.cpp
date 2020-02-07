@@ -57,6 +57,7 @@
 #include "asmhelpdialog.h"
 #include "isacpu.h"
 #include "isaasm.h"
+#include "macroassemblerdriver.h"
 #include "mainmemory.h"
 #include "memorychips.h"
 #include "memorydumppane.h"
@@ -69,7 +70,7 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     ui(new Ui::AsmMainWindow), debugState(DebugState::DISABLED), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
     updateChecker(new UpdateChecker()), isInDarkMode(false),
     memDevice(new MainMemory(nullptr)), controlSection(new IsaCpu(AsmProgramManager::getInstance(), memDevice)),
-    programManager(AsmProgramManager::getInstance())
+    programManager(AsmProgramManager::getInstance()), macroRegistry(QSharedPointer<MacroRegistry>::create())
 
 {
     // Initialize the memory subsystem
@@ -90,6 +91,8 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     ui->assemblerPane->init(programManager);
     ui->asmProgramTracePane->init(controlSection, programManager);
     ui->asmCpuPane->init(controlSection, controlSection);
+
+    programManager->setMacroRegistry(macroRegistry);
 
     // Create & connect all dialogs.
     helpDialog = new AsmHelpDialog(this);
@@ -197,7 +200,6 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     connect(programManager, &AsmProgramManager::breakpointRemoved, ui->assemblerPane, &AssemblerPane::onBreakpointRemoved);
 
     // These aren't technically slots being bound to, but this is allowed because of the new signal / slot syntax
-#pragma message ("If breakpoints aren't being added / set correctly, this is probably why")
     connect(programManager, &AsmProgramManager::breakpointAdded,
             [&](quint16 address){controlSection->breakpointAdded(address);});
     connect(programManager, &AsmProgramManager::breakpointRemoved,
@@ -730,24 +732,26 @@ void AsmMainWindow::print(Enu::EPane which)
 void AsmMainWindow::assembleDefaultOperatingSystem()
 {
     // Need to assemble operating system.
-    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep9os.pep", false);
+    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
     // If there is text, attempt to assemble it
     if(!defaultOSText.isEmpty()) {
         QSharedPointer<AsmProgram> prog;
         auto elist = QList<QPair<int, QString>>();
-        IsaAsm assembler(*programManager);
-        if(assembler.assembleOperatingSystem(defaultOSText, true, prog, elist)) {
-            programManager->setOperatingSystem(prog);
-        }
+        MacroAssemblerDriver assembler(macroRegistry);
+        auto output = assembler.assembleOperatingSystem(defaultOSText);
         // If the operating system failed to assembly, we can't progress any further.
         // All application functionality depends on the operating system being defined.
-        else {
+        if(!output.success) {
             qDebug() << "OS failed to assemble.";
             auto textList = defaultOSText.split("\n");
-            for(auto errorPair : elist) {
-                qDebug() << textList[errorPair.first] << errorPair.second << endl;
+            auto os_errors = output.errors.getModuleErrors(ModuleAssemblyGraph::defaultRootIndex);
+            for(const auto& error : os_errors.keys()) {
+                qDebug().noquote() << textList[error] << os_errors[error].first()->getErrorMessage() << endl;
             }
             throw std::logic_error("The default operating system failed to assemble.");
+        }
+        else {
+            programManager->setOperatingSystem(output.program);
         }
     }
     // If the operating system couldn't be found, we can't progress any further.
@@ -1078,7 +1082,6 @@ bool AsmMainWindow::on_actionBuild_Assemble_triggered()
         return true;
     }
     else {
-#pragma message("May be redundant")
         ui->assemblerPane->clearPane(Enu::EPane::EObject);
         ui->assemblerPane->clearPane(Enu::EPane::EListing);
         ui->asmProgramTracePane->clearSourceCode();

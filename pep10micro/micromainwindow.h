@@ -25,7 +25,9 @@
 
 #include "pep.h"
 #include <QDir>
-#include "isaasm.h"
+
+#include "macroregistry.h"
+
 namespace Ui {
     class MicroMainWindow;
 }
@@ -94,6 +96,7 @@ private:
     DecoderTableDialog *decoderTableDialog;
 
     AsmProgramManager* programManager;
+    QSharedPointer<MacroRegistry> macro_registry;
 
     // Disconnect or reconnect events that notify views of changes in model,
     // Disconnecting these events allow for faster execution when running or continuing.

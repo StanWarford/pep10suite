@@ -1,6 +1,7 @@
 #include "assemblerpane.h"
 #include "ui_assemblerpane.h"
 #include "asmprogram.h"
+
 AssemblerPane::AssemblerPane(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::AssemblerPane), manager(nullptr)
@@ -57,15 +58,15 @@ void AssemblerPane::loadObjectFile(QString fileName, QString code)
 
 void AssemblerPane::formatAssemblerCode()
 {
-    if(output.isNull()) {
-        auto tempOutput = manager->assembleProgram(getPaneContents(Enu::EPane::ESource));
-        if(!tempOutput->success) {
-            ui->sourcePane->appendMessagesInSourceCodePane(tempOutput->errors);
-            return;
-        }
-        else {
-          output = tempOutput;
-        }
+    // Always recompile assembler code. Otherwise format & assemble will undo any changes
+    // made since the program last assembled sucessfully.
+    auto tempOutput = manager->assembleProgram(getPaneContents(Enu::EPane::ESource));
+    if(!tempOutput->success) {
+        ui->sourcePane->appendMessagesInSourceCodePane(tempOutput->errors);
+        return;
+    }
+    else {
+      output = tempOutput;
     }
     QString code = output->prog->getFormattedSourceCode();
     ui->sourcePane->setSourceCodePaneText(code);

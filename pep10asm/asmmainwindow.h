@@ -25,7 +25,10 @@
 
 #include "pep.h"
 #include <QDir>
+
+#include "macroregistry.h"
 #include "isaasm.h"
+
 namespace Ui {
     class AsmMainWindow;
 }
@@ -91,6 +94,7 @@ private:
     AboutPep *aboutPepDialog;
 
     AsmProgramManager* programManager;
+    QSharedPointer<MacroRegistry> macroRegistry;
 
     // Disconnect or reconnect events that notify views of changes in model,
     // Disconnecting these events allow for faster execution when running or continuing.

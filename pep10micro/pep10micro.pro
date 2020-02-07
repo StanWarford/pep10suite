@@ -52,7 +52,8 @@ RESOURCES += \
     ../pep10asm/pep10asm-resources.qrc \
     pep10micro-helpresources.qrc \
     ../pep10cpu/pep10cpu-helpresources.qrc \
-    ../pep10asm/pep10asm-helpresources.qrc
+    ../pep10asm/pep10asm-helpresources.qrc \
+    ../pep10asm/pep10asm-macros.qrc
 
 DISTFILES += \
     ..\package/package.xml \

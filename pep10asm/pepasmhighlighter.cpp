@@ -50,6 +50,13 @@ void PepASMHighlighter::rebuildHighlightingRules(PepColors::Colors color)
         highlightingRules.append(rule);
     }
 
+    macroFormat.setForeground(colors.combCircuitRed);
+    macroFormat.setFontWeight(QFont::Bold);
+    rule.pattern = QRegExp("@([A-zÀ-ÖØ-öø-ÿ_][0-9A-zÀ-ÖØ-öø-ÿ_]*)");
+    rule.pattern.setCaseSensitivity(Qt::CaseInsensitive);
+    rule.format = macroFormat;
+    highlightingRules.append(rule);
+
     dotFormat.setForeground(colors.leftOfExpression);
     dotFormat.setFontItalic(true);
     QStringList dotPatterns;
