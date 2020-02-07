@@ -21,6 +21,7 @@
 
 #include "asmrunhelper.h"
 
+#include <iostream>
 #include <utility>
 
 #include "amemorychip.h"

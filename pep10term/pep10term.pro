@@ -65,6 +65,7 @@ HEADERS += \
     cpubuildhelper.h \
     cpurunhelper.h \
     microstephelper.h \
+    termformatter.h \
     termhelper.h \
     boundexecisacpu.h
 

@@ -1,9 +1,9 @@
 // File: main.cpp
 /*
-    Pep10Term is a  command line tool utility for assembling Pep/10 programs to
+    Pep10Term is a  command line tool utility for assembling Pep/9 programs to
     object code and executing object code programs.
 
-    Copyright (C) 2019-2020 J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2019  J. Stanley Warford & Matthew McRaevn, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,16 +18,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include <QCoreApplication>
 #include <QtCore>
 #include <QDebug>
 #include <QThreadPool>
 
 #include <functional>
-#include <iostream>
+#include <memory>
 #include <optional>
-#include <utility>
 
 #include "asmbuildhelper.h"
 #include "asmrunhelper.h"
@@ -38,51 +36,71 @@
 #include "cpubuildhelper.h"
 #include "cpurunhelper.h"
 #include "termhelper.h"
-#include "macroregistry.h"
 #include "mainmemory.h"
 #include "memorychips.h"
 #include "microstephelper.h"
-#include "optional_helper.h"
 #include "pep.h"
+#include "termformatter.h"
 
+const std::string application_description = "Translate and run Pep/10 assembly language and microcode programs.";
 const std::string asm_description = "Assemble a Pep/10 assembler source code program to object code.";
 const std::string run_description = "Run a Pep/10 object code program.";
 const std::string cpuasm_description = "Check a Pep/10 microcode program for syntax errors.\
- Supports 1- and 2-byte data buses as well as the extended control section detailed in Pep9Micro.";
+ Supports 1- and 2-byte data buses as well as the extended control section detailed in Pep1-Micro.";
 const std::string cpurun_description = "Run a Pep/10 microcode program with an optional list of preconditions.";
 const std::string macros_description = "Print all available macros.";
 const std::string listing_description = "Print the listing of a macro.";
 
+const std::string asm_description_detailed = "Assemble a Pep/1- assembler source code program to object code. \
+The source_file must be a .pep file. \
+The object_file must be a .pepo file. \
+If there are assembly errors an error log file named <source_file>_errLog.txt is created with the error messages. \
+<source_file> is the name of source_file without the .pep extension. \
+If there are no errors the error log file is not created.";
+const std::string run_description_detailed = "Run a Pep/10 object code program.\
+The source_file must be a .pepo file.";
+const std::string cpuasm_description_detailed = "Check a Pep/10 microcode program for syntax errors. \
+The source_file must be a .pepcpu file. \
+If there are micro-assembly errors an error log file named <source_file>_errLog.txt is created with the error messages. \
+<source_file> is the name of source_file without the .pepcpu extension. \
+If there are no errors the error log file is not created. \
+Supports 1- and 2-byte data buses with the 1-byte data bus as the default.";
+const std::string cpurun_description_detailed = "Assemble and run a Pep/10 microcode program. \
+The source_file must be a .pepcpu file. \
+If there are micro-assembly errors or UnitPost errors an error log file named <source_file>_errLog.txt is created with the error messages. \
+<source_file> is the name of source_file without the .pepcpu extension. \
+If there are no errors the error log file is not created. \
+Supports 1- and 2-byte data buses with the 1-byte data bus as the default.";
+
 const std::string asm_input_file_text = "Input Pep/10 source program for assembler.";
 const std::string asm_output_file_text = "Output object code generated from source.";
-const std::string asm_run_log = "Override the default error log file, which contains assembly errors. \
-If no errors are present, no data will be written to the file.";
+const std::string asm_run_log = "Override the name of the default error log file.";
 const std::string obj_input_file_text = "Input Pep/10 object code program for simulator.";
-const std::string charin_file_text = "File which will be buffered to charIn.";
-const std::string charout_file_text = "File to which charOut will be written.";
-const std::string charout_echo_text = "Echo data written to charOut to the terminal.";
-const std::string isaMaxStepText = "The maximum number of instructions executed before aborting. Defaults to %1.";
-const std::string microMaxStepText = "The maximum number of CPU cycles executed before aborting. Defaults to %1.";
-const std::string cpuasm_input_file_text = "Input Pep/10 CPU source program for microassembler.";
-const std::string cpu_asm_log = "Override the default error log file, which contains assembly errors. \
-If no errors are present, no data will be written to the file.";const QString cpu1or2 = "Assemble the program with assuming a 2-byte data bus (default is 1).";
-const QString cpuPreconditions = "Pep10 Microcode file containg pre and post conditions, overriding and skipping any preconditions and postconditions in the main microcode source file.";
-const std::string cpu_1byte = "Assemble the microcode program with a 1-byte data bus (default is 1-byte).";
-const std::string cpu_2byte = "Assemble the microcode program with a 2-byte data bus (default is 1-byte).";
-const std::string cpu_full_control = "Assemble the microprogram with the full control section (default is partial control section).";
-const std::string cpu_preconditions = "Pep/9 Microcode file containg pre- and post-conditions.\
- Using this flag overrides and skipps any pre- and post-conditions in the microcode source file provided with (--mc).";
-const std::string cpu_run_log = "Override the default error log file, which contains assembly or postcondition errors. \
-If no errors are present, no data will be written to the file.";
+const std::string charin_file_text = "File buffered behind the charIn input port.";
+const std::string charout_file_text = "File to which the charOut output port is streamed..";
+const std::string charout_echo_text = "Echo data written to charOut to std::out.";
+
 const std::string listing_name = "The name of the macro whose listing is to be shown.";
 
-struct command_line_values {
-    bool early_exit{false}, had_d2{false},
-    had_full_control{false}, had_echo_output{false};
-    std::string e{}, s{}, o{}, i{}, mc{}, p{}, n{};
-    uint64_t m{2500};
-};
+const std::string isaMaxStepText = "The maximum number of assembly instructions executed before aborting. Defaults to %1";
+const std::string microMaxStepText = "The maximum number of CPU cycles executed before aborting. Defaults to %1";
+const std::string cpuasm_input_file_text = "Input Pep/10 microcode source program for microassembler.";
+const std::string cpu_asm_log = "Override the name of the default error log file.";
+const std::string cpu_2byte = "Assemble the microcode program with a 2-byte data bus";
+const std::string cpu_2byte_run = "Assemble and run the microcode program with a 2-byte data bus.";
 
+const std::string cpu_full_control = "Assemble the microprogram with the full control section (default is partial control section).";
+
+const std::string cpu_preconditions = "A Pep/10 .pepcpu file containg UnitPre and UnitPost statements. \
+Using this flag overrides all UnitPre and UnitPost statements in source_file.";
+const std::string cpu_run_log = "Override the name of the default error log file.";
+
+struct command_line_values {
+    bool had_version{false}, had_about{false}, had_d2{false}, had_full_control{false}, had_echo_output{false};
+    std::string e{}, s{}, o{}, i{}, mc{}, p{};
+    uint64_t m{2500};
+    bool early_exit = false;
+};
 
 void handle_full_control(command_line_values&, bool use_full_control);
 void handle_databus_size(command_line_values&, bool two_byte);
@@ -95,11 +113,8 @@ void handle_cpurun(command_line_values&, QRunnable**);
 void handle_macros(command_line_values&, QSharedPointer<MacroRegistry>);
 void handle_listing(command_line_values&, QSharedPointer<MacroRegistry>);
 
-
-
 int main(int argc, char *argv[])
 {
-    // Values which will be read in from command line.
     command_line_values values;
     QSharedPointer<MacroRegistry> registry = QSharedPointer<MacroRegistry>::create();
     // Initialize global state maps.
@@ -108,7 +123,7 @@ int main(int argc, char *argv[])
     Pep::initAddrModesMap();
     Pep::initDecoderTables();
     Pep::initMicroDecoderTables();
-    // Can't initialize Pep10CPU controls tables, since these depend
+    // Can't initialize Pep9CPU controls tables, since these depend
     // on the mode data bus size of the CPU.
     // Therefore, they must be initialized within the handlers for the CPU
     // related assembly instructions.
@@ -124,13 +139,18 @@ int main(int argc, char *argv[])
     // Runnable into which the executable program will be loaded by the below subcommands.
     QRunnable* run = nullptr;
 
-    CLI::App parser{"Pep10Term is a  command line tool utility for interacting with the Pep10 virtual machine.\
- It assembles Pep/10 programs to object code and executes object code programs.\
- Additionally, it checks microcode programs for errors and executes microcode programs with optional preconditions."};
-
+    CLI::App parser{application_description, "pep10term"};
+    // For each subcommand (key), mantain a list of flag names (sub-key) and the pretty-print name of the value
+    // (sub-value). This allows for formatting as requested by Dr. Warford such as (-e error_file),
+    // since the default CLI11 framework does not allow custom fields.
+    std::map<std::string, std::map<std::string,std::string>> parameter_formatting;
+    // For a given subcommand (key) add an additional lengthened description of the subcommand (value).
+    // Must be passed to the custom formatter, since the formatter is responsible for "switching" descriptions.
+    std::map<std::string, std::string> detailed_descriptions;
+    parser.formatter(std::make_shared<TermFormatter>(parameter_formatting, detailed_descriptions));
     // Top level option flags
-    auto help = parser.set_help_flag("--help,-h", "Show this help information and exit.");
-    auto help_all = parser.set_help_all_flag("--help-all", "Show help information for all subcommands and exit.");
+    auto help = parser.set_help_flag("--help,-h", "Show this help information.");
+    auto help_all = parser.set_help_all_flag("--help-all", "Show help information for all subcommands.");
     std::string version_string =  "Display program version number.";
     auto version_flag = parser.add_flag("-v,--version", [&](int64_t flag){handle_version(values,flag);}, version_string);
 
@@ -138,77 +158,86 @@ int main(int argc, char *argv[])
     auto about_flag = parser.add_flag("--about", [&](int64_t flag){handle_about(values,flag);}, about_string);
 
     // Subcommands for ASSEMBLE
+    // Must create map for flag value names.
+    parameter_formatting.insert_or_assign("asm", std::map<std::string,std::string>());
     auto asm_subcommand = parser.add_subcommand("asm", asm_description);
+    // Create detailed description.
+    detailed_descriptions["asm"] = asm_description_detailed;
     // File where errors will be written. By default, will be written to a file based on object code file name.
     asm_subcommand->add_option("-e", values.e, asm_run_log)->expected(1);
-    // File from which Pep/9 assembly code will be loaded.
+    parameter_formatting["asm"]["e"] = "error_file";
+    // File from which Pep/10 assembly code will be loaded.
     asm_subcommand->add_option("-s", values.s, asm_input_file_text)->expected(1)->required(1);
+    parameter_formatting["asm"]["s"] = "source_file";
     // File to which object code will be written.
     asm_subcommand->add_option("-o", values.o, asm_output_file_text)->expected(1)->required(1);
+    parameter_formatting["asm"]["o"] = "object_file";
     // Create a runnable application from command line arguments
-    asm_subcommand->callback(std::function<void()>([&](){handle_asm(values,registry, &run);}));
+    asm_subcommand->callback(std::function<void()>([&](){handle_asm(values, registry, &run);}));
 
     // Subcommands for RUN
+   parameter_formatting.insert_or_assign("run", std::map<std::string,std::string>());
     auto run_subcommand = parser.add_subcommand("run", run_description);
-    // File from which object code will be loaded.
-    run_subcommand->add_option("-s", values.s, obj_input_file_text)->expected(1)->required(true);
+    detailed_descriptions["run"] = run_description_detailed;
     // Batch input that will be loaded into charIn.
     run_subcommand->add_option("-i", values.i, charin_file_text)->expected(1);
+    parameter_formatting["run"]["i"] = "charin_file";
     // File where values written to charOut will be stored.
     run_subcommand->add_option("-o", values.o, charout_file_text)->expected(1);
+    parameter_formatting["run"]["o"] = "charout_file";
     run_subcommand->add_flag("--echo-output", values.had_echo_output, charout_echo_text);
     //run_subcommand->add_option("-e", obj_input_file_text);
     // Maximum number of instructions to be executed.
     std::string max_steps_text = QString::fromStdString(isaMaxStepText).arg(BoundExecIsaCpu::getDefaultMaxSteps()).toStdString();
-    run_subcommand->add_option("-m", values.m, max_steps_text)->expected(1)
-            ->check(CLI::PositiveNumber)
+    run_subcommand->add_option("-m", values.m, max_steps_text)->expected(1)->check(CLI::PositiveNumber)
             ->default_val(std::to_string(BoundExecIsaCpu::getDefaultMaxSteps()));
+    parameter_formatting["run"]["m"] = "max_steps";
+    // File from which object code will be loaded.
+    run_subcommand->add_option("-s", values.s, obj_input_file_text)->expected(1)->required(true);
+    parameter_formatting["run"]["s"] = "object_file";
     // Create a runnable application from command line arguments
     run_subcommand->callback(std::function<void()>([&](){handle_run(values, &run);}));
 
     // Subcommands for CPUASM
+    parameter_formatting.insert_or_assign("cpuasm", std::map<std::string,std::string>());
     auto cpuasm_subcommand = parser.add_subcommand("cpuasm", cpuasm_description);
+    detailed_descriptions["cpuasm"] = cpuasm_description_detailed;
     // File where errors will be written. By default, will be written to a file based on the mc name.
     cpuasm_subcommand->add_option("-e", values.e, cpu_asm_log)->expected(1);
-    // Microcode input file.
-    cpuasm_subcommand->add_option("--mc", values.mc, cpuasm_input_file_text)->expected(1)->required(true);
+    parameter_formatting["cpuasm"]["e"] = "error_file";
     // Add flags to select 1-byte or 2-byte CPU data bus.
-    auto cpuasm_d1_flag = cpuasm_subcommand->add_flag("--dbus-1-byte,--d1",
-                                                      [&](int64_t){handle_databus_size(values, false);}, cpu_1byte);
-    auto cpuasm_d2_flag = cpuasm_subcommand->add_flag("--dbus-2-byte,--d2",
-                                                      [&](int64_t){handle_databus_size(values, true);}, cpu_2byte);
-    // Only allow 1-byte or 2-byte to be selected, not both at once.
-    cpuasm_d1_flag->excludes(cpuasm_d2_flag);
-    cpuasm_d2_flag->excludes(cpuasm_d1_flag);
+    auto cpuasm_d2_flag = cpuasm_subcommand->add_flag("--d2", [&](int64_t){handle_databus_size(values, true);}, cpu_2byte);
+    // Microcode input file.
+    cpuasm_subcommand->add_option("-s", values.mc, cpuasm_input_file_text)->expected(1)->required(true);
+    parameter_formatting["cpuasm"]["s"] = "microcode_file";
     // Allow full control section to be enabled iff 2-byte data bus is enabled.
-    auto cpuasm_full_ctrl_flag = cpuasm_subcommand->add_flag("--full-control",
-                                                             [&](int64_t){handle_full_control(values, true);}, cpu_full_control);
-    cpuasm_full_ctrl_flag->needs(cpuasm_d2_flag);
+    // auto cpuasm_full_ctrl_flag = cpuasm_subcommand->add_flag("--full-control", [&](int64_t){handle_full_control(values, true);}, cpu_full_control);
+    // cpuasm_full_ctrl_flag->needs(cpuasm_d2_flag);
     // Create a runnable application from command line arguments
     cpuasm_subcommand->callback(std::function<void()>([&](){handle_cpuasm(values, &run);}));
 
     // Subcommands for CPURUN
+    parameter_formatting.insert_or_assign("cpurun", std::map<std::string,std::string>());
     auto cpurun_subcommand = parser.add_subcommand("cpurun", cpurun_description);
+    detailed_descriptions["cpurun"] = cpurun_description_detailed;
     // File where errors will be written. By default, will be written to a file based on the mc name.
     cpurun_subcommand->add_option("-e", values.e, cpu_run_log)->expected(1);
-    cpurun_subcommand->add_option("--mc", values.mc, cpuasm_input_file_text)->expected(1)->required(true);
+    parameter_formatting["cpurun"]["e"] = "error_file";
     // Add flags to select 1-byte or 2-byte CPU data bus.
-    auto cpurun_d1_flag = cpurun_subcommand->add_flag("--dbus-1-byte,--d1",
-                                                      [&](int64_t){handle_databus_size(values, false);}, cpu_1byte);
-    auto cpurun_d2_flag = cpurun_subcommand->add_flag("--dbus-2-byte,--d2",
-                                                      [&](int64_t){handle_databus_size(values, true);}, cpu_2byte);
-    cpurun_d1_flag->excludes(cpurun_d2_flag);
-    cpurun_d2_flag->excludes(cpurun_d1_flag);
+    auto cpurun_d2_flag = cpurun_subcommand->add_flag("--d2", [&](int64_t){handle_databus_size(values, true);}, cpu_2byte_run);
     // Allow full control section to be enabled iff 2-byte data bus is enabled.
-    auto cpurun_full_ctrl_flag = cpurun_subcommand->add_flag("--full-control",
-                                                             [&](int64_t){handle_full_control(values, true);}, cpu_full_control);
-    cpurun_full_ctrl_flag->needs(cpurun_d2_flag);
+    //auto cpurun_full_ctrl_flag = cpurun_subcommand->add_flag("--full-control",[&](int64_t){handle_full_control(values, true);}, cpu_full_control);
+    //cpurun_full_ctrl_flag->needs(cpurun_d2_flag);
     // Maximum number of cycles to be executed.
-    std::string max_cycles_text = QString::fromStdString(microMaxStepText).arg(BoundExecMicroCpu::getDefaultMaxCycles()).toStdString();
-    cpurun_subcommand->add_option("-m", values.m, max_cycles_text)->expected(1)
-            ->needs(cpurun_full_ctrl_flag)->check(CLI::PositiveNumber)
-            ->default_val(std::to_string(BoundExecMicroCpu::getDefaultMaxCycles()));
+    //std::string max_cycles_text = QString::fromStdString(microMaxStepText).arg(BoundExecMicroCpu::getDefaultMaxCycles()).toStdString();
+    //cpurun_subcommand->add_option("-m", values.m, max_cycles_text)->expected(1)->needs(cpurun_full_ctrl_flag)->check(CLI::PositiveNumber)
+            //->default_val(std::to_string(BoundExecMicroCpu::getDefaultMaxCycles()));
+    // Precondition input file.
     cpurun_subcommand->add_option("-p", values.p, cpu_preconditions)->expected(1);
+    parameter_formatting["cpurun"]["p"] = "precondition_file";
+    // Microcode input file.
+    cpurun_subcommand->add_option("-s", values.mc, cpuasm_input_file_text)->expected(1)->required(true);
+    parameter_formatting["cpurun"]["s"] = "microcode_file";
     // Create a runnable application from command line arguments
     cpurun_subcommand->callback(std::function<void()>([&](){handle_cpurun(values, &run);}));
 
@@ -218,7 +247,7 @@ int main(int argc, char *argv[])
 
     // Subcommands for LISTING
     auto listing_subcommand = parser.add_subcommand("listing", listing_description);
-    listing_subcommand->add_option("-n", values.n, listing_name)->expected(1)->required(true);
+    listing_subcommand->add_option("-s", values.s, listing_name)->expected(1)->required(true);
     listing_subcommand->callback(std::function<void()>([&](){handle_listing(values, registry);}));
 
     // Require that one of the modes be used.
@@ -227,15 +256,17 @@ int main(int argc, char *argv[])
     try {
         parser.parse(argc, argv);
     } catch(const CLI::ValidationError &e){
-        std::cout <<e.what() << std::endl;
+        std::cout << e.what() << std::endl;
+        std::cout << parser.help() << std::endl;
         return e.get_exit_code();
     } catch (const CLI::ParseError &e) {
-        if(values.early_exit) return 0;
-        if(!help || !help_all) {
-            std::cout << parser.help();
-        }
+        if(values.had_about || values.had_version || values.early_exit) return 0;
         return parser.exit(e);
     }
+
+    // Assemble the default operating system from this thread, so that
+    // no worker threads have to check for the presence of an operating system.
+    buildDefaultOperatingSystem(*AsmProgramManager::getInstance(), registry);
 
     /*
      * This asynchronous approach must be used, because if quit() is called
@@ -244,17 +275,15 @@ int main(int argc, char *argv[])
      * the task to be scheduled via the main event loop.
      *
      */
-    // If the optional does not have a value, we must not run it.
     QThreadPool pool;
+    // If the optional does not have a value, we must not run it.
     if(run == nullptr) {
         return -1;
     }
     else {
-        // Assemble the default operating system from this thread, so that
-        // no worker threads have to check for the presence of an operating system.
-        buildDefaultOperatingSystem(*AsmProgramManager::getInstance(), registry);
         pool.start(run);
     }
+
     return a.exec();
 }
 
@@ -270,13 +299,13 @@ void handle_databus_size(command_line_values &values, bool two_byte)
 
 void handle_version(command_line_values &values, int64_t)
 {
-    values.early_exit = true;
+    values.had_version = true;
     std::cout << QString("%1 %2").arg(QCoreApplication::applicationName(), QCoreApplication::applicationVersion()).toStdString() << std::endl;
 }
 
 void handle_about(command_line_values &values, int64_t)
 {
-    values.early_exit = true;
+    values.had_about = true;
     QFile aboutFile(":/help-term/about.txt");
     aboutFile.open(QIODevice::ReadOnly | QIODevice::Text);
     std::cout<< aboutFile.readAll().toStdString() << std::endl;
@@ -510,10 +539,10 @@ void handle_macros(command_line_values &values, QSharedPointer<MacroRegistry> re
 void handle_listing(command_line_values &values, QSharedPointer<MacroRegistry> registry)
 {
     values.early_exit = true;
-    if (values.n.empty()) {
-        throw CLI::ValidationError("Macro name is required (-n).", -1);
+    if (values.s.empty()) {
+        throw CLI::ValidationError("Macro source file name is required (-s).", -1);
     }
-    QString macroName = QString::fromStdString(values.n);
+    QString macroName = QString::fromStdString(values.s);
     if(!registry->hasMacro(macroName)) {
         qDebug() << QString("No such macro: %1.").arg(macroName);
     }
