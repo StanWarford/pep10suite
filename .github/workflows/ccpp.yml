@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - name: Install libmesa
-      run:  sudo apt install libglu1-mesa-dev freeglut3-dev
+      run:  sudo apt update && sudo apt install libglu1-mesa-dev freeglut3-dev
     - name: Install Qt
       uses: Matthew-McRaven/install-qt-action@v2
       with:
