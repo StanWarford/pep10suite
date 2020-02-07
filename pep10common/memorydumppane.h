@@ -3,8 +3,8 @@
     The Pep/9 suite of applications (Pep9, Pep9CPU, Pep9Micro) are
     simulators for the Pep/9 virtual machine, and allow users to
     create, simulate, and debug across various levels of abstraction.
-    
-    Copyright (C) 2018  J. Stanley Warford, Pepperdine University
+
+    Copyright (C) 2018  J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -43,6 +43,9 @@ public:
 
     // Needs to be called after construction but before this class can be used, otherwise the class is in an incomplete state.
     void init(QSharedPointer<MainMemory> memory, QSharedPointer<ACPUModel> cpu);
+
+    // Set the number of bytes displayed per line.
+    void setNumBytesPerLine(quint16 bytesPerLine);
 
     // Optionally disable the highlighting of the PC.
     // By default, the PC is highlighted
@@ -109,6 +112,7 @@ private:
     Ui::MemoryDumpPane *ui;
     QStandardItemModel* data;
     quint32 lineSize;
+    quint16 bytesPerLine = {8};
     QSharedPointer<MainMemory> memDevice;
     QSharedPointer<ACPUModel> cpu;
     MemoryDumpDelegate *delegate;
@@ -154,19 +158,19 @@ public:
     // See http://doc.qt.io/qt-5/qstyleditemdelegate.html#subclassing-qstyleditemdelegate for explanation on the methods being reimplemented.
 
     // If the index is editable, create an editor that validates byte hex constants, otherwise return nullptr
-    QWidget* createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    virtual QWidget* createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     // Provides editor widget with starting data for editing.
-    void setEditorData(QWidget * editor, const QModelIndex & index) const override;
+    virtual void setEditorData(QWidget * editor, const QModelIndex & index) const override;
     // Ensure that editor is displayed correctly on the item view
-    void updateEditorGeometry(QWidget * editor,
+    virtual void updateEditorGeometry(QWidget * editor,
                                       const QStyleOptionViewItem & option,
                                       const QModelIndex & index) const override;
     // Handle updating data in the model via calling the memorySection
-    void setModelData(QWidget *editor,
+    virtual void setModelData(QWidget *editor,
                               QAbstractItemModel *model,
                               const QModelIndex &index) const override;
     // Override painting method to allow drawing of vertical bars in dump pane.
-    void paint(QPainter *painter,
+    virtual void paint(QPainter *painter,
                        const QStyleOptionViewItem &option,
                        const QModelIndex &index ) const override;
 };
@@ -182,9 +186,9 @@ class DisableEdgeSelectionModel : public QItemSelectionModel
 {
     Q_OBJECT
 public:
-    DisableEdgeSelectionModel(QAbstractItemModel *model = nullptr) noexcept;
-    DisableEdgeSelectionModel(QAbstractItemModel *model, QObject *parent = nullptr) noexcept;
-    ~DisableEdgeSelectionModel() override;
+    DisableEdgeSelectionModel(QAbstractItemModel *model = Q_NULLPTR) noexcept;
+    DisableEdgeSelectionModel(QAbstractItemModel *model, QObject *parent = Q_NULLPTR) noexcept;
+    virtual ~DisableEdgeSelectionModel() override;
     void select(const QItemSelection &selection, QItemSelectionModel::SelectionFlags command) override;
     void select(const QModelIndex &index, SelectionFlags command) override;
 };

@@ -3,8 +3,8 @@
     The Pep/9 suite of applications (Pep9, Pep9CPU, Pep9Micro) are
     simulators for the Pep/9 virtual machine, and allow users to
     create, simulate, and debug across various levels of abstraction.
-    
-    Copyright (C) 2018  J. Stanley Warford, Pepperdine University
+
+    Copyright (C) 2018  J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -36,32 +36,17 @@
 #include <Qt>
 #include <QClipboard>
 #include <QPainter>
-#include <utility>
-#include <utility>
 static QString space = "   ";
 
 MemoryDumpPane::MemoryDumpPane(QWidget *parent) :
     QWidget(parent), ui(new Ui::MemoryDumpPane), data(new QStandardItemModel(this)), lineSize(500), memDevice(nullptr),
-    cpu(nullptr), delegate(nullptr), colors(&PepColors::lightMode),
+    cpu(nullptr), delegate(nullptr), colors(&PepColors::lightMode), highlightedData(), modifiedBytes(), lastModifiedBytes(),
     delayLastStepClear(false), inSimulation(false), highlightPC(true)
 {
     ui->setupUi(this);
     ui->label->setFont(QFont(Pep::labelFont, Pep::labelFontSize));
 
-    // Insert 1 column for address, 8 for memory bytes, and 1 for character dump
-    data->insertColumns(0, 1+8+1);
-    // Insert enough rows to hold 64k of memory
-    data->insertRows(0, (1<<16)/8);
-    // Set the addresses of every row now, as they will not change during execution of the program.
-    for(int it = 0; it < (1<<16) /8; it++) {
-        data->setData(data->index(it, 0), QString("%1").arg(it*8, 4, 16, QChar('0')).toUpper() + space);
-    }
-
-    // Hook the table view into the model, and size everything correctly
-    ui->tableView->setModel(data);
-    // Safe to use new inline, as it will be deleted when this class is destructed,
-    ui->tableView->setSelectionModel(new DisableEdgeSelectionModel(data, this));
-    ui->tableView->resizeRowsToContents();
+    // Init data model later, as we need access to the memory device to perform sizing.
 
     // Connect scrolling events
     connect(ui->pcPushButton, &QAbstractButton::clicked, this, &MemoryDumpPane::scrollToPC);
@@ -72,12 +57,42 @@ MemoryDumpPane::MemoryDumpPane(QWidget *parent) :
 
 void MemoryDumpPane::init(QSharedPointer<MainMemory> memory, QSharedPointer<ACPUModel> cpu)
 {
-    this->memDevice = std::move(memory);
-    this->cpu = std::move(cpu);
+    this->memDevice = memory;
+    this->cpu = cpu;
+
+    setNumBytesPerLine(bytesPerLine);
+
     delegate = new MemoryDumpDelegate(memDevice, ui->tableView);
     ui->tableView->setItemDelegate(delegate);
     refreshMemoryLines(0, 0);
-    ui->tableView->resizeColumnsToContents();
+}
+
+void MemoryDumpPane::setNumBytesPerLine(quint16 bytesPerLine)
+{
+    Q_ASSERT(bytesPerLine != 0);
+    // Find the nearest power of two for the line size
+    auto pow2 = log2f(bytesPerLine);
+    pow2 = roundf(pow2);
+    // Create nearest power of 2
+    auto effective_line_size = 1 << (int)pow2;
+    // Don't allow sizes larger than 16 for now
+    if(effective_line_size >= 16) effective_line_size = 16;
+    else this->bytesPerLine = (quint16) effective_line_size;
+    data->clear();
+    // Insert 1 column for address, 8 for memory bytes, and 1 for character dump
+    data->insertColumns(0, 1+bytesPerLine+1);
+    // Insert enough rows to hold 64k of memory
+    data->insertRows(0, (1<<16)/bytesPerLine);
+    // Set the addresses of every row now, as they will not change during execution of the program.
+    for(int it = 0; it < (1<<16) /bytesPerLine; it++) {
+        data->setData(data->index(it, 0), QString("%1").arg(it*bytesPerLine, 4, 16, QChar('0')).toUpper() + space);
+    }
+
+    // Hook the table view into the model, and size everything correctly
+    ui->tableView->setModel(data);
+    // Safe to use new inline, as it will be deleted when this class is destructed,
+    ui->tableView->setSelectionModel(new DisableEdgeSelectionModel(data, this));
+    ui->tableView->resizeRowsToContents();
     refreshMemory();
 }
 
@@ -116,8 +131,8 @@ void MemoryDumpPane::refreshMemoryLines(quint16 firstByte, quint16 lastByte)
 {
     // There are 8 bytes per line, so divide the byte numbers by 8 to
     // get the line number.
-    quint16 firstLine = firstByte / 8;
-    quint16 lastLine = lastByte / 8;
+    quint16 firstLine = firstByte / bytesPerLine;
+    quint16 lastLine = lastByte / bytesPerLine;
     quint8 tempData;
     QChar ch;
     QString memoryDumpLine;
@@ -127,13 +142,12 @@ void MemoryDumpPane::refreshMemoryLines(quint16 firstByte, quint16 lastByte)
     // Use <= comparison, so when firstLine == lastLine that the line is stil refreshed
     for(int row = firstLine; row <= lastLine; row++) {
         memoryDumpLine.clear();
-        for(int col = 0; col < 8; col++) {
+        for(int col = 0; col < bytesPerLine + 1; col++) {
             // Only access memory if it is in range
-            if(quint32(row * 8 + col) <= memDevice->maxAddress()) {
+            if(quint32(row * bytesPerLine + col) <= memDevice->maxAddress()) {
                 // Use the data in the memory section to set the value in the model.
-                memDevice->getByte(static_cast<quint16>(row * 8 + col), tempData);
-                data->setData(data->index(row, col + 1),
-                              QString("%1").arg(tempData, 2, 16, QChar('0')).toUpper());
+                memDevice->getByte(static_cast<quint16>(row * bytesPerLine + col), tempData);
+                data->setData(data->index(row, col + 1), QString("%1").arg(tempData, 2, 16, QChar('0')).toUpper());
                 ch = QChar(tempData);
                 if (ch.isPrint()) {
                     memoryDumpLine.append(ch);
@@ -150,22 +164,22 @@ void MemoryDumpPane::refreshMemoryLines(quint16 firstByte, quint16 lastByte)
 
 
         }
-        data->setData(data->index(row, 1+8), memoryDumpLine.append(space));
+        data->setData(data->index(row, 1+bytesPerLine), memoryDumpLine.append(space));
     }
     lineSize = 0;
-    for(int it = 0; it< data->columnCount(); it++) {
+    for(int it = 0; it < data->columnCount(); it++) {
         lineSize += static_cast<unsigned int>(ui->tableView->columnWidth(it));
     }
-
+    lineSize += QFontMetrics(ui->tableView->font()).boundingRect(space).width();
     ui->tableView->setUpdatesEnabled(updates);
+    ui->tableView->resizeColumnsToContents();
 }
 
 void MemoryDumpPane::clearHighlight()
 {
     // Don't to remove BackgroundRole & ForegroundRole from data->itemData(...) map,
     // followed by a data->setItemData(...) call.
-    // Even though items were removed from the map and both calls were successful,
-    // the tableView would not remove the old highlighting.
+    // Even though items were removed from the map and both calls were successful, the tableView would not remove the old highlighting.
     // Explicitly setting the field to QVariant (nothing) reutrns the field to default styling.
     while (!highlightedData.isEmpty()) {
         quint16 address = highlightedData.takeFirst();
@@ -199,7 +213,7 @@ void MemoryDumpPane::highlight()
     }
     else if(!Pep::isUnaryMap[Pep::decodeMnemonic[is]]) {
         for(int it = 0; it < 3; it++) {
-            auto as16 = static_cast<quint16>(pc + it);
+            quint16 as16 = static_cast<quint16>(pc + it);
             highlightByte(as16, colors->altTextHighlight, colors->memoryHighlightPC);
             highlightedData.append(as16);
         }
@@ -229,14 +243,14 @@ void MemoryDumpPane::updateMemory()
     lastModifiedBytes = memDevice->getBytesWritten();
     list = modifiedBytes.toList();
     while(!list.isEmpty()) {
-        linesToBeUpdated.insert(list.takeFirst() / 8);
+        linesToBeUpdated.insert(list.takeFirst() / bytesPerLine);
     }
     list = linesToBeUpdated.toList();
     std::sort(list.begin(), list.end());
 
     for(auto x: list) {
         // Multiply by 8 to convert from line # to address of first byte on a line.
-        refreshMemoryLines(x * 8, x * 8);
+        refreshMemoryLines(x * bytesPerLine, x * bytesPerLine);
     }
 
 }
@@ -278,7 +292,7 @@ void MemoryDumpPane::copy()
     }
     // Turn the text of the selected rows into space delimited strings.
     QStringList lines;
-    for(const auto& line : map) {
+    for(auto line : map) {
         lines.append(line.join(" "));
     }
     // Join all selected rows into a newline delimited string.
@@ -288,7 +302,7 @@ void MemoryDumpPane::copy()
 QSize MemoryDumpPane::sizeHint() const
 {
     int tableSize = static_cast<int>(lineSize);
-    int extraPad = 8;
+    int extraPad = 10;
     return QSize(tableSize + extraPad, QWidget::sizeHint().height());
 }
 
@@ -310,8 +324,7 @@ void MemoryDumpPane::onDarkModeChanged(bool darkMode)
 {
     if(darkMode) colors = &PepColors::darkMode;
     else colors = &PepColors::lightMode;
-    // Explicitly rehighlight if in simulation, otherwise old highlighting colors
-    // will still be used until the next cycle.
+    // Explicitly rehighlight if in simulation, otherwise old highlighting colors will still be used until the next cycle.
     if(inSimulation) {
         clearHighlight();
         highlight();
@@ -342,7 +355,7 @@ void MemoryDumpPane::highlightByte(quint16 memAddr, QColor foreground, QColor ba
 {
     // Rows contain 8 bytes of memory.
     // The first column is an address, so the first byte in a row is in column one.
-    QModelIndex index = data->index(memAddr/8, memAddr%8 +1);
+    QModelIndex index = data->index(memAddr/bytesPerLine, memAddr%bytesPerLine +1);
     // Set style data of item from parameters.
     data->setData(index, foreground ,Qt::ForegroundRole);
     data->setData(index, background, Qt::BackgroundRole);
@@ -357,12 +370,9 @@ void MemoryDumpPane::scrollToByte(quint16 address)
 {
     // Rows contain 8 bytes of memory.
     // The first column is an address, so the first byte in a row is in column one.
-    disconnect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged,
-               this, &MemoryDumpPane::scrollToLine);
-    ui->tableView->scrollTo(data->index(address/8, address%8 + 1),
-                            QAbstractItemView::ScrollHint::PositionAtTop);
-    connect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged,
-            this, &MemoryDumpPane::scrollToLine, Qt::UniqueConnection);
+    disconnect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged, this, &MemoryDumpPane::scrollToLine);
+    ui->tableView->scrollTo(data->index(address/bytesPerLine, address%bytesPerLine + 1), QAbstractItemView::ScrollHint::PositionAtTop);
+    connect(ui->tableView->verticalScrollBar(), &QScrollBar::valueChanged, this, &MemoryDumpPane::scrollToLine, Qt::UniqueConnection);
 }
 
 void MemoryDumpPane::scrollToPC()
@@ -413,25 +423,27 @@ void MemoryDumpPane::scrollToLine(int /*scrollBarValue*/)
     // table data, and returns the index of the topmost visible row.
     // Each row contains 8 bytes, so 8*index gives first byte of row
     // Also, separate 0x from rest of string, so that the x does not get capitalized.
-   QString str = "0x" + QString("%1").arg(ui->tableView->rowAt(0) * 8, 4, 16, QLatin1Char('0')).toUpper();
+   QString str = "0x" + QString("%1").arg(ui->tableView->rowAt(0) * bytesPerLine, 4, 16, QLatin1Char('0')).toUpper();
     ui->scrollToLineEdit->setText(str);
 }
 
-MemoryDumpDelegate::MemoryDumpDelegate(QSharedPointer<MainMemory> memory, QObject *parent):
-    QStyledItemDelegate(parent),
-    memDevice(std::move(std::move(memory))), canEdit(true)
+MemoryDumpDelegate::MemoryDumpDelegate(QSharedPointer<MainMemory> memory, QObject *parent): QStyledItemDelegate(parent),
+    memDevice(memory), canEdit(true)
 {
 
 }
 
-MemoryDumpDelegate::~MemoryDumpDelegate() = default;
+MemoryDumpDelegate::~MemoryDumpDelegate()
+{
+
+}
 
 QWidget *MemoryDumpDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     // The first and last columns are not user editable, so do not create an editor.
-    if(index.column() == 0 || index.column() == 1 + 8 || !canEdit) return nullptr;
+    if(index.column() == 0 || index.column() == index.model()->columnCount() - 1 || !canEdit) return nullptr;
     // Otherwise, defer to QStyledItemDelegate's implementation, which returns a LineEdit
-    auto *line = qobject_cast<QLineEdit*>(QStyledItemDelegate::createEditor(parent, option, index));
+    QLineEdit *line = qobject_cast<QLineEdit*>(QStyledItemDelegate::createEditor(parent, option, index));
     // Apply a validator, so that a user cannot input anything other than a one byte hexadecimal constant
     line->setValidator(new QRegExpValidator(QRegExp("[a-fA-F0-9][a-fA-F0-9]|[a-fA-F0-9]"), line));
     return line;
@@ -441,7 +453,7 @@ void MemoryDumpDelegate::setEditorData(QWidget *editor, const QModelIndex &index
 {
     // The default value in the line edit should be the text currently in that cell.
     QString value = index.model()->data(index, Qt::EditRole).toString();
-    auto *line = static_cast<QLineEdit*>(editor);
+    QLineEdit *line = static_cast<QLineEdit*>(editor);
     line->setText(value);
 }
 
@@ -454,12 +466,14 @@ void MemoryDumpDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptio
 void MemoryDumpDelegate::setModelData(QWidget *editor, QAbstractItemModel *, const QModelIndex &index) const
 {
     // Get text from editor and convert it to a integer.
-    auto *line = static_cast<QLineEdit*>(editor);
+    QLineEdit *line = static_cast<QLineEdit*>(editor);
     QString strValue = line->text();
     bool ok;
-    auto intValue = static_cast<quint64>(strValue.toInt(&ok, 16));
+    quint64 intValue = static_cast<quint64>(strValue.toInt(&ok, 16));
+    // Number of bytes is equal to the number of columns, less the address and data column.
+    quint16 bytesPerLine = index.model()->columnCount() - 2;
     // Use column - 1 since the first column is the address.
-    auto addr = static_cast<quint16>(index.row()*8 + index.column() - 1);
+    quint16 addr = static_cast<quint16>(index.row()*bytesPerLine + index.column() - 1);
     // Even though there is a regexp validator in place, validate data again.
     if(ok && intValue< 1<<16) {
         // Instead of inserting data directly into the item model, notify the MemorySection of a change.
@@ -489,7 +503,7 @@ void MemoryDumpDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
         painter->drawLine(style.rect.topRight(), style.rect.bottomRight());
     }
     // The last column has a bar on the left.
-    else if(index.column() == 9) {
+    else if(index.column() == index.model()->columnCount() - 1) {
         QStyleOptionViewItem style(option);
         // Prevent text from being hidden, since the new display rectangle will be too
         // small to hold all of the text.
@@ -519,13 +533,16 @@ DisableEdgeSelectionModel::DisableEdgeSelectionModel(QAbstractItemModel *model, 
 
 }
 
-DisableEdgeSelectionModel::~DisableEdgeSelectionModel() = default;
+DisableEdgeSelectionModel::~DisableEdgeSelectionModel()
+{
+
+}
 
 void DisableEdgeSelectionModel::select(const QItemSelection &selection, QItemSelectionModel::SelectionFlags command)
 {
     QItemSelection newSelection;
     // For every selection range, remove any invalid indicies.
-    for(const auto& item : selection) {
+    for(auto item : selection) {
         // If the leftmost edge is in the last column, the selection
         // only spans the last column, so ignore it.
         if(item.topLeft().column() == model()->columnCount() - 1) continue;

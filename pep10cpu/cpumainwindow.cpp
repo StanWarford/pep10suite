@@ -68,7 +68,6 @@ CPUMainWindow::CPUMainWindow(QWidget *parent) :
     // Initialize the memory subsystem
     QSharedPointer<RAMChip> ramChip(new RAMChip(1<<16, 0, memDevice.get()));
     memDevice->insertChip(ramChip, 0);
-    // I/O chips will still need to be added later
 
     // Perform any additional setup needed for UI objects.
     ui->setupUi(this);
@@ -82,6 +81,9 @@ CPUMainWindow::CPUMainWindow(QWidget *parent) :
     ui->cpuWidget->init(controlSection, controlSection->getDataSection());
     ui->microcodeWidget->init(controlSection, dataSection, false);
     ui->microobjectWidget->init(controlSection, false);
+
+    // Only display 4 bytes per line, rather than the default 8;
+    ui->memoryWidget->setNumBytesPerLine(4);
 
     // Create button group to hold CPU types
     cpuModesGroup->addAction(ui->actionSystem_One_Byte);
