@@ -144,10 +144,9 @@ bool ASMBuildHelper::buildProgram()
         else {
             QTextStream listingStream(&listingFile);
             listingStream << program->getProgramListing();
-            listingStream << "\n";
-            if(auto string =  program->getSymbolTable()->getSymbolTableListing();
-                    !string.isEmpty()) {
-                listingStream << string;
+            if(!program->getSymbolTable()->getSymbolMap().isEmpty()) {
+                listingStream << "\n";
+                listingStream << program->getSymbolTable()->getSymbolTableListing();
             }
             listingFile.close();
         }
