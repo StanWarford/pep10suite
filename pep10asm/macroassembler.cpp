@@ -4,6 +4,8 @@
 #include "pep.h"
 #include "asmcode.h"
 #include "symboltable.h"
+#include "optional_helper.h"
+
 static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
     {MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER,
      MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT,
@@ -11,7 +13,20 @@ static QList<MacroTokenizerHelper::ELexicalToken> nonunaryOperandTypes =
      MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT,
      MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT};
 
-MacroAssembler::MacroAssembler(): tokenBuffer(new TokenizerBuffer())
+static QList<MacroTokenizerHelper::ELexicalToken> noLineStart =
+    {MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE,
+     MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT,
+     MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT,
+     MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT,
+     MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT};
+
+// Macros should forward everything but a comment and newline to sub-macro
+static QList<MacroTokenizerHelper::ELexicalToken> macroArgumentsTypes = nonunaryOperandTypes
+        << MacroTokenizerHelper::ELexicalToken::LT_SYMBOL_DEF
+        << MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND
+        << MacroTokenizerHelper::ELexicalToken::LT_SYMBOL_DEF;
+MacroAssembler::MacroAssembler(MacroRegistry* registry): registry(registry),
+    tokenBuffer(new TokenizerBuffer())
 {
 
 }
@@ -24,8 +39,9 @@ MacroAssembler::~MacroAssembler()
 AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
 {
     AssemblerResult retVal;
+    retVal.success = true;
     std::list<ModuleInstance*> toAssemble;
-    toAssemble.emplace_back(graph.instanceMap[graph.rootModule][0].get());
+    toAssemble.emplace_back(graph.getRootInstance().get());
 
 
     // All modules in a single compilation will share the same symbol table
@@ -40,62 +56,85 @@ AssemblerResult MacroAssembler::assemble(ModuleAssemblyGraph &graph)
         if(currentModule->alreadyAssembled == true) continue;
 
         currentModule->symbolTable = symbolTable;
-        for(auto childModule : currentModule->prototype->lineToInstance) {
-            auto childInstance = std::get<1>(childModule);
+        for(auto childInstance : currentModule->prototype->lineToInstance) {
             if(childInstance->alreadyAssembled == false) {
                 toAssemble.emplace_back(childInstance);
             }
         }
-        auto result = assembleModule(*currentModule);
+        qDebug().noquote() << "Assembling module: " << currentModule->prototype->name;
+        auto result = assembleModule(graph, *currentModule);
+        //qDebug().noquote() << "";
         if(!result.success) {
             retVal.success = false;
             #pragma message("Must map map line number from child to root")
             retVal.error = result.errInfo;
             return retVal;
         }
+        else {
+            currentModule->alreadyAssembled = true;
+        }
     }
     return retVal;
 }
 
-MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleInstance &instance)
+MacroAssembler::ModuleResult MacroAssembler::assembleModule(ModuleAssemblyGraph &graph,
+                                                            ModuleInstance &instance)
 {
     ModuleResult result;
+    result.success = true;
     quint16 lineNumber = 0;
     // Make sure tokenizer is prepared to handle this modules macro arguments.
     tokenBuffer->setMacroSubstitutions(instance.macroArgs);
     tokenBuffer->setTokenizerInput(instance.prototype->textLines);
 
-    QList<AsmCode*> codeList;
+    QList<QSharedPointer<AsmCode>> codeList;
     QString errorMessage;
-    bool dotEndDetected;
+    bool dotEndDetected = false;
     while(tokenBuffer->inputRemains()) {
-        auto retVal = assembleLine(instance, errorMessage, dotEndDetected);
+        auto retVal = assembleLine(graph, instance, errorMessage, dotEndDetected);
 
         // If there was an error,
         if(retVal.success == false) {
             result.success = false;
             // Track the error message as in the return value
-            // and in the ModuleInstance.
-            result.errInfo = {lineNumber, errorMessage};
-            instance.errorList.append(result.errInfo);
+            // and in the ModuleInstance;
+            auto error = QSharedPointer<FrontEndError>::create(instance.instanceIndex,
+                                                               Severity::ERROR,
+                                                               errorMessage,
+                                                               lineNumber);
+            graph.addError(error);
+            result.errInfo = error;
             break;
+        }
+        else {
+            //qDebug().noquote() << retVal.codeLine->getAssemblerSource();
         }
         codeList.append(retVal.codeLine);
         ++lineNumber;
         if(dotEndDetected) break;
     }
+    // Only emit error about dotEnd when the program assembled successfully.
+    // Otherwise, error messages might be surpressed by dotEnd error.
+    if(!dotEndDetected && result.success) {
+        result.success = false;
+        // Track the error message as in the return value
+        // and in the ModuleInstance;
+        auto error = QSharedPointer<FrontEndError>::create(instance.instanceIndex,
+                                                           Severity::ERROR,
+                                                           missingEND,
+                                                           instance.prototype->textLines.size());
+        graph.addError(error);
+        result.errInfo = error;
+    }
     if(result.success) {
         instance.codeList = codeList;
-    }
-    else {
-        for(auto line : codeList) {
-            delete line;
-        }
     }
     return result;
 }
 
-MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance, QString& errorMessage, bool &dotEndDetected)
+MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleAssemblyGraph &graph,
+                                                        ModuleInstance &instance,
+                                                        QString& errorMessage, bool &dotEndDetected)
 {
     LineResult retVal;
     std::optional<QStringRef> symbolDeclaration;
@@ -109,25 +148,29 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LTE_ERROR)) {
         retVal.success = false;
         errorMessage = tokenBuffer->takeLastMatch().second.toString();
+        return retVal;
     }
-    // Check the non-code lines: comments and empty lines.
+    // Check for non-code lines: comments and empty lines.
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)) {
         if(!tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
-            errorMessage = ";ERROR: \n expected after a comment";
+            errorMessage = expectNewlineAfterComment;
             retVal.success = false;
             return retVal;
         }
         // Match a comment only line.
-        auto commentLine = new CommentOnly;
-        commentLine->comment = tokenBuffer->takeLastMatch().second.toString();
+        auto commentLine =  QSharedPointer<CommentOnly>::create();
+        commentLine->setComment(tokenBuffer->takeLastMatch().second.toString());
         retVal.success = true;
         retVal.codeLine = commentLine;
+        // Take the \n so that it does not clog token buffer.
+        tokenBuffer->takeLastMatch();
         return retVal;
     }
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
-        // Match an empty line.
+        // Take the \n so that it does not clog token buffer.
+        tokenBuffer->takeLastMatch();
         retVal.success = true;
-        retVal.codeLine = new BlankLine;
+        retVal.codeLine =  QSharedPointer<BlankLine>::create();
         return retVal;
     }
     // Check for the presence of an (optional) symbol.
@@ -136,14 +179,15 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance
         if(!(tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)
              || tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND)
              || tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LTE_MACRO_INVOKE))) {
-            errorMessage = ";ERROR: symbol definition must be followed by a  identifier, dot command, or macro.";
+            errorMessage = unexpectedSymbolDecl;
             retVal.success = false;
             return retVal;
         }
         // Remove the : from the symbol name.
         symbolDeclaration = tokenBuffer->takeLastMatch().second.chopped(1);
-        if(!validateSymbolName(symbolDeclaration.value(), errorMessage)) {
+        if(!validateSymbolName(optional_helper(symbolDeclaration), errorMessage)) {
             retVal.success = false;
+            // Error message was set by validateSymbolName(...).
             return retVal;
         }
         symbolPointer = instance.symbolTable->define(symbolDeclaration->toString());
@@ -155,13 +199,13 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance
         tokenString =  tokenBuffer->takeLastMatch().second;
         // See if the token string is in the mnemonic map, ignoring case.
         auto compare = [tokenString](QString mapKey) {
-            return tokenString.compare(mapKey, Qt::CaseInsensitive) ;
+            return tokenString.compare(mapKey, Qt::CaseInsensitive) == 0;
         };
         auto iterator = std::find_if(Pep::mnemonToEnumMap.keyBegin(), Pep::mnemonToEnumMap.keyEnd(), compare);
 
-        // If the itera is the end of the map, then tokenString was not in the mnemonic map.
+        // If the iterator is the end of the map, then tokenString was not in the mnemonic map.
         if (iterator == Pep::mnemonToEnumMap.keyEnd()) {
-            errorMessage = ";ERROR: Invalid mnemonic.";
+            errorMessage = invalidMnemonic.arg(tokenString);
             retVal.success = false;
             return retVal;
         }
@@ -170,19 +214,19 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance
 
         // Process a unary instruction
         if(Pep::isUnaryMap.value(mnemonic)) {
-            auto unaryInstruction = new UnaryInstruction();
-            unaryInstruction->mnemonic = mnemonic;
-            if(symbolDeclaration.has_value()) {
-                unaryInstruction->symbolEntry = nullptr;
+            auto unaryInstruction =  QSharedPointer<UnaryInstruction>::create();
+            unaryInstruction->setMnemonic(mnemonic);
+            if(symbolPointer.has_value()) {
+                unaryInstruction->setSymbolEntry(optional_helper(symbolPointer));
             }
             retVal.codeLine = unaryInstruction;
         }
         // Process a non-unary instruction
         else {
-            // Unliked unary parsing, use helper method since the code is long and involved.
+            // Unliked unary parsing, use helper method since the code is long.
             retVal.codeLine = parseNonUnaryInstruction(mnemonic, symbolPointer, instance, errorMessage);
 
-            // If some part of parsing the instruction failed, raise the error to the next level.
+            // If some part of parsing the instruction failed, propogate the error upwards.
             if(!errorMessage.isEmpty()) {
                 retVal.success = false;
                 return retVal;
@@ -191,382 +235,502 @@ MacroAssembler::LineResult MacroAssembler::assembleLine(ModuleInstance &instance
 
     }
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DOT_COMMAND)) {
-        if (tokenString == "ADDRSS") {
+        tokenString =  tokenBuffer->takeLastMatch().second;
+        tokenString = tokenString.mid(1);
+        // Some instructions (like BURN) may only occur in the operating system,
+        // and we need access to the root instance to determine what is being compiled.
+        auto rootInstance = graph.getRootInstance();
+
+        // Use compare(...) instead of == because tokenizer does not
+        // automatically capitalize dot command strings.
+        if (QString("ADDRSS").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseADDRSS(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
-        else if (tokenString == "ALIGN") {
+        else if (QString("ALIGN").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseALIGN(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
-        else if (tokenString == "ASCII") {
+        else if (QString("ASCII").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseASCII(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
-        else if (tokenString == "BLOCK") {
+        else if (QString("BLOCK").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseBLOCK(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
-        else if (tokenString == "BURN") {
-            retVal.codeLine = parseBURN(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
+        else if (QString("BURN").compare(tokenString, Qt::CaseInsensitive) == 0) {
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".BURN");
             }
+            else {
+                retVal.codeLine = parseBURN(symbolPointer, instance, errorMessage);
+            }
+
         }
-        else if (tokenString == "BYTE") {
+        else if (QString("BYTE").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseBYTE(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
-        else if (tokenString == "END") {
+        else if (QString("END").compare(tokenString, Qt::CaseInsensitive) == 0) {
             dotEndDetected = true;
             retVal.codeLine = parseEND(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
         }
-        else if (tokenString == "EQUATE") {
+        else if (QString("EQUATE").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseEQUATE(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
+        }
+        else if (QString("EXPORT").compare(tokenString, Qt::CaseInsensitive) == 0) {
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".EXPORT");
+            }
+            else {
+                retVal.codeLine = parseEXPORT(symbolPointer, instance, errorMessage);
             }
         }
-        else if (tokenString == "EXPORT") {
-            if(!parseEXPORT()){}
+        else if (QString("SCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".SCALL");
+            }
+            else {
+                retVal.codeLine = parseSCALL(symbolPointer, instance, errorMessage);
+            }
         }
-        else if (tokenString == "SYCALL") {
-            if(!parseSYCALL()){}
+        else if (QString("USCALL").compare(tokenString, Qt::CaseInsensitive) == 0) {
+            if(rootInstance->prototype->moduleType != ModuleType::OPERATING_SYSTEM) {
+                // Presence of error message will cause early return after if block.
+                errorMessage = onlyInOperatingSystem.arg(".USCALL");
+            }
+            else {
+                retVal.codeLine = parseUSCALL(symbolPointer, instance, errorMessage);
+            }
         }
-        else if (tokenString == "USYCALL") {
-            if(!parseUSYCALL()){}
-        }
-        else if (tokenString == "WORD") {
+        else if (QString("WORD").compare(tokenString, Qt::CaseInsensitive) == 0) {
             retVal.codeLine = parseWORD(symbolPointer, instance, errorMessage);
-            if(!errorMessage.isEmpty()) {
-                retVal.success = false;
-                return retVal;
-            }
+        }
+        else {
+            retVal.success = false;
+            errorMessage = invalidDotCommand.arg(tokenString);
+            return retVal;
+        }
+
+        if(!errorMessage.isEmpty()) {
+            retVal.success = false;
+            return retVal;
         }
 
     }
     else if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LTE_MACRO_INVOKE)) {
-        // This one kind of breaks the rules...
-        #pragma message("Must work on macro invocation assembly")
+        // Must handle all macro arguments.
+        QString macroName = tokenBuffer->takeLastMatch().second.toString();
+        retVal.codeLine = parseMacroInstruction(graph, macroName, symbolPointer, instance, errorMessage);
+        if(!errorMessage.isEmpty()) {
+            retVal.success = false;
+            return retVal;
+        }
+    }
+    // If we didn't match some form of instruction, and we didn't hit empty or comment line,
+    // then the current line has major parsing issues and an error must be returned.
+    else {
+        // Check if we had a symbol followed by nonsense, like
+        //  f: "hi" \sjd
+        retVal.success = false;
+        if(symbolDeclaration.has_value()) {
+            errorMessage = unexpectedSymbolDecl;
+        }
+        // Check if there was a non-empty token that caused a syntax error.
+        // If-with-assignment to limit scope of match.
+        tokenBuffer->matchOneOf(noLineStart);
+        if(auto match = tokenBuffer->takeLastMatch();
+                match.first != MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
+            errorMessage =  unexpectedToken.arg(match.second);
+
+        }
+        // Otherwise we hit an unexpected end of line.
+        else {
+           errorMessage = unxpectedEOL;
+        }
+        return retVal;
+        // Otherwise, indicate the token that caused the error,
+
     }
 
+    // Any line may end in a comment, and prior path that does not generate a codeLine
+    // would have returned an error message by now, so no needed to compare codeLine to nullptr.
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)) {
-        // Match a comment only line.
-        retVal.codeLine->comment = tokenBuffer->takeLastMatch().second.toString();
+        assert(retVal.codeLine);
+        // Match a comment at the end of a line.
+        retVal.codeLine->setComment(tokenBuffer->takeLastMatch().second.toString());
     }
     if(tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_EMPTY)) {
         retVal.success = true;
+        tokenBuffer->takeLastMatch();
         return retVal;
     }
+    // Something went wrong parsing the line, and all we know it that last
+    // token to be visibile caused it, so propogate that token as the error.
     else {
         retVal.success = false;
+        auto match = tokenBuffer->takeLastMatch();
+        if(match.first == MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
+            errorMessage = unxpectedEOL;
+        }
+        else {
+            errorMessage =  unexpectedToken.arg(match.second);
+        }
         return retVal;
     }
 }
 
 bool MacroAssembler::validateSymbolName(const QStringRef &name, QString &errorMessage)
 {
+    // The only additional restriction on symbols after tokenization
+    // is that they may not have more than 8 characters.
     if (name.length() > 8) {
-        errorMessage = ";ERROR: Symbol " + name + " cannot have more than eight characters.";
+        errorMessage = longSymbol.arg(name);
         return false;
     }
     return true;
 }
 
-NonUnaryInstruction *MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mnemonic,
-                                                              std::optional<QSharedPointer<SymbolEntry>> symbol,
-                                                              ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<NonUnaryInstruction>
+        MacroAssembler::parseNonUnaryInstruction(Enu::EMnemonic mnemonic,
+                                                 std::optional<QSharedPointer<SymbolEntry>> symbol,
+                                                 ModuleInstance &instance,QString &errorMessage)
 {
     Enu::EAddrMode addrMode;
-    auto nonUnaryInstruction = new NonUnaryInstruction();
-    nonUnaryInstruction->mnemonic = mnemonic;
+    auto nonUnaryInstruction = QSharedPointer<NonUnaryInstruction>::create();
+    nonUnaryInstruction->setMnemonic(mnemonic);
     if(symbol.has_value()) {
-        nonUnaryInstruction->symbolEntry = symbol.value();
+        nonUnaryInstruction->setSymbolEntry(optional_helper(symbol));
     }
 
     auto argument = parseOperandSpecifier(instance, errorMessage);
 
-    // If there was an error parsing the operand, it is already captured in the appropriate argument.
-    // we must only clean up memory that we allocated.
-    if(!errorMessage.isEmpty()) {
-        delete nonUnaryInstruction;
-        return nullptr;
-    }
-    nonUnaryInstruction->argument = argument;
+    nonUnaryInstruction->setArgument(argument);
 
     // If the next token is not an addressing mode, then we need to check if this
     // is a valid instruction to omit the addressing mode for.
     if(!tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE)) {
         if (Pep::addrModeRequiredMap.value(mnemonic)) {
-            errorMessage = ";ERROR: Addressing mode required for this instruction.";
-            delete nonUnaryInstruction;
+            errorMessage = reqAddrMode;
             // No need to delete argument, this will be deleted by nonUnaryInstruction.
             return nullptr;
         }
+        // For instructions that do not require an explicit addressing mode, we assume I is implied.
         addrMode = Enu::EAddrMode::I;
 
     }
     // Otherwise an addressing mode was present.
     else {
         tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_ADDRESSING_MODE);
-        addrMode = IsaParserHelper::stringToAddrMode(tokenBuffer->takeLastMatch().second.toString());
-        if ((static_cast<int>(addrMode) & Pep::addrModesMap.value(mnemonic)) == 0) { // Nested parens required.
-            errorMessage = ";ERROR: Illegal addressing mode for this instruction.";
+        addrMode = stringToAddrMode(tokenBuffer->takeLastMatch().second.toString());
+        // Nested parens required.
+        if ((static_cast<int>(addrMode) & Pep::addrModesMap.value(mnemonic)) == 0) {
+            errorMessage = illegalAddrMode;
+            // No need to delete argument, this will be deleted by nonUnaryInstruction.
             return nullptr;
         }
     }
-    nonUnaryInstruction->addressingMode = addrMode;
+    nonUnaryInstruction->setAddressingMode(addrMode);
     return nonUnaryInstruction;
 }
 
-AsmArgument *MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<MacroInvoke>
+        MacroAssembler::parseMacroInstruction(const ModuleAssemblyGraph& graph,
+                                              const QString &macroName,
+                                              std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                              ModuleInstance &/*instance*/, QString &errorMessage)
+{
+    // Require that the registry already contains a definition for the passed macro.
+    if(!registry->hasMacro(macroName)) {
+        errorMessage = macroDoesNotExist.arg(macroName);
+        return nullptr;
+    }
+    auto macro = registry->getMacro(macroName);
+    // Collect all arguments for macro.
+    QStringList argumentList;
+    while(tokenBuffer->matchOneOf(macroArgumentsTypes)) {
+        auto [token, tokenString] = tokenBuffer->takeLastMatch();
+        argumentList << tokenString.toString();
+    }
+
+    // Validate that macro was placed in assembly graph by the preprocessor.
+    quint16 index = graph.getIndexFromName(macroName);
+    if(index == 0xFFFF) {
+        errorMessage = macroDoesNotExist.arg(macroName);
+        return nullptr;
+    }
+
+    // Validate that the correct number of macro arguments were passed.
+    if(macro->argCount != argumentList.size()) {
+        errorMessage = macroWrongArgCount.arg(macroName);
+        return nullptr;
+    }
+
+    // Check that a macro with the same argument list was
+    // found by the preprocessor.
+    auto modulePrototype = graph.prototypeMap[index];
+    auto moduleInstance = graph.getInstanceFromArgs(index, argumentList);
+    if(!moduleInstance.has_value()) {
+        errorMessage = macroDoesNotExist.arg(macroName);
+        return nullptr;
+    }
+    QSharedPointer<MacroInvoke> macroInstruction = QSharedPointer<MacroInvoke>::create();
+    if(symbol.has_value()) {
+        macroInstruction->setSymbolEntry(optional_helper(symbol));
+    }
+    macroInstruction->setArgumentList(argumentList);
+    macroInstruction->setMacroInstance(optional_helper(moduleInstance));
+    return macroInstruction;
+}
+
+QSharedPointer<AsmArgument>
+        MacroAssembler::parseOperandSpecifier(ModuleInstance &instance, QString &errorMessage)
 {
     if(!tokenBuffer->matchOneOf(nonunaryOperandTypes)) {
-        errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
+        errorMessage = opsecAfterMnemonic;
         return nullptr;
     }
     auto pair = tokenBuffer->takeLastMatch();
 
     MacroTokenizerHelper::ELexicalToken token = pair.first;
     QString tokenString = pair.second.toString();
+    // Symbolic argument.
     if (token == MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER) {
+        // Symbols may be no longer than 8 characters
         if (tokenString.length() > 8) {
-            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            errorMessage = longSymbol.arg(tokenString);
             return nullptr;
         }
-        return new SymbolRefArgument(instance.symbolTable->reference(tokenString));
+        return QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString));
     }
+    // String constant of at most two bytes long.
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT) {
         if (MacroTokenizerHelper::byteStringLength(tokenString) > 2) {
-            errorMessage = ";ERROR: String operands must have length at most two.";
+            errorMessage = wordStringOutOfRange;
             return nullptr;
         }
-        return new StringArgument(tokenString);
+        return QSharedPointer<StringArgument>::create(tokenString);
     }
+    // Hex constant in range [0000, FFFF]
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT) {
         tokenString.remove(0, 2); // Remove "0x" prefix.
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 16);
         // If the value is in range for a 16 bit int.
-        if (value < 65536) {
-            return new HexArgument(value);
+        if (ok && value < 65536) {
+            return QSharedPointer<HexArgument>::create(value);
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
+    // Decimal constant in range [-32768, 65535]
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT) {
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 10);
-        if ((-32768 <= value) && (value <= 65535)) {
+        if (ok && (-32768 <= value) && (value <= 65535)) {
+            // Negative, so store as signed.
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
-                return new DecArgument(value);
+                return QSharedPointer<DecArgument>::create(value);
             }
+            // Otherwise store as unsigned.
             else {
-                return new UnsignedDecArgument(value);
+                return QSharedPointer<UnsignedDecArgument>::create(value);
             }
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
+            errorMessage = wordSignDecOutOfRange;
             return nullptr;
         }
     }
+    // Character constant.
     else if (token == MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT) {
-        return new CharArgument(tokenString);
+        return QSharedPointer<CharArgument>::create(tokenString);
     }
     else {
-        errorMessage = ";ERROR: Operand specifier expected after mnemonic.";
+        errorMessage = opsecAfterMnemonic;
         return nullptr;
     }
 }
 
-DotAddrss *MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry> > symbol,
-                                       ModuleInstance &instance, QString &errorMessage)
+Enu::EAddrMode MacroAssembler::stringToAddrMode(QString str) const
 {
+    str = str.trimmed().toUpper();
+    if (str.compare("I", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::I;
+    if (str.compare("D", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::D;
+    if (str.compare("N", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::N;
+    if (str.compare("S", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::S;
+    if (str.compare("SF", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::SF;
+    if (str.compare("X", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::X;
+    if (str.compare("SX", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::SX;
+    if (str.compare("SFX", Qt::CaseInsensitive) == 0) return Enu::EAddrMode::SFX;
+    return Enu::EAddrMode::NONE;
+}
 
+QSharedPointer<DotAddrss>
+        MacroAssembler::parseADDRSS(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                    ModuleInstance &instance, QString &errorMessage)
+{
+    // .ADDRSS requires a symbolic argument
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (tokenString.length() > 8) {
-            errorMessage = ";ERROR: Symbol " + tokenString + " cannot have more than eight characters.";
+            errorMessage = longSymbol.arg(tokenString);
             return nullptr;
         }
-        DotAddrss *dotAddrss = new DotAddrss;
+        QSharedPointer<DotAddrss> dotAddrss = QSharedPointer<DotAddrss>::create();
         if(symbol.has_value()) {
-            dotAddrss->symbolEntry = symbol.value();
+            dotAddrss->setSymbolEntry(optional_helper(symbol));
         }
-        dotAddrss->argument = new SymbolRefArgument(instance.symbolTable->reference(tokenString));
+        dotAddrss->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
         return dotAddrss;
     }
     else {
-        errorMessage = ";ERROR: .ADDRSS requires a symbol argument.";
+        errorMessage = badAddrssArgument;
         return nullptr;
     }
 }
 
-DotAscii *MacroAssembler::parseASCII(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotAscii>
+        MacroAssembler::parseASCII(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                   ModuleInstance&, QString &errorMessage)
 {
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        DotAscii *dotAscii = new DotAscii;
+        QSharedPointer<DotAscii> dotAscii = QSharedPointer<DotAscii>::create();
         if(symbol.has_value()) {
-            dotAscii->symbolEntry = symbol.value();
+            dotAscii->setSymbolEntry(optional_helper(symbol));
         }
-        dotAscii->argument = new StringArgument(tokenString);
+        dotAscii->setArgument(QSharedPointer<StringArgument>::create(tokenString));
         return dotAscii;
     }
     else {
-        errorMessage = ";ERROR: .ASCII requires a string constant argument.";
+        errorMessage = badAsciiArgument;
         return nullptr;
     }
 }
 
-DotAlign *MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotAlign>
+        MacroAssembler::parseALIGN(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                   ModuleInstance&, QString &errorMessage)
 {
-    bool ok;
+    // ALIGN directives may only take integer arguments in (2, 4, 8).
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        DotAlign *dotAlign = new DotAlign;
+        QSharedPointer<DotAlign> dotAlign = QSharedPointer<DotAlign>::create();
         if(symbol.has_value()) {
-            dotAlign->symbolEntry = symbol.value();
+            dotAlign->setSymbolEntry(optional_helper(symbol));
         }
+        bool ok = false;
         int value = tokenString.toInt(&ok, 10);
-        if (value == 2 || value == 4 || value == 8) {
-            dotAlign->argument = new UnsignedDecArgument(value);
-            // Num bytes generated is now deduced by the linker.
-            //int numBytes = (value - byteCount % value) % value;
-            // dotAlign->numBytesGenerated = new UnsignedDecArgument(numBytes);
+        if (ok && (value == 2 || value == 4 || value == 8)) {
+            dotAlign->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
+            // Number of bytes generated is now calculated by linker.
             return dotAlign;
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (2, 4, 8).";
-            delete dotAlign;
+            errorMessage = decConst248;
             return nullptr;
         }
     }
     else {
-        errorMessage = ";ERROR: .ALIGN requires a decimal constant 2, 4, or 8.";
+        errorMessage = badAlignArgument;
         return nullptr;
     }
 }
 
-DotBlock *MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotBlock>
+        MacroAssembler::parseBLOCK(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                   ModuleInstance&, QString &errorMessage)
 {
-
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 10);
-        if ((0 <= value) && (value <= 65535)) {
-            DotBlock *dotBlock = new DotBlock;
+        if (ok && (0 <= value) && (value <= 65535)) {
+            QSharedPointer<DotBlock> dotBlock = QSharedPointer<DotBlock>::create();
             if(symbol.has_value()) {
-                dotBlock->symbolEntry = symbol.value();
+                dotBlock->setSymbolEntry(optional_helper(symbol));
             }
-            if (value < 0) {
-                value += 65536; // Stored as two-byte unsigned.
-                dotBlock->argument = new DecArgument(value);
-            }
-            else {
-                dotBlock->argument = new UnsignedDecArgument(value);
-            }
+            // Argument may only be unsigned.
+            dotBlock->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             return dotBlock;
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (0..65535).";
+            errorMessage = wordUnsignDecOutOfRange;
             return nullptr;
         }
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
-            DotBlock *dotBlock = new DotBlock;
+        if (ok && value < 65536) {
+            QSharedPointer<DotBlock> dotBlock = QSharedPointer<DotBlock>::create();
             if(symbol.has_value()) {
-                dotBlock->symbolEntry = symbol.value();
+                dotBlock->setSymbolEntry(optional_helper(symbol));
             }
-            dotBlock->argument = new HexArgument(value);
+            dotBlock->setArgument(QSharedPointer<HexArgument>::create(value));
             return dotBlock;
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else {
-        errorMessage = ";ERROR: .BLOCK requires a decimal or hex constant argument.";
+        errorMessage = badBlockArgument;
         return nullptr;
     }
 }
 
-DotBurn *MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
+QSharedPointer<DotBurn>
+        MacroAssembler::parseBURN(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                  ModuleInstance &instance, QString &errorMessage)
 {
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_HEX_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
-        bool ok;
+        bool ok = false;
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
-            DotBurn *dotBurn = new DotBurn;
+        if (ok && value < 65536) {
+            QSharedPointer<DotBurn> dotBurn = QSharedPointer<DotBurn>::create();
             if(symbol.has_value()) {
-                dotBurn->symbolEntry = symbol.value();
+                dotBurn->setSymbolEntry(optional_helper(symbol));
             }
-            dotBurn->argument = new HexArgument(value);
+            dotBurn->setArgument(QSharedPointer<HexArgument>::create(value));
+            // Multiple BURN directives will be detected in linker.
             instance.burnInfo.burnCount++;
             instance.burnInfo.burnArgument = value;
             return dotBurn;
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else {
-        errorMessage = ";ERROR: .BURN requires a hex constant argument.";
+        errorMessage = badBurnArgument;
         return nullptr;
     }
 }
 
-DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotByte>
+        MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                  ModuleInstance&, QString &errorMessage)
 {
     bool ok;
-    // This block of code was repeated in every if() statement,
-    // While this might lead to some unecessary deletes, the
-    // number of errors that occur on a .BYTE directive should be
-    // minimal.
-    DotByte *dotByte = new DotByte;
+    QSharedPointer<DotByte> dotByte = QSharedPointer<DotByte>::create();
     if(symbol.has_value()) {
-        dotByte->symbolEntry = symbol.value();
+        dotByte->setSymbolEntry(optional_helper(symbol));
     }
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        DotByte *dotByte = new DotByte;
-        dotByte->argument = new CharArgument(tokenString);
+        dotByte->setArgument(QSharedPointer<CharArgument>::create(tokenString));
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
@@ -575,11 +739,10 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
             if (value < 0) {
                 value += 256; // value stored as one-byte unsigned.
             }
-            dotByte->argument = new DecArgument(value);
+            dotByte->setArgument(QSharedPointer<DecArgument>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of byte range (-128..255).";
-            delete dotByte;
+            errorMessage = byteDecOutOfRange;
             return nullptr;
         }
     }
@@ -588,80 +751,75 @@ DotByte *MacroAssembler::parseBYTE(std::optional<QSharedPointer<SymbolEntry> > s
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
         if (value < 256) {
-            DotByte *dotByte = new DotByte;
-            dotByte->argument = new HexArgument(value);
+            dotByte->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Hex constant is out of byte range (0x00..0xFF).";
-            delete dotByte;
+            errorMessage = byteHexOutOfRange;
             return nullptr;
         }
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 1) {
-            errorMessage = ";ERROR: .BYTE string operands must have length one.";
-            delete dotByte;
+            errorMessage = byteStringOutOfRange;
             return nullptr;
         }
-        dotByte->argument = new StringArgument(tokenString);
+        dotByte->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
-        errorMessage = ";ERROR: .BYTE requires a char, dec, hex, or string constant argument.";
-        delete dotByte;
+        errorMessage = badByteArgument;
         return nullptr;
     }
     return dotByte;
 }
 
-DotEnd *MacroAssembler::parseEND(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotEnd>
+        MacroAssembler::parseEND(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                 ModuleInstance&, QString &errorMessage)
 {
     if(symbol.has_value()) {
-        errorMessage = ";ERROR: .END directive may not define a symbol.";
+        errorMessage = endForbidsSymbol;
         return nullptr;
     }
     if (!(tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_COMMENT)
           || tokenBuffer->lookahead(MacroTokenizerHelper::ELexicalToken::LT_EMPTY))) {
-        errorMessage = ";ERROR: Only a comment can follow .END.";
+        errorMessage = endOnlyComment;
         return nullptr;
     }
 
-    return new DotEnd;
+    return QSharedPointer<DotEnd>::create();
 }
 
-DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotEquate>
+        MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                    ModuleInstance&, QString &errorMessage)
 {
     if (!symbol.has_value()) {
-        errorMessage = ";ERROR: .EQUATE must have a symbol definition.";
+        errorMessage = equateRequiresSymbol;
         return nullptr;
     }
 
-    bool ok;
-    // This block of code was repeated in every if() statement,
-    // While this might lead to some unecessary deletes, the
-    // number of errors that occur on a .EQUATE directive should be
-    // minimal.
-    DotEquate *dotEquate = new DotEquate;
+    bool ok = false;
+    QSharedPointer<DotEquate> dotEquate = QSharedPointer<DotEquate>::create();
     if(symbol.has_value()) {
-        dotEquate->symbolEntry = symbol.value();
+        dotEquate->setSymbolEntry(optional_helper(symbol));
     }
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         int value = tokenString.toInt(&ok, 10);
-        if ((-32768 <= value) && (value <= 65535)) {
+        if (ok && (-32768 <= value) && (value <= 65535)) {
 
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
-                dotEquate->argument = new DecArgument(value);
+                dotEquate->setArgument(QSharedPointer<DecArgument>::create(value));
             }
             else {
-                dotEquate->argument = new UnsignedDecArgument(value);
+                dotEquate->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             }
-            dotEquate->symbolEntry->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
+            dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
-            delete dotEquate;
+            errorMessage = wordSignDecOutOfRange;
             return nullptr;
         }
     }
@@ -669,85 +827,147 @@ DotEquate *MacroAssembler::parseEQUATE(std::optional<QSharedPointer<SymbolEntry>
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
-            dotEquate->argument = new HexArgument(value);
-            dotEquate->symbolEntry->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
+        if (ok && value < 65536) {
+            dotEquate->setArgument(QSharedPointer<HexArgument>::create(value));
+            dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
-            delete dotEquate;
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 2) {
-            errorMessage = ";ERROR: .EQUATE string operand must have length at most two.";
-            delete dotEquate;
+            errorMessage = wordStringOutOfRange;
             return nullptr;
         }
-        dotEquate->argument = new StringArgument(tokenString);
-        dotEquate->symbolEntry->setValue(QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::string2ArgumentToInt(tokenString)));
+        dotEquate->setArgument(QSharedPointer<StringArgument>::create(tokenString));
+        dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::string2ArgumentToInt(tokenString)));
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        dotEquate->argument = new CharArgument(tokenString);
-        dotEquate->symbolEntry->setValue(QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::charStringToInt(tokenString)));
+        dotEquate->setArgument(QSharedPointer<CharArgument>::create(tokenString));
+        dotEquate->getSymbolEntry()->setValue(QSharedPointer<SymbolValueNumeric>::create(IsaParserHelper::charStringToInt(tokenString)));
     }
     else {
-        errorMessage = ";ERROR: .EQUATE requires a dec, hex, or string constant argument.";
-        delete dotEquate;
+        errorMessage = badEquateArgument;
         return nullptr;
     }
     return dotEquate;
 }
 
-bool MacroAssembler::parseEXPORT()
+QSharedPointer<DotExport>
+        MacroAssembler::parseEXPORT(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                 ModuleInstance &instance, QString &errorMessage)
 {
-    return false;
+    if (symbol.has_value()) {
+        errorMessage = exportForbidsSymbol;
+        return nullptr;
+    }
+
+    if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
+        QString tokenString = tokenBuffer->takeLastMatch().second.toString();
+        if (tokenString.length() > 8) {
+            errorMessage = longSymbol.arg(tokenString);
+            return nullptr;
+        }
+        QSharedPointer<DotExport> dotExport = QSharedPointer<DotExport>::create();
+        dotExport->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
+        // Export declares a symbol from the operating system to be visible in user code.
+        instance.symbolTable->declareExternal(tokenString);
+        return dotExport;
+    }
+    else {
+        errorMessage = exportRequiresSymbol;
+        return nullptr;
+    }
 }
 
-bool MacroAssembler::parseSYCALL()
+QSharedPointer<DotSycall> MacroAssembler::parseSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
-    return false;
+    if (symbol.has_value()) {
+        errorMessage = scallForbidsSymbol;
+        return nullptr;
+    }
+    if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
+        QString tokenString = tokenBuffer->takeLastMatch().second.toString();
+        if (tokenString.length() > 8) {
+            errorMessage = longSymbol.arg(tokenString);
+            return nullptr;
+        }
+        QSharedPointer<DotSycall> dotSycall = QSharedPointer<DotSycall>::create();
+        dotSycall->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
+        // Export declares a symbol from the operating system to be visible in user code.
+        bool success = registry->registerNonunarySystemCall(tokenString);
+        if(!success) {
+            errorMessage = failedToRegisterMacro.arg(tokenString);
+            return nullptr;
+        }
+        return dotSycall;
+    }
+    else {
+        errorMessage = scallRequiresSymbol;
+        return nullptr;
+    }
 }
 
-bool MacroAssembler::parseUSYCALL()
+QSharedPointer<DotUSycall> MacroAssembler::parseUSCALL(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance &instance, QString &errorMessage)
 {
-    return false;
+    if (symbol.has_value()) {
+        errorMessage = uscallForbidsSymbol;
+        return nullptr;
+    }
+    if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_IDENTIFIER)) {
+        QString tokenString = tokenBuffer->takeLastMatch().second.toString();
+        if (tokenString.length() > 8) {
+            errorMessage = longSymbol.arg(tokenString);
+            return nullptr;
+        }
+        QSharedPointer<DotUSycall> dotUSycall = QSharedPointer<DotUSycall>::create();
+        dotUSycall->setArgument(QSharedPointer<SymbolRefArgument>::create(instance.symbolTable->reference(tokenString)));
+        // Export declares a symbol from the operating system to be visible in user code.
+        bool success = registry->registerUnarySystemCall(tokenString);
+        if(!success) {
+            errorMessage = failedToRegisterMacro.arg(tokenString);
+            return nullptr;
+        }
+        return dotUSycall;
+    }
+    else {
+        errorMessage = uscallRequiresSymbol;
+        return nullptr;
+    }
 }
 
-DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > symbol, ModuleInstance&, QString &errorMessage)
+QSharedPointer<DotWord>
+        MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > symbol,
+                                  ModuleInstance&, QString &errorMessage)
 {
-    bool ok;
-    // This block of code was repeated in every if() statement,
-    // While this might lead to some unecessary deletes, the
-    // number of errors that occur on a .WORD directive should be
-    // minimal.
-    DotWord *dotWord = new DotWord;
+    bool ok = false;
+    QSharedPointer<DotWord> dotWord = QSharedPointer<DotWord>::create();
     if(symbol.has_value()) {
-        dotWord->symbolEntry = symbol.value();
+        dotWord->setSymbolEntry(optional_helper(symbol));
     }
 
     if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_CHAR_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
-        dotWord->argument = new CharArgument(tokenString);
+        dotWord->setArgument(QSharedPointer<CharArgument>::create(tokenString));
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_DEC_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         int value = tokenString.toInt(&ok, 10);
-        if ((-32768 <= value) && (value < 65536)) {
+        if (ok && (-32768 <= value) && (value < 65536)) {
             if (value < 0) {
                 value += 65536; // Stored as two-byte unsigned.
-                dotWord->argument = new DecArgument(value);
+                dotWord->setArgument(QSharedPointer<DecArgument>::create(value));
             }
             else {
-                dotWord->argument = new UnsignedDecArgument(value);
+                dotWord->setArgument(QSharedPointer<UnsignedDecArgument>::create(value));
             }
         }
         else {
-            errorMessage = ";ERROR: Decimal constant is out of range (-32768..65535).";
-            delete dotWord;
+            errorMessage = wordSignDecOutOfRange;
             return nullptr;
         }
     }
@@ -755,27 +975,24 @@ DotWord *MacroAssembler::parseWORD(std::optional<QSharedPointer<SymbolEntry> > s
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         tokenString.remove(0, 2); // Remove "0x" prefix.
         int value = tokenString.toInt(&ok, 16);
-        if (value < 65536) {
-            dotWord->argument = new HexArgument(value);
+        if (ok && value < 65536) {
+            dotWord->setArgument(QSharedPointer<HexArgument>::create(value));
         }
         else {
-            errorMessage = ";ERROR: Hexidecimal constant is out of range (0x0000..0xFFFF).";
-            delete dotWord;
+            errorMessage = wordHexOutOfRange;
             return nullptr;
         }
     }
     else if (tokenBuffer->match(MacroTokenizerHelper::ELexicalToken::LT_STRING_CONSTANT)) {
         QString tokenString = tokenBuffer->takeLastMatch().second.toString();
         if (IsaParserHelper::byteStringLength(tokenString) > 2) {
-            errorMessage = ";ERROR: .WORD string operands must have length at most two.";
-            delete dotWord;
+            errorMessage = wordStringOutOfRange;
             return nullptr;
         }
-        dotWord->argument = new StringArgument(tokenString);
+        dotWord->setArgument(QSharedPointer<StringArgument>::create(tokenString));
     }
     else {
-        errorMessage = ";ERROR: .WORD requires a char, dec, hex, or string constant argument.";
-        delete dotWord;
+        errorMessage = badWordArgument;
         return nullptr;
     }
     return dotWord;

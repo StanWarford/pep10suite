@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 #endif
     // Initialize all global maps.
     Pep::initEnumMnemonMaps();
-    Pep::initMnemonicMaps(true);
+    Pep::initMnemonicMaps();
     Pep::initAddrModesMap();
     Pep::initDecoderTables();
 

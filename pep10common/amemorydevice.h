@@ -87,18 +87,18 @@ public slots:
     virtual void onCycleFinished() = 0;
 
     // Read / Write functions that may trap for IO or generate errors from writing to readonly storage.
-    virtual bool readByte(quint16 address, quint8& output) const = 0;
-    virtual bool writeByte(quint16 address, quint8 value) = 0;
+    virtual bool readByte(quint16 offsetFromBase, quint8& output) const = 0;
+    virtual bool writeByte(quint16 offsetFromBase, quint8 value) = 0;
     // Read / Write of words as two read / write byte operations and bitmath.
-    virtual bool readWord(quint16 address, quint16& output) const;
-    virtual bool writeWord(quint16 address, quint16 value);
+    virtual bool readWord(quint16 offsetFromBase, quint16& output) const;
+    virtual bool writeWord(quint16 offsetFromBase, quint16 value);
 
     // Get / Set functions that are guarenteed not to trap for IO and will not error.
-    virtual bool getByte(quint16 address, quint8& output) const = 0;
-    virtual bool setByte(quint16 address, quint8 value) = 0;
+    virtual bool getByte(quint16 offsetFromBase, quint8& output) const = 0;
+    virtual bool setByte(quint16 offsetFromBase, quint8 value) = 0;
     // Get / Set of words as two get / set byte operations and bitmath.
-    virtual bool getWord(quint16 address, quint16& output) const;
-    virtual bool setWord(quint16 address, quint16 value);
+    virtual bool getWord(quint16 offsetFromBase, quint16& output) const;
+    virtual bool setWord(quint16 offsetFromBase, quint16 value);
 
 signals:
     // Signal that a memory address has been written / set.

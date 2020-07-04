@@ -1,30 +1,35 @@
 #include "macrotokenizer.h"
+
+// Helper to make sure regular expressions are initialized in case-insensitive mode.
+const QRegularExpression init(QString string)
+{
+    QRegularExpression regEx(string);
+    // Ignore case in our regular expressions.
+    regEx.setPatternOptions(regEx.patternOptions() | QRegularExpression::CaseInsensitiveOption);
+    return regEx;
+}
 // Regular expressions for lexical analysis
-const QRegularExpression MacroTokenizerHelper::addrMode("((,)(\\s*)(i|d|x|n|s(?![fx])|sx(?![f])|sf|sfx){1}){1}");
-const QRegularExpression MacroTokenizerHelper::charConst("((\')(?![\'])(([^\'\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
-const QRegularExpression MacroTokenizerHelper::comment("((;{1})(.)*)");
-const QRegularExpression MacroTokenizerHelper::decConst("((([+|-]{0,1})([0-9]+))|^(([1-9])([0-9]*)))");
-const QRegularExpression MacroTokenizerHelper::dotCommand("((.)(([A-Z|a-z]{1})(\\w)*))");
-const QRegularExpression MacroTokenizerHelper::hexConst("((0(?![x|X]))|((0)([x|X])([0-9|A-F|a-f])+)|((0)([0-9]+)))");
-const QRegularExpression MacroTokenizerHelper::identifier("[A-Z|a-z|_]\\w*(:){0,1}");
-const QRegularExpression MacroTokenizerHelper::stringConst("((\")((([^\"\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\"))");
-const QRegularExpression MacroTokenizerHelper::macroInvocation("%[A-Z|a-z|_]{1}(\\w*)");
-const QRegularExpression MacroTokenizerHelper::macroSubstitution("\\%\\d+");
+// For addressing modes starting with s, use negative lookaheads to ensure
+// that the longest possible addressing is matched.
+const QRegularExpression MacroTokenizerHelper::addrMode = init("^,\\s*(i|d|x|n|s(?!([fx]))|sx(?!f)|sf(?!x)|sfx)\\s*");
+// Do not use init() to ignore case, as escape sequences are case sensitive.
+const QRegularExpression MacroTokenizerHelper::charConst("^\'([^\'\\\\]|\\\\(\'|[bfnrtv]|\"|////)|\\\\[xX][0-9a-fA-F]{2})\'");
+// Old Pep9 regular expression for matching a char const.
+//const QRegularExpression MacroTokenizerHelper::charConst("^\'(?!\')([^\'\\\\]{1}|(\\\\[\'|b|f|n|r|t|v|\"|\\\\])|(\\\\[x|X][0-9|A-F|a-f]{2}\'))");
+const QRegularExpression MacroTokenizerHelper::comment = init(";.*");
+const QRegularExpression MacroTokenizerHelper::decConst = init("^[+|-]{0,1}[0-9]+\\s*");
+const QRegularExpression MacroTokenizerHelper::dotCommand = init("^\\.[a-zA-Z]\\w*\\s*");
+const QRegularExpression MacroTokenizerHelper::hexConst = init("^0[xX][0-9a-fA-F]+\\s*");
+const QRegularExpression MacroTokenizerHelper::identifier = init("[A-Z|a-z|_]\\w*(:){0,1}\\s*");
+const QRegularExpression MacroTokenizerHelper::stringConst("((\")((([^\"\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\")\\s*)");
+const QRegularExpression MacroTokenizerHelper::macroInvocation = init("@[A-Z|a-z|_]{1}(\\w*)");
 // Regular expressions for trace tag analysis
 const QRegularExpression MacroTokenizerHelper::rxFormatTag("(#((1c)|(1d)|(1h)|(2d)|(2h))((\\d)+a)?(\\s|$))");
 const QRegularExpression MacroTokenizerHelper::rxArrayTag("(#((1c)|(1d)|(1h)|(2d)|(2h))(\\d)+a)(\\s|$)?");
 const QRegularExpression MacroTokenizerHelper::rxSymbolTag("#[a-zA-Z][a-zA-Z0-9]{0,7}");
 const QRegularExpression MacroTokenizerHelper::rxArrayMultiplier("((\\d)+)a");
 
-// Formats for trace tag error messages
-const QString bytesAllocMismatch = ";WARNING: Number of bytes allocated (%1) not equal to number of bytes listed in trace tag (%2).";
-const QString badTag = ";WARNING: %1 not specified in .EQUATE";
-const QString neSymbol(";WARNING: Looked up a symbol that does not exist: %1");
-const QString noEquate(";WARNING: Looked for existing symbol not defined in .EQUATE: %1");
-const QString noSymbol(";WARNING: Trace tag with no symbol declaration");
-const QString illegalAddrMode(";WARNING: Stack trace not possible unless immediate addressing is specified.");
-
-bool MacroTokenizerHelper::startsWithHexPrefix(QString str)
+bool MacroTokenizerHelper::startsWithHexPrefix(QStringRef str)
 {
     if (str.length() < 2) return false;
     if (str[0] != '0') return false;
@@ -45,33 +50,6 @@ Enu::EAddrMode MacroTokenizerHelper::stringToAddrMode(QString str)
     if (str == "SX") return Enu::EAddrMode::SX;
     if (str == "SFX") return Enu::EAddrMode::SFX;
     return Enu::EAddrMode::NONE;
-}
-
-int MacroTokenizerHelper::charStringToInt(QString str)
-{
-    str.remove(0, 1); // Remove the leftmost single quote.
-    str.chop(1); // Remove the rightmost single quote.
-    int value;
-    MacroTokenizerHelper::unquotedStringToInt(str, value);
-    return value;
-}
-
-int MacroTokenizerHelper::string2ArgumentToInt(QString str) {
-    int valueA, valueB;
-    str.remove(0, 1); // Remove the leftmost double quote.
-    str.chop(1); // Remove the rightmost double quote.
-    MacroTokenizerHelper::unquotedStringToInt(str, valueA);
-    if (str.length() == 0) {
-        return valueA;
-    }
-    else {
-        MacroTokenizerHelper::unquotedStringToInt(str, valueB);
-        valueA = 256 * valueA + valueB;
-        if (valueA < 0) {
-            valueA += 65536; // Stored as two-byte unsigned.
-        }
-        return valueA;
-    }
 }
 
 void MacroTokenizerHelper::unquotedStringToInt(QString &str, int &value)
@@ -152,67 +130,84 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
                               QStringRef &tokenString, QString &errorString)
 {
     using namespace MacroTokenizerHelper;
-    if (offset > sourceLine.length()) {
+    QChar firstChar;
+    // Consume whitespace until absent, as whitepsace is not syntatically significant.
+    for(firstChar = sourceLine[offset];
+        offset < sourceLine.length() && firstChar.isSpace();
+        firstChar = sourceLine[++offset]) {
+
+    }
+    // If all whitespace was consumed and the line is now empty, we have a empty token.
+    if (offset >= sourceLine.length()) {
         token = ELexicalToken::LT_EMPTY;
         tokenString = QStringRef();
         return true;
     }
 
-    QChar firstChar = sourceLine[offset];
+
+    // All of the $'s should have been taken care of by the token buffer.
+    // So, if we're seeing a $, we a gaurenteed a malformed substitution.
     if (firstChar == '$') {
-        auto match = macroSubstitution.match(sourceLine, offset);
-        if (!match.hasMatch()) {
-            token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed macro substitution.";
-            return false;
-        }
-
-        int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx + 1, len - 1);
-
-        bool ok = true;
-        int val = tokenString.toInt(&ok, 10);
-        if (!ok) {
-            token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed macro substitution number.";
-            return false;
-        }
-        else if(val > macroSubstitutions.size()) {
-            token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Macro substitution too high.";
-            return false;
-        }
-        // Macro substitutions are 1 indexed, so must subtract 1.
-        sourceLine.replace(QRegularExpression(QString("\\$%1").arg(val)), macroSubstitutions[val - 1]);
-        return getToken(sourceLine, offset, token, tokenString, errorString);
+        token = ELexicalToken::LTE_ERROR;
+        errorString = malformedMacroSubstitution;
+        return false;
     }
-    if (firstChar == ',') {
-        auto match = addrMode.match(sourceLine, offset);
+    if (firstChar == '@') {
+        auto match = macroInvocation.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed addressing mode.";
+            errorString = malformedMacroInvocation;
+            return false;
+        }
+        token = ELexicalToken::LTE_MACRO_INVOKE;
+        int startIdx = match.capturedStart();
+        int len = match.capturedLength();
+
+        // If the macro invocation is not followed by and end of line,
+        // space, or comment, then there was some form of identifier parsing error.
+        if (sourceLine.length() > offset + len &&
+                !(sourceLine.at(offset+len).isSpace() ||
+                  sourceLine.at(offset+len)==';')) {
+            token = ELexicalToken::LTE_ERROR;
+            errorString = malformedMacroInvocation;
+            return false;
+        }
+
+        tokenString = QStringRef(&sourceLine, startIdx + 1, len - 1).trimmed();
+        offset += len;
+        return true;
+    }
+    // Parse a suspected addressing mode.
+    if (firstChar == ',') {
+        auto subStr = sourceLine.midRef(offset);
+        auto match = addrMode.match(subStr);
+        if (!match.hasMatch()) {
+            token = ELexicalToken::LTE_ERROR;
+            errorString = malformedAddrMode;
             return false;
         }
         token = ELexicalToken::LT_ADDRESSING_MODE;
         int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        int len = match.capturedLength();
+        // Chop off the matched ,.
+        tokenString = subStr.mid(startIdx + 1, len - 1).trimmed();
+        // Move offset to the end of the matched string.
+        offset += len;
         return true;
     }
     if (firstChar == '\'') {
-        auto match = charConst.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = charConst.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed character constant.";
+            errorString = malformedCharConst;
             return false;
         }
         token = ELexicalToken::LT_CHAR_CONSTANT;
         int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        int len = match.capturedLength();;
+        tokenString = subStr.mid(startIdx, len).trimmed();
+        offset += len;
         return true;
     }
     if (firstChar == ';') {
@@ -220,91 +215,97 @@ bool MacroTokenizer::getToken(QString &sourceLine, int& offset, MacroTokenizerHe
         if (!match.hasMatch()) {
             // This error should not occur, as any characters are allowed in a comment.
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed comment";
+            errorString = malformedComment;
             return false;
         }
         token = ELexicalToken::LT_COMMENT;
         int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        int len = match.capturedLength();;
+        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        offset += len;
         return true;
     }
-    if (startsWithHexPrefix(sourceLine)) {
-        auto match = hexConst.match(sourceLine, offset);
+    if (startsWithHexPrefix(sourceLine.midRef(offset))) {
+        auto subStr = sourceLine.midRef(offset);
+        auto match = hexConst.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed hex constant.";
+            errorString = malformedHexConst;
             return false;
         }
         token = ELexicalToken::LT_HEX_CONSTANT;
         int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        int len = match.capturedLength();;
+        tokenString = subStr.mid(startIdx, len).trimmed();
+        offset += len;
         return true;
     }
     if ((firstChar.isDigit() || firstChar == '+' || firstChar == '-')) {
-        auto match = decConst.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = decConst.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed decimal constant.";
+            errorString = malformedDecConst;
             return false;
         }
         token = ELexicalToken::LT_DEC_CONSTANT;
         int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        int len = match.capturedLength();;
+        tokenString = subStr.mid(startIdx, len).trimmed();
+        offset += len;
         return true;
     }
     if (firstChar == '.') {
-        auto match = dotCommand.match(sourceLine, offset);
+        auto subStr = sourceLine.midRef(offset);
+        auto match = dotCommand.match(subStr);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed dot command.";
+            errorString = malformedDot;
             return false;
         }
         token = ELexicalToken::LT_DOT_COMMAND;
         int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        int len = match.capturedLength();;
+        tokenString = subStr.mid(startIdx, len).trimmed();
+        offset += len;
         return true;
     }
+    // Works!
     if (firstChar.isLetter() || firstChar == '_') {
         auto match = identifier.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
             // This error should not occur, as one-character identifiers are valid.
-            errorString = ";ERROR: Malformed identifier.";
+            errorString = malformedIdentifier;
             return false;
         }
-        token = tokenString.endsWith(':') ?
+
+        int startIdx = match.capturedStart();
+        int len = match.capturedLength();;
+        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        token = tokenString.contains(':') ?
                     ELexicalToken::LT_SYMBOL_DEF :
                     ELexicalToken::LT_IDENTIFIER;
-        int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        offset += len;
         return true;
     }
     if (firstChar == '\"') {
         auto match = stringConst.match(sourceLine, offset);
         if (!match.hasMatch()) {
             token = ELexicalToken::LTE_ERROR;
-            errorString = ";ERROR: Malformed string constant.";
+            errorString = malformedStringConst;
             return false;
         }
         token = ELexicalToken::LT_STRING_CONSTANT;
         int startIdx = match.capturedStart();
-        int len = match.capturedEnd() - startIdx;
-        tokenString = QStringRef(&sourceLine, startIdx, len);
-        offset += tokenString.length();
+        int len = match.capturedLength();;
+        tokenString = QStringRef(&sourceLine, startIdx, len).trimmed();
+        // No need to remove ", this will be handled in the assembler.
+        offset += len;
         return true;
     }
     token = ELexicalToken::LTE_ERROR;
-    errorString = ";ERROR: Syntax error.";
+    errorString = syntaxError;
     return false;
 }
 
@@ -312,6 +313,17 @@ void MacroTokenizer::setMacroSubstitutions(QStringList macroSubstitution)
 {
     this->macroSubstitutions = macroSubstitution;
 }
+
+void MacroTokenizer::performMacroSubstitutions(QString &sourceLine)
+{
+    for(int it = 0; it < macroSubstitutions.size(); it++) {
+        QString argName = QString("\\$%1").arg(it + 1);
+        sourceLine.replace(QRegularExpression(argName), macroSubstitutions[it]);
+    }
+
+}
+
+
 
 TokenizerBuffer::TokenizerBuffer(): tokenizer(new MacroTokenizer())
 {
@@ -335,15 +347,21 @@ void TokenizerBuffer::clearMacroSubstitutions()
 
 void TokenizerBuffer::setTokenizerInput(QStringList lines)
 {
-    tokenizerInput = lines;
-    inputIterator = lines.begin();
+    tokenizerInput.resize(lines.size());
+    int index = 0;
+    for(auto line : lines) {
+        // Always purge whitespace.
+        tokenizerInput[index] = line.trimmed();
+        index++;
+    }
+    inputIterator = 0;
     backedUpInput.clear();
     matches.clear();
 }
 
 bool TokenizerBuffer::inputRemains()
 {
-    return (inputIterator != tokenizerInput.end()) || !backedUpInput.isEmpty();
+    return (inputIterator < tokenizerInput.size()) || !backedUpInput.isEmpty();
 }
 
 bool TokenizerBuffer::match(MacroTokenizerHelper::ELexicalToken token)
@@ -408,6 +426,12 @@ QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef> > TokenizerBuffer::
     return matches;
 }
 
+bool TokenizerBuffer::skipNextLine()
+{
+    inputIterator += 1;
+    return inputRemains();
+}
+
 void TokenizerBuffer::clearMatchBuffer()
 {
     matches.clear();
@@ -415,24 +439,36 @@ void TokenizerBuffer::clearMatchBuffer()
 
 void TokenizerBuffer::fetchNextLine()
 {
-    MacroTokenizerHelper::ELexicalToken token;
+    // Compiler believes this variable to always be unitialized. This is incorrect,
+    // since it is initialized within the getToekn(...) method.
+    MacroTokenizerHelper::ELexicalToken token = MacroTokenizerHelper::ELexicalToken::LTE_ERROR;
     QStringRef tokenString;
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> newTokens;
     int offset = 0;
-    if(inputIterator != tokenizerInput.end()) (*inputIterator).trimmed();
+    bool hadMacroInvoke = false;
+    // Only need to perform macro substitutions once per line.
+    tokenizer->performMacroSubstitutions(tokenizerInput[inputIterator]);
     while(token != MacroTokenizerHelper::ELexicalToken::LT_EMPTY) {
 
-
-        if(!tokenizer->getToken(*inputIterator, offset, token, tokenString, this->errorMessage)) {
+        if(!tokenizer->getToken(tokenizerInput[inputIterator], offset, token, tokenString, this->errorMessage)) {
             // If a new line has an error on it, the error is the only
             // thing that will be reported. This means we don't have to search for errors
             // on every match.
-            qDebug().noquote() << token << tokenString;
             tokenString = QStringRef(&this->errorMessage);
+            qDebug().noquote() << token << tokenString;
             backedUpInput.append({token, tokenString});
             break;
         }
-        qDebug().noquote() << token << tokenString;
+
+        if(token == MacroTokenizerHelper::ELexicalToken::LTE_MACRO_INVOKE) {
+            hadMacroInvoke = true;
+        }
+        if(hadMacroInvoke) {
+            if(tokenizerInput[inputIterator][offset] == ",") {
+                ++offset;
+            }
+        }
+        // qDebug().noquote() << token << tokenString;
         newTokens.append({token, tokenString});
     }
     backedUpInput.append(newTokens);

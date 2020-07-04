@@ -27,16 +27,13 @@
 #include "memorychips.h"
 #include "mainmemory.h"
 
-MainMemory::MainMemory(QObject* parent) noexcept: AMemoryDevice (parent), updateMemMap(true),
-    endChip(new NilChip(0xffff, 0, this)), addressToChipLookupTable(1 << 16), maxAddr(0)
+MainMemory::MainMemory(QObject* parent) noexcept: AMemoryDevice (parent),
+    endChip(new NilChip(0xffff, 0, this)), addressToChipLookupTable(1 << 16)
 {
 
 }
 
-MainMemory::~MainMemory()
-{
-
-}
+MainMemory::~MainMemory() = default;
 
 quint32 MainMemory::maxAddress() const noexcept
 {
@@ -44,9 +41,13 @@ quint32 MainMemory::maxAddress() const noexcept
     // ( + 1 since addresses start at 0, not 1). The highest address in a chip
     // is the address of the chip plus its size.
     maxAddr = 0;
-    for(auto it : memoryChipMap) {
-        if(it == endChip) continue;
-        if(maxAddr > it->getSize() + it->getBaseAddress()) continue;
+    for(const auto& it : memoryChipMap) {
+        if(it == endChip) {
+            continue;
+        }
+        if(maxAddr > it->getSize() + it->getBaseAddress()) {
+            continue;
+        }
         else {
             maxAddr = it->getSize() + it->getBaseAddress();
         }
@@ -176,7 +177,8 @@ QVector<QSharedPointer<AMemoryChip> > MainMemory::removeAllChips()
     }
     if(temp.contains(endChip)) {
         auto isNilChip = [this](QSharedPointer<AMemoryChip> chip) {return chip == endChip;};
-        std::remove_if(temp.begin(),temp.begin(), isNilChip);
+        auto list = std::remove_if(temp.begin(),temp.begin(), isNilChip);
+        (void)list;
     }
     memoryChipMap.clear();
     ptrLookup.clear();
@@ -392,7 +394,7 @@ void MainMemory::onInputAborted(quint16 address)
 void MainMemory::onChipInputRequested(quint16 address)
 {
     if(inputBuffer.contains(address)) {
-        quint8 first = inputBuffer[address].front();
+        quint8 first = static_cast<quint8>(inputBuffer[address].front());
         quint16 offsetFromBase = address - chipAt(address)->getBaseAddress();
         inputBuffer[address].remove(0, 1);
         if(inputBuffer[address].length() == 0) {

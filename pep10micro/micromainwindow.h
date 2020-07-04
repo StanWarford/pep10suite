@@ -25,7 +25,9 @@
 
 #include "pep.h"
 #include <QDir>
-#include "isaasm.h"
+
+#include "macroregistry.h"
+
 namespace Ui {
     class MicroMainWindow;
 }
@@ -45,7 +47,6 @@ class MicrocodePane;
 class MicroObjectCodePane;
 class CPUDataSection;
 class UpdateChecker;
-class RedefineMnemonicsDialog;
 
 /*
  * The set of possible states for the debugger.
@@ -64,19 +65,19 @@ class MicroMainWindow : public QMainWindow {
     Q_OBJECT
 public:
     MicroMainWindow(QWidget *parent = nullptr);
-    ~MicroMainWindow();
+    ~MicroMainWindow() override;
 protected:
-    void changeEvent(QEvent *e);
-    void closeEvent(QCloseEvent *e);
-    bool eventFilter(QObject *, QEvent *);
+    void changeEvent(QEvent *e) override;
+    void closeEvent(QCloseEvent *e) override;
+    bool eventFilter(QObject *, QEvent *) override;
 
 private:
     Ui::MicroMainWindow *ui;
-    DebugState debugState;
+    DebugState debugState{DebugState::DISABLED};
     QString curPath;
     QFont codeFont;
     UpdateChecker *updateChecker;
-    bool isInDarkMode;
+    bool isInDarkMode{false};
 
     // Byte converter
     ByteConverterBin *byteConverterBin;
@@ -92,10 +93,10 @@ private:
     // Dialogues
     MicroHelpDialog *helpDialog;
     AboutPep *aboutPepDialog;
-    RedefineMnemonicsDialog *redefineMnemonicsDialog;
     DecoderTableDialog *decoderTableDialog;
 
     AsmProgramManager* programManager;
+    QSharedPointer<MacroRegistry> macro_registry;
 
     // Disconnect or reconnect events that notify views of changes in model,
     // Disconnecting these events allow for faster execution when running or continuing.
@@ -145,7 +146,7 @@ private:
     // Which debug buttons to enable, based on integer cracking of the above struct. It is not strongly typed with an enum, because the casting
     // would add signifcant code volume, and would not increase code clarity.
     // To enable only the run and stop buttons one would call "buttonEnableHelper(DebugButtons::RUN | DebugButtons::STOP)".
-    void debugButtonEnableHelper(const int which);
+    void debugButtonEnableHelper(int which);
 
     // Coordinates higlighting of memory, microcode pane, micro object code pane, and assembler listings.
     void highlightActiveLines();
@@ -222,11 +223,7 @@ private slots:
     void on_actionSystem_Clear_Memory_triggered();
     void on_actionSystem_Assemble_Install_New_OS_triggered();
     void on_actionSystem_Reinstall_Default_OS_triggered();
-    void on_actionSystem_Redefine_Mnemonics_triggered();
     void on_actionSystem_Redefine_Decoder_Tables_triggered();
-    // Allow main window to update highlighting rules after
-    // changes to the mnemonics have been finished.
-    void redefine_Mnemonics_closed();
 
     // View
     void onDarkModeChanged();
@@ -267,7 +264,7 @@ private slots:
     void setUndoability(bool b);
     void setRedoability(bool b);
 
-    void appendMicrocodeLine(QString string);
+    void appendMicrocodeLine(QString line);
 
     void helpCopyToSourceClicked();
 

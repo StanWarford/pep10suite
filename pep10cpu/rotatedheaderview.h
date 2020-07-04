@@ -32,7 +32,7 @@ class RotatedHeaderView : public QHeaderView
     Q_OBJECT
 public:
     RotatedHeaderView(Qt::Orientation orientation, QWidget *parent = Q_NULLPTR);
-    virtual ~RotatedHeaderView() override {}
+    ~RotatedHeaderView() override;
 protected:
     void paintSection(QPainter* painter,
                   const QRect& rect,

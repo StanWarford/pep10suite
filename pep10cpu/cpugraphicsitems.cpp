@@ -294,13 +294,13 @@ CpuGraphicsItems::CpuGraphicsItems(Enu::CPUType type, CPUDataSection *dataSectio
     addEditableRegister(&xRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::xRegLineEdit, colorScheme);
     addEditableRegister(&spRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::spRegLineEdit, colorScheme);
     addEditableRegister(&pcRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::pcRegLineEdit, colorScheme);
+    addEditableRegister(&trRegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::trRegLineEdit, colorScheme);
     addEditableRegister(&irRegLineEdit, editorVector, scene, "0x000000", irRegExp, TwoByteShapes::irRegLineEdit, colorScheme);
     addEditableRegister(&t1RegLineEdit, editorVector, scene, "0x00", byteRegExp, TwoByteShapes::t1RegLineEdit, colorScheme);
     addEditableRegister(&t2RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t2RegLineEdit, colorScheme);
     addEditableRegister(&t3RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t3RegLineEdit, colorScheme);
     addEditableRegister(&t4RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t4RegLineEdit, colorScheme);
     addEditableRegister(&t5RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t5RegLineEdit, colorScheme);
-    addEditableRegister(&t6RegLineEdit, editorVector, scene, dtext, wordRegExp, TwoByteShapes::t6RegLineEdit, colorScheme);
     addStaticRegister(labelVec, scene, "0x0001", OneByteShapes::m1RegLabel, colorScheme);
     addStaticRegister(labelVec, scene, "0x0203", OneByteShapes::m2RegLabel, colorScheme);
     addStaticRegister(labelVec, scene, "0x0408", OneByteShapes::m3RegLabel, colorScheme);
@@ -319,26 +319,26 @@ CpuGraphicsItems::CpuGraphicsItems(Enu::CPUType type, CPUDataSection *dataSectio
     addRegisterText(labelVec, scene, "6,7", OneByteShapes::getRegNoRect(1, 4), colorScheme);
     addRegisterText(labelVec, scene, "PC", OneByteShapes::getRegLabelRect(1, 4), colorScheme);
 
-    addRegisterText(labelVec, scene, "8-10",OneByteShapes::getRegNoRect(2, 1), colorScheme);
-    addRegisterText(labelVec, scene, "IR",OneByteShapes::getRegLabelRect(2, 1), colorScheme);
+    addRegisterText(labelVec, scene, "8,9",OneByteShapes::getRegNoRect(2, 1), colorScheme);
+    addRegisterText(labelVec, scene, "TR",OneByteShapes::getRegLabelRect(2, 1), colorScheme);
 
-    addRegisterText(labelVec, scene, "11", OneByteShapes::getRegNoRect(2, 2), colorScheme);
-    addRegisterText(labelVec, scene, "T1", OneByteShapes::getRegLabelRect(2, 2), colorScheme);
+    addRegisterText(labelVec, scene, "10-13", OneByteShapes::getRegNoRect(2, 2), colorScheme);
+    addRegisterText(labelVec, scene, "IR", OneByteShapes::getRegLabelRect(2, 2), colorScheme);
 
-    addRegisterText(labelVec, scene, "12,13", OneByteShapes::getRegNoRect(2, 3), colorScheme);
-    addRegisterText(labelVec, scene, "T2", OneByteShapes::getRegLabelRect(2, 3), colorScheme);
+    addRegisterText(labelVec, scene, "14", OneByteShapes::getRegNoRect(2, 3), colorScheme);
+    addRegisterText(labelVec, scene, "T1", OneByteShapes::getRegLabelRect(2, 3), colorScheme);
 
-    addRegisterText(labelVec, scene, "14,15",OneByteShapes::getRegNoRect(2, 4), colorScheme);
-    addRegisterText(labelVec, scene, "T3",OneByteShapes::getRegLabelRect(2, 4), colorScheme);
+    addRegisterText(labelVec, scene, "16,17",OneByteShapes::getRegNoRect(2, 4), colorScheme);
+    addRegisterText(labelVec, scene, "T2",OneByteShapes::getRegLabelRect(2, 4), colorScheme);
 
-    addRegisterText(labelVec, scene, "16,17", OneByteShapes::getRegNoRect(3, 1), colorScheme);
-    addRegisterText(labelVec, scene, "T4", OneByteShapes::getRegLabelRect(3, 1), colorScheme);
+    addRegisterText(labelVec, scene, "18,19", OneByteShapes::getRegNoRect(3, 1), colorScheme);
+    addRegisterText(labelVec, scene, "T3", OneByteShapes::getRegLabelRect(3, 1), colorScheme);
 
     addRegisterText(labelVec, scene, "18,19", OneByteShapes::getRegNoRect(3, 2), colorScheme);
-    addRegisterText(labelVec, scene, "T5", OneByteShapes::getRegLabelRect(3, 2), colorScheme);
+    addRegisterText(labelVec, scene, "T4", OneByteShapes::getRegLabelRect(3, 2), colorScheme);
 
     addRegisterText(labelVec, scene, "20,21", OneByteShapes::getRegNoRect(3, 3), colorScheme);
-    addRegisterText(labelVec, scene, "T6", OneByteShapes::getRegLabelRect(3, 3), colorScheme);
+    addRegisterText(labelVec, scene, "T5", OneByteShapes::getRegLabelRect(3, 3), colorScheme);
 
     addRegisterText(labelVec, scene, "22,23", OneByteShapes::getRegNoRect(3, 4), colorScheme);
     addRegisterText(labelVec, scene, "M1", OneByteShapes::getRegLabelRect(3, 4), colorScheme);
@@ -417,13 +417,14 @@ CpuGraphicsItems::~CpuGraphicsItems()
     delete xRegLineEdit;
     delete spRegLineEdit;
     delete pcRegLineEdit;
+    delete trRegLineEdit;
     delete irRegLineEdit;
     delete t1RegLineEdit;
+    delete trRegLineEdit;
     delete t2RegLineEdit;
     delete t3RegLineEdit;
     delete t4RegLineEdit;
     delete t5RegLineEdit;
-    delete t6RegLineEdit;
 
     // Delete one byte items
     delete MDRCk;
@@ -830,12 +831,12 @@ void CpuGraphicsItems::drawRegisterBank()
     pal.setColor(QPalette::Text, colorScheme->arrowColorOn);
     pal.setColor(QPalette::WindowText, colorScheme->arrowColorOn);
     pal.setColor(QPalette::Base, colorScheme->backgroundFill);
-    pal.setColor(QPalette::Background, PepColors::transparent);
+    pal.setColor(QPalette::Window, PepColors::transparent);
     for(QLineEdit* edit : editorVector) {
         edit->setPalette(pal);
     }
     pal.setColor(QPalette::Base, PepColors::transparent);
-    pal.setColor(QPalette::Background, PepColors::transparent);
+    pal.setColor(QPalette::Window, PepColors::transparent);
     for(QLabel* label : labelVec) {
         label->raise();
         label->setPalette(pal);
@@ -969,35 +970,35 @@ void CpuGraphicsItems::repaintAMuxSelect(QPainter *painter)
             if(dataSection->getCPUType() == Enu::TwoByteDataBus) { // If using 2-byte cpu
                 if(EOMuxTristateLabel->text() == "0"){ // Then AMux depends on EOMux
                     color = colorScheme->combCircuitGreen;
-                    pal.setColor(QPalette::Background,colorScheme->muxCircuitGreen);
+                    pal.setColor(QPalette::Window,colorScheme->muxCircuitGreen);
                     aMuxerDataLabel->setPalette(pal);
                 }
                 else if(EOMuxTristateLabel->text() == "1") {
                     color = colorScheme->combCircuitYellow;
-                    pal.setColor(QPalette::Background, colorScheme->muxCircuitYellow);
+                    pal.setColor(QPalette::Window, colorScheme->muxCircuitYellow);
                     aMuxerDataLabel->setPalette(pal);
                 }
                 else { //When AMux is routing from left, but EOMux is inactive
                     color = colorScheme->backgroundFill;
-                    pal.setColor(QPalette::Background, color);
+                    pal.setColor(QPalette::Window, color);
                     aMuxerDataLabel->setPalette(pal);
                 }
             }
             else {
                 color = colorScheme->combCircuitYellow;
-                pal.setColor(QPalette::Background, colorScheme->muxCircuitYellow);
+                pal.setColor(QPalette::Window, colorScheme->muxCircuitYellow);
                 aMuxerDataLabel->setPalette(pal);
             }
             break;
         case 1:
             if (aLineEdit->text() == "") { // ABus.state == UNDEFINED
                 color = colorScheme->backgroundFill;
-                pal.setColor(QPalette::Background, color);
+                pal.setColor(QPalette::Window, color);
                 aMuxerDataLabel->setPalette(pal);
             }
             else {
                 color = colorScheme->combCircuitRed;
-                pal.setColor(QPalette::Background, colorScheme->muxCircuitRed);
+                pal.setColor(QPalette::Window, colorScheme->muxCircuitRed);
                 aMuxerDataLabel->setPalette(pal);
             }
             break;
@@ -1005,7 +1006,7 @@ void CpuGraphicsItems::repaintAMuxSelect(QPainter *painter)
     }
     else {
         color = colorScheme->backgroundFill;
-        pal.setColor(QPalette::Background,color);
+        pal.setColor(QPalette::Window,color);
         aMuxerDataLabel->setPalette(pal);
     }
     painter->setPen(QPen(QBrush(colorScheme->arrowColorOn), 1));
@@ -1521,32 +1522,25 @@ void CpuGraphicsItems::repaintMDRMuxSelect(QPainter *painter)
     QColor color;
     QPalette pal = MDRMuxerDataLabel->palette();
     painter->setPen(colorScheme->arrowColorOn);
-    if(MDRCk->isChecked()) {
-        if(MDRMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
-            color = colorScheme->combCircuitRed;
-            pal.setColor(QPalette::Background,colorScheme->muxCircuitRed);
-            MDRMuxerDataLabel->setPalette(pal);
-        }
-        else if(MDRMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
-            color = colorScheme->combCircuitYellow;
-            pal.setColor(QPalette::Background, colorScheme->muxCircuitYellow);
-            MDRMuxerDataLabel->setPalette(pal);
-        }
-        else if(MDRMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1" && aluHasCorrectOutput()) {
-            color = colorScheme->combCircuitBlue;
-            pal.setColor(QPalette::Background, colorScheme->muxCircuitBlue);
-            MDRMuxerDataLabel->setPalette(pal);
-        }
-        else {
-            color = colorScheme->backgroundFill;
-            pal.setColor(QPalette::Background,color);
-            MDRMuxerDataLabel->setPalette(pal);
-        }
 
+    if(MDRMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
+        color = colorScheme->combCircuitRed;
+        pal.setColor(QPalette::Window,colorScheme->muxCircuitRed);
+        MDRMuxerDataLabel->setPalette(pal);
+    }
+    else if(MDRMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
+        color = colorScheme->combCircuitYellow;
+        pal.setColor(QPalette::Window, colorScheme->muxCircuitYellow);
+        MDRMuxerDataLabel->setPalette(pal);
+    }
+    else if(MDRMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1" && aluHasCorrectOutput()) {
+        color = colorScheme->combCircuitBlue;
+        pal.setColor(QPalette::Window, colorScheme->muxCircuitBlue);
+        MDRMuxerDataLabel->setPalette(pal);
     }
     else {
         color = colorScheme->backgroundFill;
-        pal.setColor(QPalette::Background, color);
+        pal.setColor(QPalette::Window,color);
         MDRMuxerDataLabel->setPalette(pal);
     }
 
@@ -1651,7 +1645,7 @@ void CpuGraphicsItems::repaintALUSelectOneByte(QPainter *painter)
     painter->drawEllipse(QPoint(416,446), 2, 2); //437+9
 }
 
-void CpuGraphicsItems::repaintMemCommonOneByte(QPainter */*painter*/)
+void CpuGraphicsItems::repaintMemCommonOneByte(QPainter* /*painter*/)
 {
     // Has not been split into common parts of read / write
 }
@@ -1887,7 +1881,7 @@ void CpuGraphicsItems::repaintCBusOneByte(QPainter *painter)
     QPalette pal = cMuxerLabel->palette();
     if (cMuxTristateLabel->text() == "0") {
         color = colorScheme->combCircuitYellow;
-        pal.setColor(QPalette::Background,colorScheme->muxCircuitYellow);
+        pal.setColor(QPalette::Window,colorScheme->muxCircuitYellow);
         cMuxerLabel->setPalette(pal);
     }
     else if (cMuxTristateLabel->text() == "1") {
@@ -1895,18 +1889,18 @@ void CpuGraphicsItems::repaintCBusOneByte(QPainter *painter)
             // CBus.state == UNDEFINED or NZVC A
             qDebug() << "WARNING: CMux select: There is no ALU output";
             color = colorScheme->backgroundFill;
-            pal.setColor(QPalette::Background,color);
+            pal.setColor(QPalette::Window,color);
             cMuxerLabel->setPalette(pal);
         }
         else {
             color = colorScheme->combCircuitBlue;
-            pal.setColor(QPalette::Background,colorScheme->muxCircuitBlue);
+            pal.setColor(QPalette::Window,colorScheme->muxCircuitBlue);
             cMuxerLabel->setPalette(pal);
         }
     }
     else {
         color = colorScheme->backgroundFill;
-        pal.setColor(QPalette::Background,color);
+        pal.setColor(QPalette::Window,color);
         cMuxerLabel->setPalette(pal);
     }
     painter->setPen(QPen(QBrush(colorScheme->arrowColorOn), 1));
@@ -1970,14 +1964,14 @@ void CpuGraphicsItems::repaintEOMuxOutpusBus(QPainter *painter)
     QPalette pal = EOMuxerDataLabel->palette();
     if(EOMuxTristateLabel->text() == "1") {
         color=colorScheme->combCircuitYellow;
-        pal.setColor(QPalette::Background, colorScheme->muxCircuitYellow);
+        pal.setColor(QPalette::Window, colorScheme->muxCircuitYellow);
     }
     else if(EOMuxTristateLabel->text() == "0") {
         color = colorScheme->combCircuitGreen;
-        pal.setColor(QPalette::Background, colorScheme->muxCircuitGreen);
+        pal.setColor(QPalette::Window, colorScheme->muxCircuitGreen);
     }
     else {
-        pal.setColor(QPalette::Background,color);
+        pal.setColor(QPalette::Window,color);
     }
     EOMuxerDataLabel->setPalette(pal);
     painter->setPen(colorScheme->arrowColorOn);
@@ -2287,24 +2281,19 @@ void CpuGraphicsItems::repaintMDRESelect(QPainter *painter)
     painter->drawLines(TwoByteShapes::MDREMuxSelect._lines);
     painter->drawImage(TwoByteShapes::MDREMuxSelect._arrowheads.first(),
                        MDREColor == colorScheme->arrowColorOff ? arrowLeftGray : arrowLeft);
-    if(MDRECk->isChecked()) {
-        if(MDREMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
-            pal.setColor(QPalette::Background, colorScheme->muxCircuitRed);
-        }
-        else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
-            pal.setColor(QPalette::Background, colorScheme->muxCircuitYellow);
-        }
-        else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1"
-                && aluHasCorrectOutput()) {
-            pal.setColor(QPalette::Background, colorScheme->muxCircuitBlue);
-        }
-        else {
-            pal.setColor(QPalette::Background, colorScheme->backgroundFill);
-        }
+    if(MDREMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
+        pal.setColor(QPalette::Window, colorScheme->muxCircuitRed);
+    }
+    else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
+        pal.setColor(QPalette::Window, colorScheme->muxCircuitYellow);
+    }
+    else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1"
+            && aluHasCorrectOutput()) {
+        pal.setColor(QPalette::Window, colorScheme->muxCircuitBlue);
     }
     else {
-        pal.setColor(QPalette::Background,colorScheme->backgroundFill);
-    }
+            pal.setColor(QPalette::Window, colorScheme->backgroundFill);
+        }
     MDREMuxerDataLabel->setPalette(pal);
 }
 
@@ -2319,23 +2308,18 @@ void CpuGraphicsItems::repaintMDROSelect(QPainter *painter)
     painter->drawLines(TwoByteShapes::MDROMuxSelect._lines);
     painter->drawImage(TwoByteShapes::MDROMuxSelect._arrowheads.first(),
                        MDROColor == colorScheme->arrowColorOff ? arrowLeftGray : arrowLeft);
-    if(MDROCk->isChecked()){
-        if(MDROMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
-            pal.setColor(QPalette::Background,colorScheme->muxCircuitRed);
-        }
-        else if(MDROMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
-            pal.setColor(QPalette::Background,colorScheme->muxCircuitYellow);
-        }
-        else if(MDROMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1"
-                && aluHasCorrectOutput()) {
-            pal.setColor(QPalette::Background,colorScheme->muxCircuitBlue);
-        }
-        else{
-            pal.setColor(QPalette::Background, colorScheme->backgroundFill);
-        }
+    if(MDROMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
+        pal.setColor(QPalette::Window,colorScheme->muxCircuitRed);
     }
-    else {
-        pal.setColor(QPalette::Background, colorScheme->backgroundFill);
+    else if(MDROMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
+        pal.setColor(QPalette::Window,colorScheme->muxCircuitYellow);
+    }
+    else if(MDROMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1"
+            && aluHasCorrectOutput()) {
+        pal.setColor(QPalette::Window,colorScheme->muxCircuitBlue);
+    }
+    else{
+        pal.setColor(QPalette::Window, colorScheme->backgroundFill);
     }
     MDROMuxerDataLabel->setPalette(pal);
 }
@@ -2347,37 +2331,35 @@ void CpuGraphicsItems::repaintMDRMuxOutputBuses(QPainter *painter)
     // Depending on which input is selected on the MDRMuxes, the color might need to change.
     // For now red seems to be the most logical color to use all the time.
     QString MDREText = MDREMuxTristateLabel->text(), MDROText = MDROMuxTristateLabel->text();
-    if(MDRECk->isChecked() && (MDREText == "1" || MDREText == "0")){
-         //If the muxer is enabled, and data can be clocked in to the register, pick an appropriate color
-        if(MDREMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
-            colorMDRE = colorScheme->combCircuitRed;
-        }
-        else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
-            colorMDRE = colorScheme->combCircuitYellow;
-        }
-        else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1" && aluHasCorrectOutput()) {
-            colorMDRE = colorScheme->combCircuitBlue;
-        }
-        else {
+     //If the muxer is enabled, pick an appropriate color
+    if(MDREMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
+        colorMDRE = colorScheme->combCircuitRed;
+    }
+    else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "0") {
+        colorMDRE = colorScheme->combCircuitYellow;
+    }
+    else if(MDREMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1" && aluHasCorrectOutput()) {
+        colorMDRE = colorScheme->combCircuitBlue;
+    }
+    else {
             colorMDRE = colorScheme->backgroundFill;
-        }
     }
-    if(MDROCk->isChecked() && (MDROText == "1" || MDROText == "0")) {
-         //If the muxer is enabled, and data can be clocked in to the register, pick an appropriate color
-        if(MDROMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
-            colorMDRO=colorScheme->combCircuitRed;
-        }
-        else if(MDROMuxTristateLabel->text()=="1"&&cMuxTristateLabel->text()=="0") {
-            colorMDRO=colorScheme->combCircuitYellow;
-        }
-        else if(MDROMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1"
-                && aluHasCorrectOutput()) {
-            colorMDRO=colorScheme->combCircuitBlue;
-        }
-        else {
-            colorMDRO = colorScheme->backgroundFill;
-        }
+
+     //If the muxer is enabled, pick an appropriate color
+    if(MDROMuxTristateLabel->text() == "0" && dataSection->getMainBusState() == Enu::MemReadSecondWait) {
+        colorMDRO=colorScheme->combCircuitRed;
     }
+    else if(MDROMuxTristateLabel->text()=="1"&&cMuxTristateLabel->text()=="0") {
+        colorMDRO=colorScheme->combCircuitYellow;
+    }
+    else if(MDROMuxTristateLabel->text() == "1" && cMuxTristateLabel->text() == "1"
+            && aluHasCorrectOutput()) {
+        colorMDRO=colorScheme->combCircuitBlue;
+    }
+    else {
+        colorMDRO = colorScheme->backgroundFill;
+    }
+
     painter->setPen(colorScheme->arrowColorOn);
     painter->setBrush(colorMDRE);
     painter->drawPolygon(TwoByteShapes::MDREMuxOutBus);
@@ -2436,23 +2418,23 @@ void CpuGraphicsItems::repaintCBusTwoByte(QPainter *painter)
     QPalette pal = cMuxerLabel->palette();
     if (cMuxTristateLabel->text() == "0") {
         color = colorScheme->combCircuitYellow;
-        pal.setColor(QPalette::Background,colorScheme->muxCircuitYellow);
+        pal.setColor(QPalette::Window,colorScheme->muxCircuitYellow);
     }
     else if (cMuxTristateLabel->text() == "1") {
         if (!aluHasCorrectOutput() || ALULineEdit->text() == "15") {
             // CBus.state == UNDEFINED or NZVC A
             qDebug() << "WARNING!: CMux select: There is no ALU output";
             color = colorScheme->backgroundFill;
-            pal.setColor(QPalette::Background,color);
+            pal.setColor(QPalette::Window,color);
         }
         else {
             color = colorScheme->combCircuitBlue;
-            pal.setColor(QPalette::Background,colorScheme->muxCircuitBlue);
+            pal.setColor(QPalette::Window,colorScheme->muxCircuitBlue);
         }
     }
     else {
         color = colorScheme->backgroundFill;
-        pal.setColor(QPalette::Background,color);
+        pal.setColor(QPalette::Window,color);
     }
     cMuxerLabel->setPalette(pal);
     painter->setPen(QPen(QBrush(colorScheme->arrowColorOn), 1));

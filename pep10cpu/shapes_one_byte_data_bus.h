@@ -27,6 +27,7 @@
 #include <QVector>
 #include <QPolygon>
 #include <QImage>
+#include <utility>
 
 #include <QVector>
 
@@ -36,8 +37,8 @@
 class Arrow {
 public:
     Arrow (QVector<QPoint> arrowheads, QVector<QLine> lines) {
-        _arrowheads = arrowheads;
-        _lines = lines;
+        _arrowheads = std::move(arrowheads);
+        _lines = std::move(lines);
     }
     QVector<QPoint> _arrowheads;
     QVector<QLine> _lines;
@@ -46,11 +47,11 @@ public:
         QVector<QPoint> arrowHeads;
         QVector<QLine> lines;
 
-        for (int i = 0; i < _arrowheads.length(); i++) {
-            arrowHeads.append(_arrowheads.at(i) + QPoint(dx, dy));
+        for (auto _arrowhead : _arrowheads) {
+            arrowHeads.append(_arrowhead + QPoint(dx, dy));
         }
-        for (int i = 0; i < _lines.length(); i++) {
-            lines.append(_lines.at(i).translated(dx, dy));
+        for (auto _line : _lines) {
+            lines.append(_line.translated(dx, dy));
         }
 
         Arrow retVal(arrowHeads, lines);
@@ -296,14 +297,14 @@ const QRect xRegLineEdit  = QRect(Col1X, Row2Y, regLineEditW, regLineEditH);
 const QRect spRegLineEdit = QRect(Col1X, Row3Y, regLineEditW, regLineEditH);
 const QRect pcRegLineEdit = QRect(Col1X, Row4Y, regLineEditW, regLineEditH);
 
-const QRect irRegLineEdit = QRect(Col2X, Row1Y, regLineEditW + 15, regLineEditH);
-const QRect t1RegLineEdit = QRect(Col2X, Row2Y, regLineEditW - 15, regLineEditH);
-const QRect t2RegLineEdit = QRect(Col2X, Row3Y, regLineEditW, regLineEditH);
-const QRect t3RegLineEdit = QRect(Col2X, Row4Y, regLineEditW, regLineEditH);
+const QRect trRegLineEdit = QRect(Col2X, Row1Y, regLineEditW, regLineEditH);
+const QRect irRegLineEdit = QRect(Col2X, Row2Y, regLineEditW + 15, regLineEditH);
+const QRect t1RegLineEdit = QRect(Col2X, Row3Y, regLineEditW - 15, regLineEditH);
+const QRect t2RegLineEdit = QRect(Col2X, Row4Y, regLineEditW, regLineEditH);
 
-const QRect t4RegLineEdit = QRect(Col3X, Row1Y, regLineEditW, regLineEditH);
-const QRect t5RegLineEdit = QRect(Col3X, Row2Y, regLineEditW, regLineEditH);
-const QRect t6RegLineEdit = QRect(Col3X, Row3Y, regLineEditW, regLineEditH);
+const QRect t3RegLineEdit = QRect(Col3X, Row1Y, regLineEditW, regLineEditH);
+const QRect t4RegLineEdit = QRect(Col3X, Row2Y, regLineEditW, regLineEditH);
+const QRect t5RegLineEdit = QRect(Col3X, Row3Y, regLineEditW, regLineEditH);
 const QRect m1RegLabel    = QRect(Col3X, Row4Y, regLineEditW - 10, regLineEditH);
 
 const QRect m2RegLabel    = QRect(Col4X, Row1Y, regLineEditW - 10, regLineEditH);
@@ -549,7 +550,7 @@ const QLine MemWriteSelect = QLine(DataBus.right()   + arrowHOffset,
                                    ctrlInputX - 7,
                                    MemWriteLabel.y() + selectYOffset);
 
-const QRect getRegRect(int row, int col) {
+const inline QRect getRegRect(int row, int col) {
     QRect rect = QRect();
     int x, y;
     switch (row) {
@@ -594,7 +595,7 @@ const QRect getRegRect(int row, int col) {
     return rect;
 }
 
-const QRect getRegLabelRect(int row, int col) {
+const inline QRect getRegLabelRect(int row, int col) {
     QRect rect = getRegRect(row, col);
     rect.setX(rect.x() - regLabelOffset);
     rect.setHeight(regLabelSize.height());
@@ -603,7 +604,7 @@ const QRect getRegLabelRect(int row, int col) {
     return rect;
 }
 
-const QRect getRegNoRect(int row, int col) {
+const inline QRect getRegNoRect(int row, int col) {
     QRect rect = getRegRect(row, col);
     rect.setX(rect.x() - regNumberOffset);
     rect.setHeight(regNumberSize.height());

@@ -33,9 +33,6 @@ public:
 
     void setState(int state);
 
-private:
-    int toggleMode;
-
 signals:
     void clicked();
 
@@ -43,7 +40,11 @@ public slots:
     bool toggle();
 
 protected:
-    void mousePressEvent(QMouseEvent *ev);
+    void mousePressEvent(QMouseEvent *ev) override;
+
+private:
+    int toggleMode;
+
 };
 
 #endif // TRISTATELABEL_H

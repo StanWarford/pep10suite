@@ -22,15 +22,16 @@
 #include "specification.h"
 #include "cpudata.h"
 #include "amemorydevice.h"
-Specification::Specification() noexcept
-{
-}
+Specification::Specification() noexcept = default;
 
-MemSpecification::MemSpecification(AMemoryDevice* mem, int memoryAddress, int memoryValue, int numberBytes) noexcept: memDevice(mem), memAddress(memoryAddress),
+Specification::~Specification() = default;
+
+MemSpecification::MemSpecification(int memoryAddress, int memoryValue, int numberBytes) noexcept:
+    memAddress(memoryAddress),
     memValue(memoryValue), numBytes(numberBytes) {
 }
 
-void MemSpecification::setUnitPre(CPUDataSection *) noexcept
+void MemSpecification::setUnitPre(CPUDataSection *, AMemoryDevice *memDevice) noexcept
 {
     if(numBytes == 1) {
         memDevice->setByte(static_cast<quint16>(memAddress), static_cast<quint8>(memValue));
@@ -46,7 +47,8 @@ void MemSpecification::setUnitPre(CPUDataSection *) noexcept
     }
 }
 
-bool MemSpecification::testUnitPost(const CPUDataSection *, QString &errorString) const noexcept
+bool MemSpecification::testUnitPost(const CPUDataSection *, const AMemoryDevice* memDevice,
+                                    QString &errorString) const noexcept
 {
     bool retVal;
     quint8 byte;
@@ -81,7 +83,7 @@ RegSpecification::RegSpecification(Enu::ECPUKeywords registerAddress, int regist
     regValue = registerValue;
 }
 
-void RegSpecification::setUnitPre(CPUDataSection *data) noexcept
+void RegSpecification::setUnitPre(CPUDataSection *data, AMemoryDevice*) noexcept
 {
     switch(regAddress)
     {
@@ -116,9 +118,13 @@ void RegSpecification::setUnitPre(CPUDataSection *data) noexcept
     case Enu::T5:
         data->onSetRegisterWord(18, static_cast<quint16>(regValue));
         break;
-    case Enu::T6:
+    case Enu::Trap:
+        // Temporary for trap.
         data->onSetRegisterWord(20, static_cast<quint16>(regValue));
         break;
+    /*case Enu::T6:
+        data->onSetRegisterWord(20, static_cast<quint16>(regValue));
+        break;*/
     case Enu::MARAREG:
         data->onSetMemoryRegister(Enu::MEM_MARA, static_cast<quint8>(regValue));
         break;
@@ -139,7 +145,8 @@ void RegSpecification::setUnitPre(CPUDataSection *data) noexcept
     }
 }
 
-bool RegSpecification::testUnitPost(const CPUDataSection *data, QString &errorString) const noexcept
+bool RegSpecification::testUnitPost(const CPUDataSection *data, const AMemoryDevice*,
+                                    QString &errorString) const noexcept
 {
     int reg = 0;
     switch(regAddress)
@@ -174,9 +181,12 @@ bool RegSpecification::testUnitPost(const CPUDataSection *data, QString &errorSt
     case Enu::T5:
         reg = 18;
         break;
-    case Enu::T6:
+    case Enu::Trap:
         reg = 20;
         break;
+    /*case Enu::T6:
+        reg = 20;
+        break;*/
     default: return true; //Should never occur, microassembler should only allow for actual registers to be referenced.
     }
 
@@ -186,13 +196,14 @@ bool RegSpecification::testUnitPost(const CPUDataSection *data, QString &errorSt
     case Enu::X: errorString = "// ERROR: Unit test failed for register X."; return false;
     case Enu::SP: errorString = "// ERROR: Unit test failed for register SP."; return false;
     case Enu::PC: errorString = "// ERROR: Unit test failed for register PC."; return false;
+    case Enu::Trap: errorString = "// ERROR: Unit test failed for register TR."; return false;
     case Enu::IR: errorString = "// ERROR: Unit test failed for register IR."; return false;
     case Enu::T1: errorString = "// ERROR: Unit test failed for register T1."; return false;
     case Enu::T2: errorString = "// ERROR: Unit test failed for register T2."; return false;
     case Enu::T3: errorString = "// ERROR: Unit test failed for register T3."; return false;
     case Enu::T4: errorString = "// ERROR: Unit test failed for register T4."; return false;
     case Enu::T5: errorString = "// ERROR: Unit test failed for register T5."; return false;
-    case Enu::T6: errorString = "// ERROR: Unit test failed for register T6."; return false;
+    //case Enu::T6: errorString = "// ERROR: Unit test failed for register T6."; return false;case Enu::T6: errorString = "// ERROR: Unit test failed for register T6."; return false;
     case Enu::MARAREG: errorString = "// ERROR: Unit test failed for MARA."; return false;
     case Enu::MARBREG: errorString = "// ERROR: Unit test failed for MARB."; return false;
     case Enu::MDRREG: errorString = "// ERROR: Unit test failed for MDR."; return false;
@@ -206,13 +217,14 @@ QString RegSpecification::getSourceCode() const noexcept {
     case Enu::X: return "X=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::SP: return "SP=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::PC: return "PC=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
+    case Enu::Trap: return "TR=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::IR: return "IR=0x" + QString("%1").arg(regValue, 6, 16, QLatin1Char('0')).toUpper();
     case Enu::T1: return "T1=0x" + QString("%1").arg(regValue, 2, 16, QLatin1Char('0')).toUpper();
     case Enu::T2: return "T2=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::T3: return "T3=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::T4: return "T4=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::T5: return "T5=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
-    case Enu::T6: return "T6=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
+    //case Enu::T6: return "T6=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::MARAREG: return "MARA=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::MARBREG: return "MARB=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
     case Enu::MDRREG: return "MDR=0x" + QString("%1").arg(regValue, 4, 16, QLatin1Char('0')).toUpper();
@@ -225,7 +237,7 @@ StatusBitSpecification::StatusBitSpecification(Enu::ECPUKeywords statusBitAddres
     nzvcsValue = statusBitValue;
 }
 
-void StatusBitSpecification::setUnitPre(CPUDataSection *data) noexcept
+void StatusBitSpecification::setUnitPre(CPUDataSection *data, AMemoryDevice*) noexcept
 {
     Enu::EStatusBit status;
     switch(nzvcsAddress)
@@ -251,7 +263,8 @@ void StatusBitSpecification::setUnitPre(CPUDataSection *data) noexcept
     data->onSetStatusBit(status,nzvcsValue);
 }
 
-bool StatusBitSpecification::testUnitPost(const CPUDataSection *data, QString &errorString) const noexcept
+bool StatusBitSpecification::testUnitPost(const CPUDataSection *data, const AMemoryDevice*,
+                                          QString &errorString) const noexcept
 {
     Enu::EStatusBit status;
     switch(nzvcsAddress)

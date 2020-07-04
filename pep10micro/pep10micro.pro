@@ -23,7 +23,7 @@ QT += widgets webenginewidgets printsupport concurrent
 # Mac icon/plist
 ICON = images/icon.icns
 QMAKE_INFO_PLIST = app.plist
-QMAKE_MAC_SDK = macosx10.14
+#QMAKE_MAC_SDK = macosx10.14
 
 #Windows RC file for icon:
 RC_FILE = pep10resources.rc
@@ -34,15 +34,11 @@ FORMS += \
     micromainwindow.ui
 
 HEADERS += \
-    fullmicrocodedcpu.h \
-    fullmicrocodedmemoizer.h \
     decodertabledialog.h \
     micromainwindow.h \
     microhelpdialog.h
 
 SOURCES += \
-    fullmicrocodedcpu.cpp \
-    fullmicrocodedmemoizer.cpp \
     decodertabledialog.cpp \
     micromainwindow.cpp \
     micromain.cpp \
@@ -56,7 +52,8 @@ RESOURCES += \
     ../pep10asm/pep10asm-resources.qrc \
     pep10micro-helpresources.qrc \
     ../pep10cpu/pep10cpu-helpresources.qrc \
-    ../pep10asm/pep10asm-helpresources.qrc
+    ../pep10asm/pep10asm-helpresources.qrc \
+    ../pep10asm/pep10asm-macros.qrc
 
 DISTFILES += \
     ..\package/package.xml \
@@ -84,13 +81,10 @@ VPATH += $$PWD/../pep10cpu
 include(../pep10common/pep10common.pro)
 include(../pep10asm/pep10asm-common.pro)
 include(../pep10cpu/pep10cpu-common.pro)
-
+include(pep10micro-common.pro)
 #Add this include to the bottom of your project to enable automated installer creation
 #Include the definitions file that sets all variables needed for the InstallerConfig Script
 include("installer-config.pri")
 
 #Lastly, include and run the installer config script
 include("../installer/installer-creator.pri")
-
-
-

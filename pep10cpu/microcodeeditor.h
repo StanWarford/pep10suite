@@ -55,7 +55,7 @@ public slots:
     void onDarkModeChanged(bool darkMode);
     void onRemoveAllBreakpoints();
 protected:
-    void resizeEvent(QResizeEvent *event);
+    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
     void updateLineNumberAreaWidth(int newBlockCount);

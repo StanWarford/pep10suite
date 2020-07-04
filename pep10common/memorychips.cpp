@@ -8,10 +8,7 @@ ConstChip::ConstChip(quint32 size, quint16 baseAddress, QObject *parent):
 
 }
 
-ConstChip::~ConstChip()
-{
-
-}
+ConstChip::~ConstChip() = default;
 
 AMemoryChip::IOFunctions ConstChip::getIOFunctions() const noexcept
 {
@@ -67,10 +64,7 @@ NilChip::NilChip(quint32 size, quint16 baseAddress, QObject *parent): AMemoryChi
 
 }
 
-NilChip::~NilChip()
-{
-
-}
+NilChip::~NilChip() = default;
 
 AMemoryChip::IOFunctions NilChip::getIOFunctions() const noexcept
 {
@@ -126,10 +120,7 @@ InputChip::InputChip(quint32 size, quint16 baseAddress, QObject *parent):
 
 }
 
-InputChip::~InputChip()
-{
-
-}
+InputChip::~InputChip() = default;
 
 void InputChip::resize(quint32 newSize) noexcept
 {
@@ -240,10 +231,7 @@ OutputChip::OutputChip(quint32 size, quint16 baseAddress, QObject *parent): AMem
 
 }
 
-OutputChip::~OutputChip()
-{
-
-}
+OutputChip::~OutputChip() = default;
 
 void OutputChip::resize(quint32 newSize) noexcept
 {
@@ -313,10 +301,7 @@ RAMChip::RAMChip(quint32 size, quint16 baseAddress, QObject *parent): AMemoryChi
 
 }
 
-RAMChip::~RAMChip()
-{
-
-}
+RAMChip::~RAMChip() = default;
 
 void RAMChip::resize(quint32 newSize) noexcept
 {
@@ -377,10 +362,7 @@ ROMChip::ROMChip(quint32 size, quint16 baseAddress, QObject *parent): AMemoryChi
 
 }
 
-ROMChip::~ROMChip()
-{
-
-}
+ROMChip::~ROMChip() = default;
 
 void ROMChip::resize(quint32 newSize) noexcept
 {

@@ -6,14 +6,14 @@
 #include "asmprogrammanager.h"
 #include "cpudata.h"
 #include "registerfile.h"
-#include <assert.h>
+#include <cassert>
 #include <QString>
 #include <QtCore>
 #include <QDebug>
 #include <QStack>
 
-FullMicrocodedMemoizer::FullMicrocodedMemoizer(FullMicrocodedCPU& item): cpu(item),
-    state(CPUState())
+FullMicrocodedMemoizer::FullMicrocodedMemoizer(FullMicrocodedCPU& item): cpu(item)
+    
 {
 
 }
@@ -63,7 +63,7 @@ QString FullMicrocodedMemoizer::memoize()
     if(Pep::isTrapMap[Pep::decodeMnemonic[ir]]) {
         build += generateTrapFrame(state);
     }
-    else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::RETTR) {
+    else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::SRET) {
         build += generateTrapFrame(state,false);
     }
     else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::CALL) {
@@ -77,7 +77,7 @@ QString FullMicrocodedMemoizer::memoize()
 
 QString FullMicrocodedMemoizer::finalStatistics()
 {
-    Enu::EMnemonic mnemon = Enu::EMnemonic::STOP;
+    Enu::EMnemonic mnemon = Enu::EMnemonic::RET;
     QList<Enu::EMnemonic> mnemonList = QList<Enu::EMnemonic>();
     mnemonList.append(mnemon);
     QList<quint32> tally = QList<quint32>();

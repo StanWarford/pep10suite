@@ -24,7 +24,7 @@
 #include "microcodeeditor.h"
 #include "pep.h"
 #include "microcodeprogram.h"
-#include <limits.h>
+#include <climits>
 #include "interfacemccpu.h"
 #include <QScrollBar>
 
@@ -59,7 +59,7 @@ int MicrocodeEditor::lineNumberAreaWidth()
     // Floor(Log10) returns the number of digits in number (minus one)
     int digits = 1 + static_cast<int>(log10(max));
 
-    int space = 4 + fontMetrics().width(QLatin1Char('9')) * digits;
+    int space = 4 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
 
     return space + fontMetrics().height();
 }
@@ -121,7 +121,7 @@ void MicrocodeEditor::onTextChanged()
 
     for (int i = 0; i < sourceCodeList.size(); i++) {
         // The following regular expression will find a match in any non-microcode line
-        if (QRegExp("^\\s*//|^\\s*$|^\\s*unitpre|^\\s*unitpost", Qt::CaseInsensitive).indexIn(sourceCodeList.at(i)) == 0) {
+        if (QRegExp(R"(^\s*//|^\s*$|^\s*unitpre|^\s*unitpost)", Qt::CaseInsensitive).indexIn(sourceCodeList.at(i)) == 0) {
         }
         else {
             blockToCycle.insert(i, cycleNumber++);

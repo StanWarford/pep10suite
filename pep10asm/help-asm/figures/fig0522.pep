@@ -6,21 +6,17 @@
 ch:      .BLOCK  1           ;global variable #1c
 j:       .BLOCK  2           ;global variable #2d
 ;
-main:    LDBA    charIn,d    ;scanf("%c %d", &ch, &j)
-         STBA    ch,d        
-         DECI    j,d         
+main:    @CHARI  ch,d    ;scanf("%c %d", &ch, &j)
+         @DECI   j,d         
          LDWA    j,d         ;j += 5
          ADDA    5,i         
          STWA    j,d         
          LDBA    ch,d        ;ch++
          ADDA    1,i         
          STBA    ch,d        
-         LDBA    ch,d        ;printf("%c\n%d\n", ch, j)
-         STBA    charOut,d   
-         LDBA    '\n',i      
-         STBA    charOut,d   
-         DECO    j,d         
-         LDBA    '\n',i      
-         STBA    charOut,d   
-         STOP                
+         @CHARO  ch,d        ;printf("%c\n%d\n", ch, j)
+         @CHARO  '\n',i      
+         @DECO   j,d         
+         @CHARO  '\n',i      
+         RET                
          .END                  

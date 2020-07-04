@@ -22,9 +22,10 @@
 #define MICROASM_H
 
 #include <QRegExp>
-#include "enu.h"
 #include <QSharedPointer>
-class AMemoryDevice;
+
+#include "enu.h"
+
 class AMicroCode; // Forward declaration for argument of processSourceLine.
 class SymbolTable;
 class MicroAsm
@@ -52,7 +53,6 @@ class MicroAsm
 
     Enu::CPUType cpuType;
     bool useExt;
-    QSharedPointer<AMemoryDevice> memDevice;
     static const QSet<ELexicalToken> extendedTokens;
     static const QSet<ParseState> extendedParseStates;
 public:
@@ -66,7 +66,7 @@ public:
     static bool startsWithHexPrefix(QString str);
     // Post: Returns true if str starts with the characters 0x or 0X. Otherwise returns false.
 
-    explicit MicroAsm(QSharedPointer<AMemoryDevice>, Enu::CPUType type, bool useExtendedFeatures = true);
+    explicit MicroAsm(Enu::CPUType type, bool useExtendedFeatures = true);
 
     bool getToken(QString &sourceLine, ELexicalToken &token, QString &tokenString);
     // Pre: sourceLine has one line of source code.

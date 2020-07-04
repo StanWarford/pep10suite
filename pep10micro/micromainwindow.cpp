@@ -38,6 +38,7 @@
 #include <QTextStream>
 #include <QTextCodec>
 #include <QUrl>
+#include <utility>
 
 #include "aboutpep.h"
 #include "amemorychip.h"
@@ -59,7 +60,7 @@
 #include "decodertabledialog.h"
 #include "fullmicrocodedcpu.h"
 #include "microhelpdialog.h"
-#include "isaasm.h"
+#include "macroassemblerdriver.h"
 #include "mainmemory.h"
 #include "memorychips.h"
 #include "memorydumppane.h"
@@ -68,19 +69,23 @@
 #include "microcodeprogram.h"
 #include "microobjectcodepane.h"
 #include "updatechecker.h"
-#include "redefinemnemonicsdialog.h"
 #include "registerfile.h"
 #include "symboltable.h"
 
 MicroMainWindow::MicroMainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MicroMainWindow), debugState(DebugState::DISABLED), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
-    updateChecker(new UpdateChecker()), isInDarkMode(false),
-    memDevice(new MainMemory(nullptr)), controlSection(new FullMicrocodedCPU(AsmProgramManager::getInstance(), memDevice)),
-    dataSection(controlSection->getDataSection()), redefineMnemonicsDialog(new RedefineMnemonicsDialog(this)),
-    decoderTableDialog(new DecoderTableDialog(nullptr)), programManager(AsmProgramManager::getInstance())
+    ui(new Ui::MicroMainWindow),
+    codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
+    updateChecker(new UpdateChecker()),
+    memDevice(new MainMemory(nullptr)),
+    controlSection(new FullMicrocodedCPU(AsmProgramManager::getInstance(), memDevice)),
+    dataSection(controlSection->getDataSection()),
+    decoderTableDialog(new DecoderTableDialog(nullptr)),
+    programManager(AsmProgramManager::getInstance()),
+    macro_registry(QSharedPointer<MacroRegistry>::create())
 
 {
+
     // Initialize the memory subsystem
     QSharedPointer<RAMChip> ramChip(new RAMChip(1<<16, 0, memDevice.get()));
     memDevice->insertChip(ramChip, 0);
@@ -97,10 +102,11 @@ MicroMainWindow::MicroMainWindow(QWidget *parent) :
     ui->memoryTracePane->init(programManager, controlSection, memDevice, controlSection->getMemoryTrace());
     ui->assemblerPane->init(programManager);
     ui->asmProgramTracePane->init(controlSection, programManager);
-    ui->microcodeWidget->init(controlSection, dataSection, memDevice, true);
+    ui->microcodeWidget->init(controlSection, dataSection, true);
     ui->microObjectCodePane->init(controlSection, true);
-    redefineMnemonicsDialog->init(false);
     ui->executionStatisticsWidget->init(controlSection, true);
+
+    programManager->setMacroRegistry(macro_registry);
 
     // Create & connect all dialogs.
     helpDialog = new MicroHelpDialog(this);
@@ -114,7 +120,6 @@ MicroMainWindow::MicroMainWindow(QWidget *parent) :
     QPixmap pixmap("://images/Pep9micro-icon.png");
     aboutPepDialog = new AboutPep(text, pixmap, this);
 
-    connect(redefineMnemonicsDialog, &RedefineMnemonicsDialog::closed, this, &MicroMainWindow::redefine_Mnemonics_closed);
     // Byte converter setup.
     byteConverterDec = new ByteConverterDec(this);
     ui->byteConverterToolBar->addWidget(byteConverterDec);
@@ -311,7 +316,7 @@ void MicroMainWindow::closeEvent(QCloseEvent *event)
 bool MicroMainWindow::eventFilter(QObject *, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
         if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)) {
             if (ui->cpuWidget->hasFocus() && ui->actionDebug_Single_Step_Microcode->isEnabled()) {
                 // single step or clock, depending of if currently debugging
@@ -344,7 +349,32 @@ bool MicroMainWindow::eventFilter(QObject *, QEvent *event)
             ui->statusBar->showMessage("Open failed, simulator currently debugging", 4000);
             return false;
         }
-        //loadFile(static_cast<QFileOpenEvent *>(event)->file());
+        auto fileEvent = static_cast<QFileOpenEvent *>(event)->file();
+        if(fileEvent.endsWith("pepl", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::EListing);
+            return true;
+        }
+        else if(fileEvent.endsWith("pepo", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::EObject);
+            return true;
+        }
+        else if(fileEvent.endsWith("pepm", Qt::CaseInsensitive)) {
+            #pragma message("TODO: Load macro file from file open event.")
+            //loadFile(fileEvent, Enu::EPane::ESource);
+            return true;
+        }
+        else if(fileEvent.endsWith("pepcpu", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::EMicrocode);
+            return true;
+        }
+        else if(fileEvent.endsWith("pepmicro", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::EMicrocode);
+            return true;
+        }
+        else if(fileEvent.endsWith("pep", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::ESource);
+            return true;
+        }
         return true;
     }
     // Touch events are giving CPU pane focus when it should be receiving it.
@@ -779,7 +809,6 @@ QString MicroMainWindow::strippedName(const QString &fullFileName)
 void MicroMainWindow::print(Enu::EPane which)
 {
     //Don't use a pointer for the text, because toPlainText() returns a temporary object
-    QString text;
     const QString base = "Print %1";
     const QString source = base.arg("Assembler Source Code");
     const QString object = base.arg("Object Code");
@@ -830,7 +859,7 @@ void MicroMainWindow::print(Enu::EPane which)
         // to silence compiler warnings.
         break;
     }
-    QPrintDialog *dialog = new QPrintDialog(&printer, this);
+    auto* dialog = new QPrintDialog(&printer, this);
 
     dialog->setWindowTitle(*title);
     if (dialog->exec() == QDialog::Accepted) {
@@ -856,24 +885,30 @@ void MicroMainWindow::print(Enu::EPane which)
 void MicroMainWindow::assembleDefaultOperatingSystem()
 {
     // Need to assemble operating system.
-    QString defaultOSText = Pep::resToString(":/help-micro/alignedIO-OS.pep", false);
+    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
     // If there is text, attempt to assemble it
     if(!defaultOSText.isEmpty()) {
         QSharedPointer<AsmProgram> prog;
         auto elist = QList<QPair<int, QString>>();
-        IsaAsm assembler(*programManager);
-        if(assembler.assembleOperatingSystem(defaultOSText, true, prog, elist)) {
-            programManager->setOperatingSystem(prog);
+        qDebug() << macro_registry->getCoreMacros();
+        for(auto macro : macro_registry->getCoreMacros()) {
+            qDebug() << macro->macroText;
         }
+        MacroAssemblerDriver assembler(macro_registry);
+        auto output = assembler.assembleOperatingSystem(defaultOSText);
         // If the operating system failed to assembly, we can't progress any further.
         // All application functionality depends on the operating system being defined.
-        else {
+        if(!output.success){
             qDebug() << "OS failed to assemble.";
             auto textList = defaultOSText.split("\n");
-            for(auto errorPair : elist) {
-                qDebug() << textList[errorPair.first] << errorPair.second << endl;
+            auto os_errors = output.errors.getModuleErrors(ModuleAssemblyGraph::defaultRootIndex);
+            for(const auto& error : os_errors.keys()) {
+                qDebug().noquote() << textList[error] << os_errors[error].first()->getErrorMessage() << endl;
             }
             throw std::logic_error("The default operating system failed to assemble.");
+        }
+        else {
+            programManager->setOperatingSystem(output.program);
         }
     }
     // If the operating system couldn't be found, we can't progress any further.
@@ -890,7 +925,7 @@ QVector<quint8> convertObjectCodeToIntArray(QString line, bool& success)
     bool ok = true;
     quint8 temp;
     QVector<quint8> output;
-    for(QString byte : line.split(" ")) {
+    for(const QString& byte : line.split(" ")) {
         // toShort(...) should never throw any errors, so there should be no concerns if byte is not a hex constant.
         temp = static_cast<quint8>(byte.toShort(&ok, 16));
         // There could be a loss in precision if given text outside the range of an uchar but in range of a ushort.
@@ -938,7 +973,7 @@ bool MicroMainWindow::loadObjectCodeProgram()
     bool temp, convertSuccess = true;
     // If there are no lines, there is no data.
     bool hadData = !lines.isEmpty();
-    for(auto line : lines.split("\n")) {
+    for(const auto& line : lines.split("\n")) {
         // Check if line is empty, if it is, stop processing line.
         QString trimmed = line.trimmed();
         if(trimmed.isEmpty()){
@@ -1010,14 +1045,6 @@ void MicroMainWindow::debugButtonEnableHelper(const int which)
     ui->actionSystem_Assemble_Install_New_OS->setEnabled(which & DebugButtons::INSTALL_OS);
     ui->actionSystem_Redefine_Decoder_Tables->setEnabled(which & DebugButtons::INSTALL_OS);
 
-    // If the user starts simulating while the redefine mnemonics dialog is open,
-    // force it to close so that the user can't change any mnemonics at runtime.
-    // Also explictly call redefine_Mnemonics_closed(), since QDialog::closed is
-    // not emitted when QDialog::hide() is invoked.
-    if(!(which & DebugButtons::INSTALL_OS) && redefineMnemonicsDialog->isVisible()) {
-        redefineMnemonicsDialog->hide();
-        redefine_Mnemonics_closed();
-    }
     // If the table to redefine decoder entries is visible, and one is unable to build microcode
     // (i.e. the simulation is running), then make sure the dialog is hidden.
     // It would be dangerous to allow microcode menmonics to be modified as a simulation is ongoing.
@@ -1044,7 +1071,7 @@ bool MicroMainWindow::initializeSimulation()
     // Load microprogram into the micro control store
     if (ui->microcodeWidget->microAssemble()) {
         ui->statusBar->showMessage("MicroAssembly succeeded", 4000);
-        if(ui->microcodeWidget->getMicrocodeProgram()->hasMicrocode() == false)
+        if(!ui->microcodeWidget->getMicrocodeProgram()->hasMicrocode())
         {
             ui->statusBar->showMessage("No microcode program to build", 4000);
             return false;
@@ -1064,6 +1091,20 @@ bool MicroMainWindow::initializeSimulation()
 
     // Don't allow the microcode pane to be edited while the program is running
     ui->microcodeWidget->setReadOnly(true);
+
+    CPUDataSection* data = this->dataSection.get();
+    AMemoryDevice* memory = this->memDevice.get();
+    // If there are preconditions then apply them.
+    if(ui->microcodeWidget->getMicrocodeProgram()->hasUnitPre()) {
+        // Unlike Pep9CPU, do not clear all of memory. With the assembly level features,
+        // we need to make sure that operating system / user program does not get removed from memory,
+        // which would break the simulator whenever microprograms contained preconditions.
+        for(auto line : ui->microcodeWidget->getMicrocodeProgram()->getObjectCode()) {
+            if(line->hasUnitPre()) {
+                static_cast<UnitPreCode*>(line)->setUnitPre(data, memory);
+            }
+        }
+    }
 
     // No longer emits simulationStarted(), as this could trigger extra screen painting that is unwanted.
     return true;
@@ -1436,7 +1477,7 @@ void MicroMainWindow::handleDebugButtons()
             && !programManager->getOperatingSystem()->getSymbolTable()->getValue("charIn").isNull();
     if(waiting_io) {
        quint16 address = programManager->getOperatingSystem()->getSymbolTable()->getValue("charIn")->getValue();
-       InputChip *chip = static_cast<InputChip*>(memDevice->chipAt(address));
+       auto *chip = static_cast<InputChip*>(memDevice->chipAt(address));
        waiting_io &= chip->waitingForInput(address-chip->getBaseAddress());
     }
     int enabledButtons = 0;
@@ -1495,6 +1536,10 @@ bool MicroMainWindow::on_actionDebug_Start_Debugging_Object_triggered()
         memDevice->clearBytesSet();
         memDevice->clearBytesWritten();
         ui->cpuWidget->startDebugging();
+        // Erase and re-render memory rather then update in place via updateMemory.
+        // For small changes, updateMemory is faster, but for large changes it is much slower.
+        // When beggining debugging, all addresses in the computer are 0'ed out and then
+        // the object code program / OS is loaded. This generate 64k update entries, hence very slow.
         ui->memoryWidget->refreshMemory();
         // Force re-highlighting on memory to prevent last run's data
         // from remaining highlighted. Otherwise, if the last program
@@ -1731,21 +1776,9 @@ void MicroMainWindow::on_actionSystem_Reinstall_Default_OS_triggered()
     ui->memoryWidget->refreshMemory();
 }
 
-void MicroMainWindow::on_actionSystem_Redefine_Mnemonics_triggered()
-{
-    redefineMnemonicsDialog->show();
-}
-
 void MicroMainWindow::on_actionSystem_Redefine_Decoder_Tables_triggered()
 {
     decoderTableDialog->show();
-}
-
-void MicroMainWindow::redefine_Mnemonics_closed()
-{
-    // Propogate ASM-level instruction definition changes across the application.
-    ui->assemblerPane->rebuildHighlightingRules();
-    ui->asmProgramTracePane->rebuildHighlightingRules();
 }
 
 void MicroMainWindow::onSimulationFinished()
@@ -1755,16 +1788,21 @@ void MicroMainWindow::onSimulationFinished()
 
     QVector<AMicroCode*> prog = ui->microcodeWidget->getMicrocodeProgram()->getObjectCode();
     bool hadPostTest = false;
+
+    CPUDataSection* data = this->dataSection.get();
+    AMemoryDevice* memory = this->memDevice.get();
     for (AMicroCode* x : prog) {
-        if(x->hasUnitPost()) hadPostTest = true;
-        if (x->hasUnitPost() && !static_cast<UnitPostCode*>(x)->testPostcondition(dataSection.get(), errorString)) {
-             static_cast<UnitPostCode*>(x)->testPostcondition(dataSection.get(), errorString);
-             ui->microcodeWidget->appendMessageInSourceCodePaneAt(-1, errorString);
-             QMessageBox::warning(this, "Pep/9 Micro", "Failed unit test");
-             ui->microcodeWidget->getEditor()->setFocus();
-             ui->statusBar->showMessage("Failed unit test", 4000);
-             return;
-        }
+        if(x->hasUnitPost()) {
+            hadPostTest = true;
+            auto* code = dynamic_cast<UnitPostCode*>(x);
+            if(!code->testPostcondition(data, memory, errorString)) {
+                ui->microcodeWidget->appendMessageInSourceCodePaneAt(-1, errorString);
+                QMessageBox::warning(this, "Pep/10 Micro", "Failed unit test");
+                ui->microcodeWidget->getEditor()->setFocus();
+                ui->statusBar->showMessage("Failed unit test", 4000);
+                return;
+            }
+         }
     }
     if(controlSection->hadErrorOnStep()) {
         QMessageBox::critical(
@@ -2086,7 +2124,7 @@ void MicroMainWindow::setRedoability(bool b)
 
 void MicroMainWindow::appendMicrocodeLine(QString line)
 {
-    ui->microcodeWidget->appendMessageInSourceCodePaneAt(-2, line);
+    ui->microcodeWidget->appendMessageInSourceCodePaneAt(-2, std::move(line));
 }
 
 void MicroMainWindow::helpCopyToSourceClicked()
@@ -2162,7 +2200,17 @@ void MicroMainWindow::onInputRequested(quint16 address)
 {
     handleDebugButtons();
     connectViewUpdate();
-    ui->tabWidget->setCurrentWidget(ui->debuggerTab);
+    // If we are debugging the application, switch to the debugger
+    // if it is not already active to show which line is requesting the
+    // input.
+    // ONLY_MICRO modes cannot trigger memory-mapped IO, and as such
+    // do not need to be considered.
+    if(ui->ioWidget->inInteractiveMode() ||
+            this->debugState == DebugState::DEBUG_ISA ||
+            this->debugState == DebugState::DEBUG_RESUMED ||
+            this->debugState == DebugState::DEBUG_MICRO) {
+        ui->tabWidget->setCurrentWidget(ui->debuggerTab);
+    }
     // Must highlight lines with both the assembler and microcode debugger visible.
     // This is because of a bug in centerCursor() which doesn't center the cursor
     // iff the widget has never been visible.

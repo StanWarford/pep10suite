@@ -20,6 +20,7 @@
 */
 
 #include<QStringList>
+#include <utility>
 #include "microasm.h"
 #include "pep.h"
 #include "microcode.h"
@@ -38,8 +39,8 @@ QRegExp MicroAsm::rxComment("^//.*");
 QRegExp MicroAsm::rxDigit("^[0-9]+");
 QRegExp MicroAsm::rxIdentifier("^((([A-Z|a-z]{1})(\\w*))(:){0,1})");
 QRegExp MicroAsm::rxHexConst("^((0(?![x|X]))|((0)([x|X])([0-9|A-F|a-f])+)|((0)([0-9]+)))");
-MicroAsm::MicroAsm(QSharedPointer<AMemoryDevice> memory, Enu::CPUType type, bool useExtendedFeatures): cpuType(type),
-    useExt(useExtendedFeatures), memDevice(memory)
+MicroAsm::MicroAsm(Enu::CPUType type, bool useExtendedFeatures): cpuType(type),
+    useExt(useExtendedFeatures)
 {
 
 }
@@ -635,14 +636,12 @@ bool MicroAsm::processSourceLine(SymbolTable* symTable, QString sourceLine, AMic
                     return false;
                 }
                 if (processingPrecondition) {
-                    preconditionCode->appendSpecification(new MemSpecification(memDevice.get(),
-                                                                               localAddressValue,
+                    preconditionCode->appendSpecification(new MemSpecification(localAddressValue,
                                                                                localValue,
                                                                                tokenString.length() > 2 ? 2 : 1));
                 }
                 else {
-                    postconditionCode->appendSpecification(new MemSpecification(memDevice.get(),
-                                                                                localAddressValue,
+                    postconditionCode->appendSpecification(new MemSpecification(localAddressValue,
                                                                                 localValue,
                                                                                 tokenString.length() > 2 ? 2 : 1));
                 }
@@ -858,7 +857,7 @@ bool MicroAsm::processSourceLine(SymbolTable* symTable, QString sourceLine, AMic
                 state = MicroAsm::PSE_FALSE_TARGET;
             }
             else {
-                errorString = "// Error: expected \"else\" after \"if\".";
+                errorString = R"(// Error: expected "else" after "if".)";
                 delete code;
                 return false;
             }
@@ -912,8 +911,7 @@ bool MicroAsm::startsWithHexPrefix(QString str)
 {
     if (str.length() < 2) return false;
     if (str[0] != '0') return false;
-    if (str[1] == 'x' || str[1] == 'X') return true;
-    return false;
+    return str[1] == 'x' || str[1] == 'X';
 }
 
 void MicroAsm::setCPUType(Enu::CPUType type)

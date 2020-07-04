@@ -32,12 +32,11 @@
  */
 class DisableSelectionModel : public QItemSelectionModel
 {
-    bool disableSelection;
     Q_OBJECT
 public:
     DisableSelectionModel(QAbstractItemModel *model = Q_NULLPTR) noexcept;
     DisableSelectionModel(QAbstractItemModel *model, QObject *parent = Q_NULLPTR) noexcept;
-    virtual ~DisableSelectionModel() override;
+    ~DisableSelectionModel() override;
     void select(const QItemSelection &selection, QItemSelectionModel::SelectionFlags command) override;
     void select(const QModelIndex &index, SelectionFlags command) override;
     // If non-negative, select the row with the passed "row" index,
@@ -48,6 +47,8 @@ public:
 public slots:
     void onDisableSelection();
     void onEnableSelection();
+private:
+    bool disableSelection {false};
 };
 
 #endif // DISABLESELECTIONMODEL_H

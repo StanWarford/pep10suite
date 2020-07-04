@@ -44,7 +44,7 @@ class ACPUModel: public QObject
     Q_OBJECT
 public:
     ACPUModel(QSharedPointer<AMemoryDevice> memoryDev, QObject* parent = nullptr) noexcept;
-    virtual ~ACPUModel();
+    ~ACPUModel() override;
 
     // Returns a #non-owning# pointer to the memory device being used by the CPU
     AMemoryDevice* getMemoryDevice() noexcept;

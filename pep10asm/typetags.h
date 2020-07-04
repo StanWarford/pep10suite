@@ -2,7 +2,7 @@
 #define TYPETAGS_H
 // File: typetags.h
 /*
-    Pep9 is a virtual machine for writing machine language and assembly
+    Pep10 is a virtual machine for writing machine language and assembly
     language programs.
 
     Copyright (C) 2019  Matthew McRaven, Pepperdine University

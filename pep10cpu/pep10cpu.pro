@@ -24,7 +24,7 @@ QT += widgets webenginewidgets printsupport concurrent
 # Mac icon/plist
 ICON = images/icon.icns
 QMAKE_INFO_PLIST = app.plist
-QMAKE_MAC_SDK = macosx10.14
+#QMAKE_MAC_SDK = macosx10.14
 
 #Windows RC file for icon:
 RC_FILE = pep10resources.rc
@@ -36,14 +36,10 @@ FORMS += \
 HEADERS += \
     cpuhelpdialog.h \
     cpumainwindow.h \
-    partialmicrocodedcpu.h \
-    partialmicrocodedmemoizer.h
 
 SOURCES += \
     cpuhelpdialog.cpp \
     cpumainwindow.cpp \
-    partialmicrocodedcpu.cpp \
-    partialmicrocodedmemoizer.cpp \
     cpumain.cpp
 
 RESOURCES += \

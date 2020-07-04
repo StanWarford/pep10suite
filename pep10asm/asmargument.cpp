@@ -22,18 +22,14 @@
 #include <QString>
 #include <QSharedPointer>
 #include <QWidget>
+#include <utility>
 
 #include "asmargument.h"
 #include "symboltable.h"
 #include "symbolentry.h"
 #include "symbolvalue.h"
 
-AsmArgument::~AsmArgument()
-{
-
-}
-
-SymbolRefArgument::SymbolRefArgument(QSharedPointer<SymbolEntry> sRefValue): symbolRefValue(sRefValue)
+SymbolRefArgument::SymbolRefArgument(QSharedPointer<SymbolEntry> sRefValue): symbolRefValue(std::move(sRefValue))
 {
 
 }
@@ -68,7 +64,7 @@ QString HexArgument::getArgumentString() const
     return "0x" + QString("%1").arg(hexValue, 4, 16, QLatin1Char('0')).toUpper();
 }
 
-StringArgument::StringArgument(QString sValue): stringValue(sValue)
+StringArgument::StringArgument(QString sValue): stringValue(std::move(sValue))
 {
 
 }
@@ -83,7 +79,7 @@ QString StringArgument::getArgumentString() const
     return stringValue;
 }
 
-CharArgument::CharArgument(QString cValue) : charValue(cValue)
+CharArgument::CharArgument(QString cValue) : charValue(std::move(cValue))
 {
 
 }

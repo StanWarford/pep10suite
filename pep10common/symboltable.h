@@ -40,14 +40,15 @@ class SymbolTable
 public:
     // This type uniquely identifies a SymbolEntry within a symbol table.
     // It is not gaurenteed to be unique across runs or between multiple SymbolTable instances at runtime.
-    typedef QAtomicInt SymbolID;
+    using SymbolID = QAtomicInt;
     // Convenience typdefs of commonly used templated types to reduce code verbosity.
-    typedef QSharedPointer<SymbolEntry> SymbolEntryPtr;
-    typedef QSharedPointer<AbstractSymbolValue> AbstractSymbolValuePtr;
+    using SymbolEntryPtr = QSharedPointer<SymbolEntry>;
+    using AbstractSymbolValuePtr = QSharedPointer<AbstractSymbolValue>;
 
 private:
     static SymbolID nextUserSymbolID;
 	static SymbolID getNextUserSymbolID();
+    QList<SymbolEntryPtr> externalSymbols;
     QMap<SymbolID, SymbolEntryPtr> symbolDictionary;
     QMap<QString, SymbolID> symbolLookup;
 
@@ -72,6 +73,10 @@ public:
     // Indicate that you are defining a new symbol. If the symbol
     // already exists, the symbol will be flagged as multiply defined.
     SymbolEntryPtr define(const QString & symbolName);
+    // Declare a symbol as external, allowing it to be used in other translation units.
+    void declareExternal(const QString & symbolName);
+    // Return the list of symbols that may be linked externally.
+    const QList<QSharedPointer<SymbolEntry>> getExternalSymbols() const;
 
     // Check if a symbol exists.
     bool exists(const QString& symbolName) const;

@@ -2,12 +2,12 @@
 ;Computer Systems, Fifth edition
 ;Figure 5.6
 ;
-         LDBA    0xFC15,d    ;Input first character
-         STBA    0x0013,d    ;Store first character
-         LDBA    0xFC15,d    ;Input second character
-         STBA    0xFC16,d    ;Output second character
-         LDBA    0x0013,d    ;Load first character
-         STBA    0xFC16,d    ;Output first character
-         STOP                ;Stop
+         LDBA    0xFAAA,d    ;Input first character
+         STBA    0x0015,d    ;Store first character
+         LDBA    0xFAAA,d    ;Input second character
+         STBA    0xFAAC,d    ;Output second character
+         LDBA    0x0015,d    ;Load first character
+         STBA    0xFAAC,d    ;Output first character
+         STBA    0xFAAE,d    ;Store byte to power off port
          .BLOCK  1           ;Storage for first character
          .END

@@ -13,15 +13,11 @@
          LDBA    'i',i       ;move i to stack
          STBA    -6,s        
          SUBSP   6,i         ;push 6 bytes onto stack
-         LDBA    5,s         ;output B
-         STBA    charOut,d   
-         LDBA    4,s         ;output M
-         STBA    charOut,d   
-         LDBA    3,s         ;output W
-         STBA    charOut,d   
-         DECO    1,s         ;output 335
-         LDBA    0,s         ;output i
-         STBA    charOut,d   
+         @CHARO  5,s         ;output B
+         @CHARO  4,s         ;output M
+         @CHARO  3,s         ;output W
+         @DECO   1,s         ;output 335
+         @CHARO  0,s         ;output i
          ADDSP   6,i         ;pop 6 bytes off stack
-         STOP                
+         RET                
          .END                  

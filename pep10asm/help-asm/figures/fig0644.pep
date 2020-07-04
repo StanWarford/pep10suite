@@ -26,31 +26,20 @@ main:    SUBSP   6,i         ;push #a #b #c
          LDWA    2,i         ;*a = 2 + *c
          ADDA    c,sf        
          STWA    a,sf        
-         STRO    msg0,d      ;printf("*a = %d\n", *a)
-         DECO    a,sf        
-         LDBA    '\n',i      
-         STBA    charOut,d   
-         STRO    msg1,d      ;printf("*b = %d\n", *b)
-         DECO    b,sf        
-         LDBA    '\n',i      
-         STBA    charOut,d   
-         STRO    msg2,d      ;printf("*c = %d\n", *c)
-         DECO    c,sf        
-         LDBA    '\n',i      
-         STBA    charOut,d   
+         @STRO   msg0,d      ;printf("*a = %d\n", *a)
+         @DECO   a,sf        
+         @CHARO  '\n',i      
+         @STRO   msg1,d      ;printf("*b = %d\n", *b)
+         @DECO   b,sf        
+         @CHARO  '\n',i      
+         @STRO   msg2,d      ;printf("*c = %d\n", *c)
+         @DECO   c,sf        
+         @CHARO  '\n',i      
          ADDSP   6,i         ;pop #c #b #a
-         STOP                
+         RET                
 msg0:    .ASCII  "*a = \x00" 
 msg1:    .ASCII  "*b = \x00" 
 msg2:    .ASCII  "*c = \x00" 
 ;
-;******* malloc()
-;        Precondition: A contains number of bytes
-;        Postcondition: X contains pointer to bytes
-malloc:  LDWX    hpPtr,d     ;returned pointer
-         ADDA    hpPtr,d     ;allocate from heap
-         STWA    hpPtr,d     ;update hpPtr
-         RET                 
-hpPtr:   .ADDRSS heap        ;address of next free byte
-heap:    .BLOCK  1           ;first byte in the heap
+         @MALLOC
          .END                  

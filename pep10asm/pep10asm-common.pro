@@ -24,15 +24,18 @@ HEADERS += \
     asmprogrammanager.h \
     asmsourcecodepane.h \
     cpphighlighter.h \
+    errormessage.h \
     executionstatisticswidget.h \
     fakemacrodriver.h \
     interfaceisacpu.h \
     isaasm.h \
     macro.h \
     macroassemblerdriver.h \
+    macrolinker.h \
     macromodules.h \
     macropreprocessor.h \
     macroregistry.h \
+    macrostackannotater.h \
     macrotokenizer.h \
     macroassembler.h \
     memorycellgraphicsitem.h \
@@ -42,9 +45,9 @@ HEADERS += \
     ngraph_prune.h \
     pepasmhighlighter.h \
     setops.hpp \
+    tracedata.h \
     typetags.h \
     stacktrace.h \
-    redefinemnemonicsdialog.h \
     asmcpupane.h \
     isacpu.h \
     isacpumemoizer.h \
@@ -61,23 +64,26 @@ SOURCES += \
     asmprogrammanager.cpp \
     asmsourcecodepane.cpp \
     cpphighlighter.cpp \
+    errormessage.cpp \
     executionstatisticswidget.cpp \
     fakemacrodriver.cpp \
     interfaceisacpu.cpp \
     isaasm.cpp \
     macro.cpp \
     macroassemblerdriver.cpp \
+    macrolinker.cpp \
     macromodules.cpp \
     macropreprocessor.cpp \
     macroregistry.cpp \
+    macrostackannotater.cpp \
     macrotokenizer.cpp \
     macroassembler.cpp \
     memorycellgraphicsitem.cpp \
     memorytracepane.cpp \
     pepasmhighlighter.cpp \
+    tracedata.cpp \
     typetags.cpp \
     stacktrace.cpp \
-    redefinemnemonicsdialog.cpp \
     asmcpupane.cpp \
     isacpu.cpp \
     isacpumemoizer.cpp \

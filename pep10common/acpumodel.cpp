@@ -24,17 +24,15 @@
 #include "amemorydevice.h"
 #include "interrupthandler.h"
 #include <QSharedPointer>
-ACPUModel::ACPUModel(QSharedPointer<AMemoryDevice> memoryDev, QObject* parent) noexcept: QObject(parent), memory(memoryDev),
+#include <utility>
+ACPUModel::ACPUModel(QSharedPointer<AMemoryDevice> memoryDev, QObject* parent) noexcept: QObject(parent), memory(std::move(memoryDev)),
     handler(new InterruptHandler()), callDepth(0), inDebug(false), inSimulation(false),
     executionFinished(false), controlError(false), errorMessage("")
 {
 
 }
 
-ACPUModel::~ACPUModel()
-{
-
-}
+ACPUModel::~ACPUModel() = default;
 
 AMemoryDevice *ACPUModel::getMemoryDevice() noexcept
 {
@@ -48,7 +46,7 @@ const AMemoryDevice *ACPUModel::getMemoryDevice() const noexcept
 
 void ACPUModel::setMemoryDevice(QSharedPointer<AMemoryDevice> newDevice)
 {
-    memory = newDevice;
+    memory = std::move(newDevice);
 }
 
 bool ACPUModel::getExecutionFinished() const noexcept

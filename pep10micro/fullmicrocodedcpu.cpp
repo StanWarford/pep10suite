@@ -408,6 +408,18 @@ void FullMicrocodedCPU::stepOut()
     doISAStepWhile(cond);
 }
 
+void FullMicrocodedCPU::runUntilLoaded()
+{
+    std::function<bool(void)> cond = [this](){
+        return data->getRegisterBank().readRegisterWordCurrent(Enu::CPURegisters::PC) != 0
+        && !getExecutionFinished()
+        && !stoppedForBreakpoint()
+        && !hadErrorOnStep();};
+    doISAStepWhile(cond);
+    // Clear memory at end to hide the fact that the user program was loaded.
+    memory->clearBytesWritten();
+}
+
 quint64 FullMicrocodedCPU::getCycleCount()
 {
     return memoizer->getCycleCount();
@@ -618,7 +630,7 @@ void FullMicrocodedCPU::updateAtInstructionEnd()
     else if(Pep::decodeMnemonic[data->getRegisterBankByte(Enu::CPURegisters::IS)] == Enu::EMnemonic::RET){
         callDepth--;
     }
-    else if(Pep::decodeMnemonic[data->getRegisterBankByte(Enu::CPURegisters::IS)] == Enu::EMnemonic::RETTR){
+    else if(Pep::decodeMnemonic[data->getRegisterBankByte(Enu::CPURegisters::IS)] == Enu::EMnemonic::SRET){
         callDepth--;
     }
 }
@@ -675,14 +687,12 @@ void FullMicrocodedCPU::breakpointAsmHandler()
 {
     asmBreakpointHit = true;
     emit hitBreakpoint(Enu::BreakpointTypes::ASSEMBLER);
-    return;
 }
 
 void FullMicrocodedCPU::breakpointMicroHandler()
 {
     microBreakpointHit = true;
     emit hitBreakpoint(Enu::BreakpointTypes::MICROCODE);
-    return;
 }
 
 void FullMicrocodedCPU::setSignalsFromMicrocode(const MicroCode *line)

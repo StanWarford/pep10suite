@@ -47,7 +47,7 @@ class MainMemory : public AMemoryDevice
     Q_OBJECT
     // Store whether or not the addressToChipLookupTable should be updated with
     // each insertion or removal.
-    bool updateMemMap;
+    bool updateMemMap {true};
     // Pointer to the chip that will be used to "blank out" memory addresses
     // past the end alloacted memory (i.e. memory address after the argument
     // of a .BURN).
@@ -63,11 +63,11 @@ class MainMemory : public AMemoryDevice
     // A list of all memory locations that have a pending input request.
     mutable QSet<quint16> waitingOnInput;
     // Highest accessible address in memory.
-    mutable quint32 maxAddr;
+    mutable quint32 maxAddr {0};
 
 public:
     explicit MainMemory(QObject* parent = nullptr) noexcept;
-    virtual ~MainMemory() override;
+    ~MainMemory() override;
 
     // AMemoryDevice interface
     quint32 maxAddress() const noexcept override;

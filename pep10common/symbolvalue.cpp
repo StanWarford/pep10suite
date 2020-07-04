@@ -21,23 +21,16 @@
 */
 
 #include "symbolvalue.h"
+#include "symbolentry.h"
+AbstractSymbolValue::AbstractSymbolValue() = default;
 
-AbstractSymbolValue::AbstractSymbolValue()
-{
-}
-
-AbstractSymbolValue::~AbstractSymbolValue()
-{
-
-}
+AbstractSymbolValue::~AbstractSymbolValue() = default;
 
 SymbolValueEmpty::SymbolValueEmpty(): AbstractSymbolValue()
 {
 }
 
-SymbolValueEmpty::~SymbolValueEmpty()
-{
-}
+SymbolValueEmpty::~SymbolValueEmpty() = default;
 
 qint32 SymbolValueEmpty::getValue() const
 {
@@ -54,10 +47,7 @@ SymbolValueNumeric::SymbolValueNumeric(quint16 value): value(value)
 
 }
 
-SymbolValueNumeric::~SymbolValueNumeric()
-{
-
-}
+SymbolValueNumeric::~SymbolValueNumeric() = default;
 
 void SymbolValueNumeric::setValue(quint16 value)
 {
@@ -78,9 +68,7 @@ SymbolValueLocation::SymbolValueLocation(quint16 value):AbstractSymbolValue(), b
 {
 }
 
-SymbolValueLocation::~SymbolValueLocation()
-{
-}
+SymbolValueLocation::~SymbolValueLocation() = default;
 
 void SymbolValueLocation::setBase(quint16 value)
 {
@@ -116,4 +104,33 @@ quint16 SymbolValueLocation::getOffset() const
 quint16 SymbolValueLocation::getBase() const
 {
     return base;
+}
+
+SymbolValueExternal::SymbolValueExternal(QSharedPointer<const SymbolEntry> symbol): symbol(std::move(symbol))
+{
+
+}
+
+SymbolValueExternal::~SymbolValueExternal() = default;
+
+qint32 SymbolValueExternal::getValue() const
+{
+    return symbol->getValue();
+}
+
+SymbolType SymbolValueExternal::getSymbolType() const
+{
+    return SymbolType::EXTERNAL;
+}
+
+bool SymbolValueExternal::canRelocate() const
+{
+    // We should not allow relocation of a symbol defined in
+    // another translation unit.
+    return false;
+}
+
+QSharedPointer<const SymbolEntry> SymbolValueExternal::getSymbolValue()
+{
+    return symbol;
 }

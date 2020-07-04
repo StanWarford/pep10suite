@@ -61,8 +61,8 @@
 
 /**
 
-    @brief A mathematical graph object: a simple, directed, connected graph, 
-    where nodes are of arbitrary type (colores, cities, names, etc.)  
+    @brief A mathematical graph object: a simple, directed, connected graph,
+    where nodes are of arbitrary type (colores, cities, names, etc.)
     Operations for adding and removing edges and vertices, together with
     functions for finding neighbors, subgraphs, and other properties are
     included.
@@ -93,32 +93,32 @@ class tGraph
 
   public:
 
-    typedef T vertex;
-    typedef T value_type;
-    typedef std::pair<vertex,vertex> edge;
-    typedef std::set<vertex> vertex_set;
-    typedef std::set<edge> edge_set;
-    typedef std::pair<vertex_set, vertex_set> in_out_edge_sets;
-    typedef std::map<vertex, in_out_edge_sets>  adj_graph;
+    using vertex = T;
+    using value_type = T;
+    using edge = std::pair<vertex,vertex>;
+    using vertex_set = std::set<vertex>;
+    using edge_set = std::set<edge>;
+    using in_out_edge_sets = std::pair<vertex_set, vertex_set>;
+    using adj_graph = std::map<vertex, in_out_edge_sets>;
 
-    typedef typename edge_set::iterator edge_iterator;
-    typedef typename edge_set::const_iterator const_edge_iterator;
+    using edge_iterator = typename edge_set::iterator;
+    using const_edge_iterator =typename edge_set::const_iterator;
 
-    typedef typename vertex_set::iterator vertex_iterator;
-    typedef typename vertex_set::const_iterator const_vertex_iterator;
+    using vertex_iterator =typename vertex_set::iterator;
+    using const_vertex_iterator = typename vertex_set::const_iterator;
 
-    typedef typename vertex_set::iterator vertex_neighbor_iterator;
-    typedef typename vertex_set::const_iterator vertex_neighbor_const_iterator;
+    using vertex_neighbor_iterator = typename vertex_set::iterator;
+    using vertex_neighbor_const_iterator= typename vertex_set::const_iterator;
 
   private:
-  
+
     adj_graph G_;
     unsigned int num_edges_;
     bool undirected_;
 
   public:
 
-    // 
+    //
     //
 
     /**
@@ -126,7 +126,7 @@ class tGraph
 
 <pre>
       tGraph::const_iterator p = G.begin();
-      
+
       tGraph::vertex a = node(p);
       tGraph::vertex_set  &in_edges = in_neighbors(p);
       tGraph::vertex_set  &out_edges = out_neighbors(p);
@@ -134,12 +134,12 @@ class tGraph
 </pre>
     */
 
-    typedef typename adj_graph::iterator iterator;
-    typedef typename adj_graph::const_iterator const_iterator;
-    typedef typename std::size_t size_t;
+    using iterator = typename adj_graph::iterator;
+    using const_iterator = typename adj_graph::const_iterator;
+    using size_t = typename std::size_t;
 
-    typedef iterator node_iterator;
-    typedef const_iterator const_node_iterator;
+    using node_iterator = iterator;
+    using const_node_iterator = const_iterator;
 
     size_t num_vertices() const { return G_.size(); }
     size_t num_nodes() const { return G_.size(); }
@@ -149,7 +149,7 @@ class tGraph
     const_iterator begin() const { return G_.begin(); }
     iterator end() { return G_.end(); }
     const_iterator end() const { return G_.end(); }
-   
+
     vertex_neighbor_iterator out_neighbors_begin(const vertex &a)
     {
       return in_neighbors(a).begin();
@@ -169,14 +169,14 @@ class tGraph
     {
       return out_neighbors(a).end();
     }
-    
-    
+
+
     tGraph(): G_(), num_edges_(0), undirected_(false){}
-    tGraph(const tGraph &B) : G_(B.G_), num_edges_(B.num_edges_), 
+    tGraph(const tGraph &B) : G_(B.G_), num_edges_(B.num_edges_),
           undirected_(B.undirected_){}
     tGraph(const edge_set &E)
     {
-      for (typename edge_set::const_iterator p = E.begin(); 
+      for (typename edge_set::const_iterator p = E.begin();
                       p != E.end(); p++)
         insert_edge(*p);
     }
@@ -204,12 +204,12 @@ class tGraph
 
     const vertex_set &in_neighbors(const vertex &a) const
               { return (find(a))->second.first;}
-          vertex_set &in_neighbors(const vertex &a)      
+          vertex_set &in_neighbors(const vertex &a)
               { return (G_[a]).first; }
 
     const vertex_set &out_neighbors(const vertex &a)const
                 {return find(a)->second.second;}
-          vertex_set &out_neighbors(const vertex &a)      
+          vertex_set &out_neighbors(const vertex &a)
                 {return G_[a].second; }
 
 
@@ -318,7 +318,7 @@ class tGraph
           insert_vertex(b);
           pb = find(b);
       }
-      
+
       insert_edge( pa, pb );
     }
 
@@ -338,7 +338,7 @@ class tGraph
       insert_undirected_edge(E.first, E.second);
     }
 
-   
+
 
     void remove_edge(iterator pa, iterator pb)
     {
@@ -352,7 +352,7 @@ class tGraph
         num_edges_ --;
 
     }
-   
+
     void remove_edge(const vertex &a, const vertex& b)
     {
       iterator pa = find(a);
@@ -389,7 +389,7 @@ class tGraph
       //vertex_set & in_edges =  in_neighbors(pa);
 
       // remove out-going edges
-      for (typename vertex_set::iterator p = out_edges.begin(); 
+      for (typename vertex_set::iterator p = out_edges.begin();
                   p!=out_edges.end(); p++)
       {
           remove_edge(pa, find(*p));
@@ -397,7 +397,7 @@ class tGraph
 
 
       // remove in-coming edges
-      for (typename vertex_set::iterator p = in_edges.begin(); 
+      for (typename vertex_set::iterator p = in_edges.begin();
                   p!=in_edges.end(); p++)
       {
           remove_edge(find(*p), pa);
@@ -440,15 +440,15 @@ class tGraph
    */
    bool includes_edge(const vertex &a, const vertex &b) const
    {
-      return (includes_vertex(a)) ? 
+      return (includes_vertex(a)) ?
           includes_elm(out_neighbors(a),b): false;
-      
+
       //const vertex_set &out = out_neighbors(a);
       // return ( out.find(b) != out.end());
 
    }
 
-  
+
   bool includes_edge(const edge& e) const
   {
     return includes_edge(e.first, e.second);
@@ -469,7 +469,7 @@ class tGraph
     graph unions
 */
 
-    tGraph & plus_eq(const tGraph &B) 
+    tGraph & plus_eq(const tGraph &B)
     {
 
         for (const_iterator p=B.begin(); p != B.end(); p++)
@@ -479,13 +479,13 @@ class tGraph
             const vertex_set &out = out_neighbors(p);
             for (typename vertex_set::const_iterator q= out.begin(); q != out.end(); q++)
             {
-                insert_edge(this_node, *q); 
+                insert_edge(this_node, *q);
             }
         }
         return *this;
     }
 
-    tGraph intersect(const tGraph &B) const  
+    tGraph intersect(const tGraph &B) const
     {
     tGraph G;
     for (const_iterator p=begin(); p != end(); p++) {
@@ -539,7 +539,7 @@ class tGraph
     }
 
 
-    tGraph plus(const tGraph &B) const  
+    tGraph plus(const tGraph &B) const
     {
         tGraph U(*this);
 
@@ -552,7 +552,7 @@ class tGraph
         return plus(B);
     }
 
-    tGraph & operator+=(const tGraph &B) 
+    tGraph & operator+=(const tGraph &B)
     {
         return plus_eq(B);
     }
@@ -563,7 +563,7 @@ class tGraph
 /*
    union of two graphs
 */
-    tGraph Union(const tGraph &B) const  
+    tGraph Union(const tGraph &B) const
     {
         tGraph U(B);
         typedef std::vector<edge> VE;
@@ -579,7 +579,7 @@ class tGraph
 /*
    intersection of two graphs
 */
-    tGraph intersect(const tGraph &B) const  
+    tGraph intersect(const tGraph &B) const
     {
         tGraph I;
         typedef std::vector<tGraph::edge> VE;
@@ -605,12 +605,12 @@ class tGraph
 
 
 
-  
+
 /**
     @param A vertex set of nodes (subset of G)
     @return a new subgraph containing all nodes of A
 */
-    tGraph subgraph(const vertex_set &A) const  
+    tGraph subgraph(const vertex_set &A) const
     {
         tGraph G;
 
@@ -626,7 +626,7 @@ class tGraph
         return G;
     }
 
-    unsigned int subgraph_size(const vertex_set &A) const  
+    unsigned int subgraph_size(const vertex_set &A) const
     {
         unsigned int num_edges = 0;
         for (typename vertex_set::const_iterator p = A.begin();
@@ -639,7 +639,7 @@ class tGraph
         return num_edges;
     }
 
-    // we don't need to divide by two since  we are only 
+    // we don't need to divide by two since  we are only
     // counting out-edges in subgraph_size()
     double subgraph_sparsity(const vertex_set &A) const
     {
@@ -912,9 +912,9 @@ class tGraph
 //
 
 
-typedef tGraph<unsigned int> Graph;
-typedef tGraph<int> iGraph;
-typedef tGraph<std::string> sGraph;
+using Graph = tGraph<unsigned int>;
+using iGraph = tGraph<int>;
+using sGraph = tGraph<std::string>;
 
 
 template <class T>
@@ -995,7 +995,7 @@ std::ostream & operator<<(std::ostream &s, const tGraph<T> &G)
 }
 
 template <typename T>
-void tGraph<T>::print() const 
+void tGraph<T>::print() const
 {
 
     std::cerr << "# vertices: " <<  num_vertices()  << "\n";

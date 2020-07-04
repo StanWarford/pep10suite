@@ -5,13 +5,14 @@
 #include "macromodules.h"
 #include "macroregistry.h"
 
+class FrontEndError;
 // Report whether the entire preprocessing stage
 // was successful, or report what line in the main
 // module caused (or included) a macro error.
 struct PreprocessorResult
 {
     bool succes;
-    ErrorInfo error;
+    QSharedPointer<FrontEndError> error;
 };
 
 /*
@@ -22,6 +23,9 @@ struct PreprocessorResult
  * It validates that all macro names/arguments are syntatically correct
  * (e.g. they are valid tokens) and semantically correct (macro invocations
  * do not use a macro substitution as part of their identifier or argument list).
+ *
+ * It treats macros as case insensitive, e.g. @AsRa4 will match against @ASRA4,
+ * which is a core macro.
  */
 class MacroPreprocessor
 {
@@ -85,6 +89,15 @@ private:
     // Create a module or return a pointer to an identical one.
     quint16 maybeCreatePrototype(QString macroName, ModuleType type);
     QSharedPointer<ModuleInstance> maybeCreateInstance(quint16 moduleIndex, QStringList args);
+    QSharedPointer<FrontEndError> mapError(quint16 badModule, QString message);
 };
 
+static const QString tooManyMacros = ";ERROR: Only one macro may be referenced per line.";
+static const QString noIdentifier = ";ERROR: A @ must be followed by a string identifier.";
+static const QString noSuchMaro = ";ERROR: Referenced macro does not exist.";
+static const QString badArgCount = ";ERROR: Macro supplied wrong number of arguments.";
+static const QString noDollarInMacro = ";ERROR: Cannot use $ as part of a macro identifier.";
+static const QString invalidArg = ";ERROR: Bad argument: %1. Cannot use $ in macro argument.";
+static const QString circularInclude = ";ERROR: Circular macro inclusion detected.";
+static const QString selfRefence = ";ERROR: Macro definition invokes itself.";
 #endif // MACROPREPROCESSOR_H

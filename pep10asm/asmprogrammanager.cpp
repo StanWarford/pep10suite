@@ -1,8 +1,13 @@
 #include "asmprogrammanager.h"
-#include "asmprogram.h"
+
 #include <QSharedPointer>
+
 #include "asmcode.h"
+#include "asmprogram.h"
+#include "macroassembler.h"
+#include "macroassemblerdriver.h"
 #include "symbolentry.h"
+
 AsmProgramManager* AsmProgramManager::instance = nullptr;
 AsmProgramManager::AsmProgramManager(QObject *parent): QObject(parent), operatingSystem(nullptr), userProgram(nullptr)
 {
@@ -97,6 +102,16 @@ QSet<quint16> AsmProgramManager::getBreakpoints() const
     return breakpoints;
 }
 
+QSharedPointer<MacroRegistry> AsmProgramManager::getMacroRegistry()
+{
+    return macroRegistry;
+}
+
+void AsmProgramManager::setMacroRegistry(QSharedPointer<MacroRegistry> macroRegistry)
+{
+    this->macroRegistry = macroRegistry;
+}
+
 const AsmProgram *AsmProgramManager::getProgramAt(quint16 address) const
 {
     if(!userProgram.isNull()) {
@@ -135,17 +150,19 @@ void AsmProgramManager::onRemoveAllBreakpoints()
 QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleOS(QString sourceCode, bool forceBurnAt0xFFFF)
 {
     QSharedPointer<AsmProgramManager::AsmOutput> out = QSharedPointer<AsmProgramManager::AsmOutput>::create();
-    IsaAsm assembler(*this);
+    MacroAssemblerDriver assembler(getMacroRegistry());
     // List of errors and warnings and the lines on which they occured
-    bool success = assembler.assembleOperatingSystem(sourceCode, forceBurnAt0xFFFF, out->prog, out->errors);
+    #pragma message("Figure out how to propogate errors correctly")
+    auto output = assembler.assembleOperatingSystem(sourceCode);
     // Add all warnings and errors to source files
     // If assemble failed, don't perform any more work
-    if(!success) {
+    if(!output.success) {
         out->success = false;
         return out;
     }
     else {
         out->success = true;
+        out->prog = output.program;
     }
     return out;
 }
@@ -153,17 +170,19 @@ QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleOS(QStri
 QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleProgram(QString sourceCode)
 {
     QSharedPointer<AsmProgramManager::AsmOutput> out = QSharedPointer<AsmProgramManager::AsmOutput>::create();
-    IsaAsm assembler(*this);
+    MacroAssemblerDriver assembler(getMacroRegistry());
     // List of errors and warnings and the lines on which they occured
-    bool success = assembler.assembleUserProgram(sourceCode, out->prog, out->errors);
+    #pragma message("Figure out how to propogate errors correctly")
+    auto output = assembler.assembleUserProgram(sourceCode, operatingSystem->getSymbolTable());
     // Add all warnings and errors to source files
     // If assemble failed, don't perform any more work
-    if(!success) {
+    if(!output.success) {
         out->success = false;
         return out;
     }
     else {
         out->success = true;
+        out->prog = output.program;
     }
     return out;
 }
@@ -171,17 +190,23 @@ QSharedPointer<AsmProgramManager::AsmOutput> AsmProgramManager::assembleProgram(
 quint16 AsmProgramManager::getMemoryVectorOffset(MemoryVectors which)
 {
     switch(which) {
-    case UserStack:;
+    case UserStack:
+        return 17;
+    case SystemStack:
+        return 15;
+    case DiskIn:
+        return 13;
+    case CharIn:
         return 11;
-    case SystemStack:;
+    case CharOut:
         return 9;
-    case CharIn:;
+    case PowerOff:
         return 7;
-    case CharOut:;
+    case Start:
         return 5;
-    case Loader:;
+    case Loader:
         return 3;
-    case Trap:;
+    case Trap:
         return 1;
     }
 }

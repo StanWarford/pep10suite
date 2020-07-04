@@ -15,7 +15,7 @@ class DecoderTableDialog : public QDialog
 
 public:
     explicit DecoderTableDialog(QWidget *parent = nullptr);
-    ~DecoderTableDialog();
+    ~DecoderTableDialog() override;
 public slots:
     void on_button_close_pressed();
     void on_button_reset_pressed();
@@ -35,17 +35,17 @@ private:
 class DecoderTableDelegate: public QStyledItemDelegate {
 public:
     DecoderTableDelegate(QObject* parent = nullptr);
-    virtual ~DecoderTableDelegate() override;
+    ~DecoderTableDelegate() override;
     // See http://doc.qt.io/qt-5/qstyleditemdelegate.html#subclassing-qstyleditemdelegate for explanation on the methods being reimplemented.
 
     // If the index is editable, create an editor that validates byte hex constants, otherwise return nullptr
-    virtual QWidget* createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    QWidget* createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     // Provides editor widget with starting data for editing.
-    virtual void setEditorData(QWidget * editor, const QModelIndex & index) const override;
+    void setEditorData(QWidget * editor, const QModelIndex & index) const override;
     // Ensure that editor is displayed correctly on the item view
-    virtual void updateEditorGeometry(QWidget * editor, const QStyleOptionViewItem & option, const QModelIndex & index) const override;
+    void updateEditorGeometry(QWidget * editor, const QStyleOptionViewItem & option, const QModelIndex & index) const override;
     // Handle updating data in the model via calling the memorySection
-    virtual void setModelData(QWidget *editor,
+    void setModelData(QWidget *editor,
                                     QAbstractItemModel *model,
                                     const QModelIndex &index) const override;
 };

@@ -1,4 +1,6 @@
 #include "interfacemccpu.h"
+
+#include <utility>
 #include "microcodeprogram.h"
 InterfaceMCCPU::InterfaceMCCPU(Enu::CPUType type) noexcept: microprogramCounter(0), microCycleCounter(0),
     microBreakpointHit(false), sharedProgram(nullptr), type(type)
@@ -6,10 +8,7 @@ InterfaceMCCPU::InterfaceMCCPU(Enu::CPUType type) noexcept: microprogramCounter(
 
 }
 
-InterfaceMCCPU::~InterfaceMCCPU()
-{
-
-}
+InterfaceMCCPU::~InterfaceMCCPU() = default;
 
 quint64 InterfaceMCCPU::getCycleCounter() const noexcept
 {
@@ -33,7 +32,7 @@ const MicroCode* InterfaceMCCPU::getCurrentMicrocodeLine() const noexcept
 
 void InterfaceMCCPU::setMicrocodeProgram(QSharedPointer<MicrocodeProgram> program)
 {
-    this->sharedProgram = program;
+    this->sharedProgram = std::move(program);
     microprogramCounter = 0;
 }
 

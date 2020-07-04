@@ -2,6 +2,7 @@
 ;Computer Systems, Fifth edition
 ;Figure 5.16
 ;
-this:    DECO    this,d      
-         STOP                
+this:    LDWT    DECO,i     
+         SCALL   this,d      
+         RET                
          .END                  

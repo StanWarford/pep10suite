@@ -59,8 +59,8 @@
 
 CPUMainWindow::CPUMainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::CPUMainWindow), debugState(DebugState::DISABLED), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
-    updateChecker(new UpdateChecker()),  isInDarkMode(false),
+    ui(new Ui::CPUMainWindow), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
+    updateChecker(new UpdateChecker()),
     memDevice(new MainMemory(nullptr)), controlSection(new PartialMicrocodedCPU(Enu::CPUType::OneByteDataBus, memDevice)),
     dataSection(controlSection->getDataSection()),
     cpuModesGroup(new QActionGroup(this))
@@ -68,7 +68,6 @@ CPUMainWindow::CPUMainWindow(QWidget *parent) :
     // Initialize the memory subsystem
     QSharedPointer<RAMChip> ramChip(new RAMChip(1<<16, 0, memDevice.get()));
     memDevice->insertChip(ramChip, 0);
-    // I/O chips will still need to be added later
 
     // Perform any additional setup needed for UI objects.
     ui->setupUi(this);
@@ -80,8 +79,11 @@ CPUMainWindow::CPUMainWindow(QWidget *parent) :
     ui->memoryWidget->setHighlightPC(false);
     ui->memoryWidget->showJumpToPC(false);
     ui->cpuWidget->init(controlSection, controlSection->getDataSection());
-    ui->microcodeWidget->init(controlSection, dataSection, memDevice, false);
+    ui->microcodeWidget->init(controlSection, dataSection, false);
     ui->microobjectWidget->init(controlSection, false);
+
+    // Only display 4 bytes per line, rather than the default 8;
+    ui->memoryWidget->setNumBytesPerLine(4);
 
     // Create button group to hold CPU types
     cpuModesGroup->addAction(ui->actionSystem_One_Byte);
@@ -109,39 +111,59 @@ CPUMainWindow::CPUMainWindow(QWidget *parent) :
     ui->byteConverterToolBar->addWidget(byteConverterBin);
     byteConverterChar = new ByteConverterChar();
     ui->byteConverterToolBar->addWidget(byteConverterChar);
-    connect(byteConverterBin, &ByteConverterBin::textEdited, this, &CPUMainWindow::slotByteConverterBinEdited);
-    connect(byteConverterChar, &ByteConverterChar::textEdited, this, &CPUMainWindow::slotByteConverterCharEdited);
-    connect(byteConverterDec, &ByteConverterDec::textEdited, this, &CPUMainWindow::slotByteConverterDecEdited);
-    connect(byteConverterHex, &ByteConverterHex::textEdited, this, &CPUMainWindow::slotByteConverterHexEdited);
+    connect(byteConverterBin, &ByteConverterBin::textEdited,
+            this, &CPUMainWindow::slotByteConverterBinEdited);
+    connect(byteConverterChar, &ByteConverterChar::textEdited,
+            this, &CPUMainWindow::slotByteConverterCharEdited);
+    connect(byteConverterDec, &ByteConverterDec::textEdited,
+            this, &CPUMainWindow::slotByteConverterDecEdited);
+    connect(byteConverterHex, &ByteConverterHex::textEdited,
+            this, &CPUMainWindow::slotByteConverterHexEdited);
 
-    connect((QApplication*)QApplication::instance(), &QApplication::focusChanged, this, &CPUMainWindow::focusChanged);
+    connect(dynamic_cast<QApplication*>(QApplication::instance()), &QApplication::focusChanged,
+            this, &CPUMainWindow::focusChanged);
 
     // Connect Undo / Redo events
-    connect(ui->microcodeWidget, &MicrocodePane::undoAvailable, this, &CPUMainWindow::setUndoability);
-    connect(ui->microcodeWidget, &MicrocodePane::redoAvailable, this, &CPUMainWindow::setRedoability);
+    connect(ui->microcodeWidget, &MicrocodePane::undoAvailable,
+            this, &CPUMainWindow::setUndoability);
+    connect(ui->microcodeWidget, &MicrocodePane::redoAvailable,
+            this, &CPUMainWindow::setRedoability);
 
     // Connect simulation events.
     // Events that fire on simulationUpdate should be UniqueConnections, as they will be repeatedly connected and disconnected
     // via connectMicroDraw() and disconnectMicroDraw().
-    connect(this, &CPUMainWindow::simulationUpdate, ui->cpuWidget, &CpuPane::onSimulationUpdate, Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationUpdate, ui->memoryWidget, &MemoryDumpPane::updateMemory, Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationStarted, ui->memoryWidget, &MemoryDumpPane::onSimulationStarted);
-    connect(controlSection.get(), &PartialMicrocodedCPU::hitBreakpoint, this, &CPUMainWindow::onBreakpointHit);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            ui->cpuWidget, &CpuPane::onSimulationUpdate, Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            ui->memoryWidget, &MemoryDumpPane::updateMemory, Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationStarted,
+            ui->memoryWidget, &MemoryDumpPane::onSimulationStarted);
+    connect(controlSection.get(), &PartialMicrocodedCPU::hitBreakpoint,
+            this, &CPUMainWindow::onBreakpointHit);
 
 
-    connect(this, &CPUMainWindow::simulationStarted, ui->microobjectWidget, &MicroObjectCodePane::onSimulationStarted);
+    connect(this, &CPUMainWindow::simulationStarted,
+            ui->microobjectWidget, &MicroObjectCodePane::onSimulationStarted);
     // Post finished events to the event queue so that they are processed after simulation updates.
-    connect(this, &CPUMainWindow::simulationFinished, ui->microobjectWidget, &MicroObjectCodePane::onSimulationFinished, Qt::QueuedConnection);
-    connect(this, &CPUMainWindow::simulationFinished, controlSection.get(), &PartialMicrocodedCPU::onSimulationFinished, Qt::QueuedConnection);
-    connect(this, &CPUMainWindow::simulationFinished, ui->cpuWidget, &CpuPane::onSimulationFinished, Qt::QueuedConnection);
-    connect(this, &CPUMainWindow::simulationFinished, ui->memoryWidget, &MemoryDumpPane::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            ui->microobjectWidget, &MicroObjectCodePane::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            controlSection.get(), &PartialMicrocodedCPU::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            ui->cpuWidget, &CpuPane::onSimulationFinished, Qt::QueuedConnection);
+    connect(this, &CPUMainWindow::simulationFinished,
+            ui->memoryWidget, &MemoryDumpPane::onSimulationFinished, Qt::QueuedConnection);
     // Connect MainWindow so that it can propogate simulationFinished event and clean up when execution is finished.
-    connect(controlSection.get(), &PartialMicrocodedCPU::simulationFinished, this, &CPUMainWindow::onSimulationFinished);
+    connect(controlSection.get(), &PartialMicrocodedCPU::simulationFinished,
+            this, &CPUMainWindow::onSimulationFinished);
 
     // Connect simulation events that are internal to the class.
-    connect(this, &CPUMainWindow::simulationUpdate, this, &CPUMainWindow::handleDebugButtons, Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationUpdate, this, static_cast<void(CPUMainWindow::*)()>(&CPUMainWindow::highlightActiveLines), Qt::UniqueConnection);
-    connect(this, &CPUMainWindow::simulationStarted, this, &CPUMainWindow::handleDebugButtons);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            this, &CPUMainWindow::handleDebugButtons, Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationUpdate,
+            this, static_cast<void(CPUMainWindow::*)()>(&CPUMainWindow::highlightActiveLines), Qt::UniqueConnection);
+    connect(this, &CPUMainWindow::simulationStarted,
+            this, &CPUMainWindow::handleDebugButtons);
 
     // Connect font change events.
     connect(this, &CPUMainWindow::fontChanged, ui->microcodeWidget, &MicrocodePane::onFontChanged);
@@ -220,7 +242,7 @@ void CPUMainWindow::closeEvent(QCloseEvent *event)
 bool CPUMainWindow::eventFilter(QObject *, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
         if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)) {
             if (ui->cpuWidget->hasFocus() && ui->actionDebug_Single_Step_Microcode->isEnabled()) {
                 // single step or clock, depending of if currently debugging
@@ -245,8 +267,12 @@ bool CPUMainWindow::eventFilter(QObject *, QEvent *event)
             ui->statusBar->showMessage("Open failed, simulator currently debugging", 4000);
             return false;
         }
-        //loadFile(static_cast<QFileOpenEvent *>(event)->file());
-        return true;
+        auto fileEvent = static_cast<QFileOpenEvent *>(event)->file();
+        if(fileEvent.endsWith("pepcpu", Qt::CaseInsensitive)) {
+            loadFile(fileEvent);
+            return true;
+        }
+        return false;
     }
     // Touch events are giving CPU pane focus when it should be receiving it.
     // Therefore, accept all touch events to prevent them from getting to the CPU pane.
@@ -485,7 +511,7 @@ void CPUMainWindow::print()
     document.setPlainText(ui->microcodeWidget->toPlainText());
     mcHi.rehighlight();
 
-    QPrintDialog *dialog = new QPrintDialog(&printer, this);
+    auto *dialog = new QPrintDialog(&printer, this);
     dialog->setWindowTitle(title);
     if (dialog->exec() == QDialog::Accepted) {
         // printer.setPaperSize(QPrinter::Letter);
@@ -561,9 +587,12 @@ bool CPUMainWindow::initializeSimulation()
         controlSection->initCPU();
         ui->cpuWidget->clearCpu();
         on_actionSystem_Clear_Memory_triggered();
+
+        CPUDataSection* data = this->dataSection.get();
+        AMemoryDevice* memory = this->memDevice.get();
         for(auto line : ui->microcodeWidget->getMicrocodeProgram()->getObjectCode()) {
             if(line->hasUnitPre()) {
-                static_cast<UnitPreCode*>(line)->setUnitPre(dataSection.get());
+                static_cast<UnitPreCode*>(line)->setUnitPre(data, memory);
             }
         }
     }
@@ -896,15 +925,20 @@ void CPUMainWindow::onSimulationFinished()
 
     QVector<AMicroCode*> prog = ui->microcodeWidget->getMicrocodeProgram()->getObjectCode();
     bool hadPostTest = false;
+    CPUDataSection* data = this->dataSection.get();
+    AMemoryDevice* memory = this->memDevice.get();
     for (AMicroCode* x : prog) {
-        if(x->hasUnitPost()) hadPostTest = true;
-        if (x->hasUnitPost() && !((UnitPostCode*)x)->testPostcondition(dataSection.get(), errorString)) {
-            ((UnitPostCode*)x)->testPostcondition(dataSection.get(), errorString);
-            ui->microcodeWidget->appendMessageInSourceCodePaneAt(-1, errorString);
-            QMessageBox::warning(this, "Pep/9 CPU", "Failed unit test");
-            ui->microcodeWidget->getEditor()->setFocus();
-            ui->statusBar->showMessage("Failed unit test", 4000);
-            return;
+        if(x->hasUnitPost()) {
+            hadPostTest = true;
+            UnitPostCode* code = dynamic_cast<UnitPostCode*>(x);
+            if(!code->testPostcondition(data, memory, errorString)) {
+                ui->microcodeWidget->appendMessageInSourceCodePaneAt(-1, errorString);
+                QMessageBox::warning(this, "Pep/9 CPU", "Failed unit test");
+                ui->microcodeWidget->getEditor()->setFocus();
+                ui->statusBar->showMessage("Failed unit test", 4000);
+                return;
+            }
+
          }
     }
     if(controlSection->hadErrorOnStep()) {

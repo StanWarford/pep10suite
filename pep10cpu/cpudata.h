@@ -19,7 +19,7 @@ class CPUDataSection: public QObject
     friend class InterfaceMCCPU;
 public:
     CPUDataSection(Enu::CPUType type, QSharedPointer<AMemoryDevice> memDevice, QObject *parent = nullptr );
-    virtual ~CPUDataSection();
+    ~CPUDataSection() override;
 
 
     Enu::CPUType getCPUType() const;

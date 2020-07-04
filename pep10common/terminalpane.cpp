@@ -148,7 +148,7 @@ void TerminalPane::displayTerminal()
 bool TerminalPane::eventFilter(QObject *, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress && ui->plainTextEdit->hasFocus() && waiting) {
-        QKeyEvent *e = static_cast<QKeyEvent *>(event);
+        auto *e = static_cast<QKeyEvent *>(event);
         if (e->key() == Qt::Key_Shift || e->key() == Qt::Key_Control ||
             e->key() == Qt::Key_Meta || e->key() == Qt::Key_Alt ||
             e->key() == Qt::Key_CapsLock || e->key() == Qt::Key_NumLock ||

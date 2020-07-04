@@ -30,6 +30,7 @@ public:
     bool canStepInto() const override;
     void stepInto() override;
     void stepOut() override;
+    void runUntilLoaded() override;
     quint64 getCycleCount() override;
     quint64 getInstructionCount() override;
     const QVector<quint32> getInstructionHistogram() override;
@@ -82,6 +83,7 @@ private:
     void executeTrap(Enu::EMnemonic mnemon);
     // Callback function to handle InteruptHandler's BREAKPOINT_ASM.
     void breakpointAsmHandler();
+
 };
 
 #endif // ISACPU_H

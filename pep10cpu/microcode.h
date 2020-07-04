@@ -25,15 +25,18 @@
 #include <QString>
 #include <QMap>
 #include "enu.h"
+
 class CpuGraphicsItems;
 class SymbolEntry;
 class Specification;
 class CPUDataSection;
+class AMemoryDevice;
+
 // Abstract code class
 class AMicroCode
 {
 public:
-    virtual ~AMicroCode() { }
+    virtual ~AMicroCode();
     virtual bool isMicrocode() const { return false; }
     virtual void setCpuLabels(CpuGraphicsItems *)const { }
     virtual QString getObjectCode() const { return ""; }
@@ -105,7 +108,7 @@ public:
     ~UnitPreCode() override;
     QString getSourceCode() const override;
     bool hasUnitPre() const override;
-    void setUnitPre(CPUDataSection* data);
+    void setUnitPre(CPUDataSection* data, AMemoryDevice* memDevice);
     void appendSpecification(Specification *specification);
     void setComment(QString comment);
 private:
@@ -118,7 +121,7 @@ class UnitPostCode: public AMicroCode
 public:
     ~UnitPostCode() override;
     QString getSourceCode() const override;
-    bool testPostcondition(CPUDataSection *data,QString &err);
+    bool testPostcondition(CPUDataSection *data, AMemoryDevice* memDevice, QString &err);
     void appendSpecification(Specification *specification);
     void setComment(QString comment);
     bool hasUnitPost() const override;

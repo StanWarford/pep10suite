@@ -22,7 +22,7 @@
 
 #include "amemorydevice.h"
 
-AMemoryDevice::AMemoryDevice(QObject *parent) noexcept: QObject(parent), bytesWritten(), bytesSet(),
+AMemoryDevice::AMemoryDevice(QObject *parent) noexcept: QObject(parent),
     errorMessage(""), error(false)
 {
 

@@ -21,12 +21,14 @@
 */
 
 #include "symboltable.h"
+
+#include <utility>
 #include "symbolentry.h"
 #include "symbolvalue.h"
 
-typedef QAtomicInt SymbolID;
-typedef QSharedPointer<SymbolEntry> SymbolEntryPtr;
-typedef QSharedPointer<AbstractSymbolValue> AbstractSymbolValuePtr;
+using SymbolID = QAtomicInt;
+using SymbolEntryPtr = QSharedPointer<SymbolEntry>;
+using AbstractSymbolValuePtr = QSharedPointer<AbstractSymbolValue>;
 SymbolID SymbolTable::nextUserSymbolID = 0;
 
 SymbolID SymbolTable::getNextUserSymbolID()
@@ -35,13 +37,9 @@ SymbolID SymbolTable::getNextUserSymbolID()
 	return newSymbolID;
 }
 
-SymbolTable::SymbolTable():symbolDictionary(), symbolLookup()
-{
-}
+SymbolTable::SymbolTable() = default;
 
-SymbolTable::~SymbolTable()
-{
-}
+SymbolTable::~SymbolTable() = default;
 
 SymbolEntryPtr SymbolTable::getValue(SymbolID symbolID) const
 {
@@ -75,7 +73,7 @@ SymbolEntryPtr SymbolTable::setValue(SymbolID symbolID, AbstractSymbolValuePtr v
     if(rval->isDefined()) {
         rval->setMultiplyDefined();
     }
-    rval->setValue(value);
+    rval->setValue(std::move(value));
     return rval;
 }
 
@@ -83,7 +81,7 @@ SymbolEntryPtr SymbolTable::setValue(const QString & symbolName, AbstractSymbolV
 {
     // If the table doesn't contain a symbol, create it first.
     if(!exists(symbolName)) insertSymbol(symbolName);
-    return setValue(symbolLookup.find(symbolName).value(), value);
+    return setValue(symbolLookup.find(symbolName).value(), std::move(value));
 }
 
 SymbolTable::SymbolEntryPtr SymbolTable::reference(const QString &symbolName)
@@ -105,6 +103,19 @@ SymbolTable::SymbolEntryPtr SymbolTable::define(const QString &symbolName)
     return entry;
 }
 
+void SymbolTable::declareExternal(const QString &symbolName)
+{
+    // an EXPORT statement does not declare a symbol,
+    // so therefore we are referencing one that already exists.
+    externalSymbols.push_back(reference(symbolName));
+}
+
+const QList<QSharedPointer<SymbolEntry>> SymbolTable::getExternalSymbols() const
+{
+
+    return this->externalSymbols;
+}
+
 bool SymbolTable::exists(const QString& symbolName) const
 {
     return symbolLookup.find(symbolName) != symbolLookup.end();
@@ -118,7 +129,7 @@ bool SymbolTable::exists(SymbolID symbolID) const
 quint32 SymbolTable::numMultiplyDefinedSymbols() const
 {
     quint32 count = 0;
-    for(SymbolTable::SymbolEntryPtr ptr : this->symbolDictionary) {
+    for(const auto& ptr : this->symbolDictionary) {
         count += ptr->isMultiplyDefined() ? 1 : 0;
     }
     return count;
@@ -127,7 +138,7 @@ quint32 SymbolTable::numMultiplyDefinedSymbols() const
 quint32 SymbolTable::numUndefinedSymbols() const
 {
     quint32 count = 0;
-    for(SymbolTable::SymbolEntryPtr ptr : this->symbolDictionary) {
+    for(const auto& ptr : this->symbolDictionary) {
         count += ptr->isUndefined() ? 1 : 0;
     }
     return count;
@@ -135,7 +146,7 @@ quint32 SymbolTable::numUndefinedSymbols() const
 
 void SymbolTable::setOffset(quint16 value, quint16 threshhold)
 {
-    for(SymbolEntryPtr ptr:this->symbolDictionary) {
+    for(SymbolEntryPtr ptr : this->symbolDictionary) {
         if(ptr->getRawValue()->getSymbolType() == SymbolType::ADDRESS && ptr->getValue() >= threshhold) {
             static_cast<SymbolValueLocation*>(ptr->getRawValue().data())->setOffset(value);
         }
@@ -169,6 +180,10 @@ QString SymbolTable::getSymbolTableListing() const
     QList<QSharedPointer<SymbolEntry>> list = getSymbolEntries();
     std::sort(list.begin(),list.end(), SymbolAlphabeticComparator);
 
+    // Don't generate an empty symbol table.
+    if(list.isEmpty()) {
+        return "";
+    }
     for(auto it = list.begin(); it != list.end(); ++it) {
         if(it + 1 ==list.end()) {
             QString hexString = QString("%1").arg((*it)->getValue(), 4, 16, QLatin1Char('0')).toUpper();

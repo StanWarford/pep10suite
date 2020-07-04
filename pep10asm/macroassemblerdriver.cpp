@@ -3,9 +3,12 @@
 #include "macroregistry.h"
 #include "macrotokenizer.h"
 #include "macroassembler.h"
+#include "macrolinker.h"
+#include "macrostackannotater.h"
 
-MacroAssemblerDriver::MacroAssemblerDriver(const  MacroRegistry *registry) :  registry(registry),
-    processor(new MacroPreprocessor(registry)), assembler(new MacroAssembler())
+MacroAssemblerDriver::MacroAssemblerDriver(QSharedPointer<MacroRegistry> registry) :  registry(registry),
+    processor(new MacroPreprocessor(registry.get())), assembler(new MacroAssembler(registry.get())),
+    linker(new MacroLinker), annotater(new MacroStackAnnotater)
 {
 
 }
@@ -13,28 +16,97 @@ MacroAssemblerDriver::MacroAssemblerDriver(const  MacroRegistry *registry) :  re
 MacroAssemblerDriver::~MacroAssemblerDriver()
 {
     delete processor;
-    //delete assembler;
+    delete assembler;
+    delete linker;
+    delete annotater;
     // We do not own the registry, so do not delete it.
     registry = nullptr;
 }
 
-void *MacroAssemblerDriver::assembleUserProgram(QString input)
+ProgramOutput MacroAssemblerDriver::assembleUserProgram(QString input,
+                                                                     QSharedPointer<const SymbolTable> osSymbol)
 {
-    auto [rootPrototype, rootInstance] = graph.createRoot(input, ModuleType::USER_PROGRAM);
+    ProgramOutput output;
+    // Create a clean assembly graph to prevent accidental re-compiling of old code.
+    this->graph = ModuleAssemblyGraph();
+    auto [rootPrototype, startRootInstance] = graph.createRoot(input, ModuleType::USER_PROGRAM);
 
     if(!preprocess()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        // Report the error list of the root instance.
+        output.errors = graph.errors;
+        return output;
     }
     // Handle any preprocessor errors.
     if(!assembleProgram()) {
-        // Cleanup any allocated memory
-        return nullptr;
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
     }
-    link(*rootInstance.get());
-    annotate(*rootInstance.get());
+    this->linker->setOSSymbolTable(osSymbol);
+    if(!link()) {
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
+    }
+    auto rootInstance = graph.getRootInstance();
+
+    if(!annotate()) {
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
+    }
     validate(*rootInstance.get());
-    return nullptr;
+
+    output.program = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
+                                                        rootInstance->symbolTable,
+                                                        nullptr);
+    output.success = true;
+    return output;
+}
+
+ProgramOutput MacroAssemblerDriver::assembleOperatingSystem(QString input)
+{
+    ProgramOutput output;
+    // Clear out old system calls to make way for new definitions.
+    registry->clearSystemCalls();
+    // Create a clean assembly graph to prevent accidental re-compiling of old code.
+    this->graph = ModuleAssemblyGraph();
+    auto [rootPrototype, rootInstance] = graph.createRoot(input, ModuleType::OPERATING_SYSTEM);
+
+    if(!preprocess()) {
+        output.success = false;
+        // Report the error list of the root instance.
+        output.errors = graph.errors;
+        return output;
+    }
+    // Handle any preprocessor errors.
+    if(!assembleProgram()) {
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
+    }
+    this->linker->clearOSSymbolTable();
+    if(!link()) {
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
+    }
+
+    if(!annotate()) {
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
+    }
+
+    validate(*rootInstance.get());
+    output.program = QSharedPointer<AsmProgram>::create(rootInstance->codeList,
+                                                        rootInstance->symbolTable,
+                                                        nullptr,
+                                                        rootInstance->burnInfo.startROMAddress,
+                                                        rootInstance->burnInfo.burnArgument);
+    output.success = true;
+    return output;
 }
 
 bool MacroAssemblerDriver::preprocess()
@@ -43,9 +115,10 @@ bool MacroAssemblerDriver::preprocess()
     auto preprocessResult = processor->preprocess();
     bool retVal = false;
     if(!preprocessResult.succes) {
-        qDebug().noquote() << std::get<0>(preprocessResult.error)
+        qDebug().noquote() << "[PREERR]"
+                           << preprocessResult.error->getSourceLineNumber()
                            <<": "
-                           << std::get<1>(preprocessResult.error);
+                           << preprocessResult.error->getErrorMessage();
         retVal = false;
     }
     else {
@@ -60,26 +133,66 @@ bool MacroAssemblerDriver::assembleProgram()
     auto assemblyResult = assembler->assemble(graph);
     bool retVal = false;
     if(!assemblyResult.success) {
-        qDebug().noquote() << std::get<0>(assemblyResult.error)
+        qDebug().noquote() << "[ASMERR]"
+                           << assemblyResult.error->getSourceLineNumber()
                            <<": "
-                           << std::get<1>(assemblyResult.error);
+                           << assemblyResult.error->getErrorMessage();
         retVal = false;
     }
     else {
-        qDebug() << "Preprocessing was successful.";
+        qDebug() << "Assembly was successful.";
         retVal = true;
     }
     return retVal;
 }
 
-void MacroAssemblerDriver::link(ModuleInstance &module)
+bool MacroAssemblerDriver::link()
 {
+    auto linkerResult = linker->link(graph);
+    bool retVal = false;
+    if(!linkerResult.success) {
+        for(auto error : linkerResult.errorList) {
+            qDebug().noquote() << "[LNKERR]"
+                               << std::get<0>(error)
+                               <<": "
+                               << std::get<1>(error);
+            retVal = false;
+        }
 
+    }
+    else {
+        qDebug() << "Linking was successful.";
+        retVal = true;
+    }
+    return retVal;
 }
 
-void MacroAssemblerDriver::annotate(ModuleInstance &module)
+bool MacroAssemblerDriver::annotate()
 {
+    auto annotateResult = annotater->annotateStack(graph);
+    bool retVal = false;
+    if(annotateResult.success != AnnotationSucces::SUCCESS) {
+        for(auto error : annotateResult.warningList) {
+            qDebug().noquote() << "[STACKWARN]"
+                               << std::get<0>(error)
+                               <<": "
+                               << std::get<1>(error);
+            retVal = false;
+        }
+        for(auto error : annotateResult.errorList) {
+            qDebug().noquote() << "[STACKERR]"
+                               << std::get<0>(error)
+                               <<": "
+                               << std::get<1>(error);
+            retVal = false;
+        }
 
+    }
+    else {
+        qDebug() << "Stack annotation was successful.";
+        retVal = true;
+    }
+    return retVal;
 }
 
 void MacroAssemblerDriver::validate(ModuleInstance &module)

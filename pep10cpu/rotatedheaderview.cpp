@@ -1,11 +1,13 @@
 #include "rotatedheaderview.h"
 #include <QPainter>
-#include <math.h>
+#include <cmath>
 #include "pep.h"
 RotatedHeaderView::RotatedHeaderView(Qt::Orientation orientation, QWidget *parent): QHeaderView(orientation, parent)
 {
 
 }
+
+RotatedHeaderView::~RotatedHeaderView() = default;
 
 void RotatedHeaderView::paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const
 {
@@ -18,7 +20,7 @@ void RotatedHeaderView::paintSection(QPainter *painter, const QRect &rect, int l
     painter->rotate(angle);
     painter->setFont(QFont(Pep::codeFont,Pep::codeFontSize));
     // Ask parent for brush to color text.
-    painter->setBrush(QBrush(parentWidget()->palette().foreground()));
+    painter->setBrush(QBrush(parentWidget()->palette().windowText()));
     painter->drawText(nRect, this->model()->headerData(logicalIndex, Qt::Horizontal).toString());
     painter->restore();
 }

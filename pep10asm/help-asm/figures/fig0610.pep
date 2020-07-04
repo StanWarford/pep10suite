@@ -5,19 +5,16 @@
          BR      main        
 letter:  .BLOCK  1           ;global variable #1c
 ;
-main:    LDBA    charIn,d    ;scanf("%c", &letter)
-         STBA    letter,d    
+main:    @CHARI  letter,d    ;scanf("%c", &letter)
 while:   LDBA    letter,d    ;while (letter != '*')
          CPBA    '*',i       
          BREQ    endWh       
 if:      CPBA    ' ',i       ;if (letter == ' ')
          BRNE    else        
-         LDBA    '\n',i      ;printf("\n")
-         STBA    charOut,d   
+         @CHARO  '\n',i      ;printf("\n")
          BR      endIf       
-else:    STBA    charOut,d   ;printf("%c", letter)
-endIf:   LDBA    charIn,d    ;scanf("%c", &letter)
-         STBA    letter,d    
+else:    @CHARO  letter,d    ;printf("%c", letter)
+endIf:   @CHARI  letter,d    ;scanf("%c", &letter)
          BR      while       
-endWh:   STOP                
+endWh:   RET                
          .END                  

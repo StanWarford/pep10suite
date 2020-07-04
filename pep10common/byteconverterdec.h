@@ -42,7 +42,7 @@ class ByteConverterDec : public QWidget {
 
 public:
     explicit ByteConverterDec(QWidget *parent = nullptr);
-    virtual ~ByteConverterDec();
+    ~ByteConverterDec() override;
     void setValue(int);
 
 private:

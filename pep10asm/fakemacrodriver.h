@@ -18,7 +18,7 @@ public:
     ~FakeMacroDriver();
     void run();
 private:
-    MacroRegistry* registry;
+    QSharedPointer<MacroRegistry> registry;
     MacroAssemblerDriver* assembler;
 };
 

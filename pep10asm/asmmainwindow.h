@@ -25,7 +25,10 @@
 
 #include "pep.h"
 #include <QDir>
+
+#include "macroregistry.h"
 #include "isaasm.h"
+
 namespace Ui {
     class AsmMainWindow;
 }
@@ -41,7 +44,6 @@ class AsmHelpDialog;
 class MicrocodePane;
 class MicroObjectCodePane;
 class UpdateChecker;
-class RedefineMnemonicsDialog;
 
 //WIP classes
 class IsaCpu;
@@ -90,9 +92,9 @@ private:
     // Dialogues
     AsmHelpDialog *helpDialog;
     AboutPep *aboutPepDialog;
-    RedefineMnemonicsDialog *redefineMnemonicsDialog;
 
     AsmProgramManager* programManager;
+    QSharedPointer<MacroRegistry> macroRegistry;
 
     // Disconnect or reconnect events that notify views of changes in model,
     // Disconnecting these events allow for faster execution when running or continuing.
@@ -208,10 +210,6 @@ private slots:
     void on_actionSystem_Clear_Memory_triggered();
     void on_actionSystem_Assemble_Install_New_OS_triggered();
     void on_actionSystem_Reinstall_Default_OS_triggered();
-    void on_actionSystem_Redefine_Mnemonics_triggered();
-    // Allow main window to update highlighting rules after
-    // changes to the mnemonics have been finished.
-    void redefine_Mnemonics_closed();
 
     // Help
     void on_actionHelp_triggered();

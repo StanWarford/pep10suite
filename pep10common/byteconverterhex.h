@@ -42,7 +42,7 @@ class ByteConverterHex : public QWidget {
 
 public:
     explicit ByteConverterHex(QWidget *parent = nullptr);
-    virtual ~ByteConverterHex();
+    ~ByteConverterHex() override;
     void setValue(int);
 
 private:

@@ -44,19 +44,11 @@ namespace MacroTokenizerHelper
     extern const QRegularExpression rxArrayMultiplier;
     extern const QRegularExpression rxArrayTag;
 
-    bool startsWithHexPrefix(QString str);
+    bool startsWithHexPrefix(QStringRef str);
     // Post: Returns true if str starts with the characters 0x or 0X. Otherwise returns false.
 
     Enu::EAddrMode stringToAddrMode(QString str);
     // Post: Returns the addressing mode integer defined in Pep from its string representation.
-
-    int charStringToInt(QString str);
-    // Pre: str is enclosed in single quotes.
-    // Post: Returns the ASCII integer value of the character accounting for \ quoted characters.
-
-    int string2ArgumentToInt(QString str);
-    // Pre: str is enclosed in double quotes and contains at most two possibly quoted characters.
-    // Post: Returns the two-byte ASCII integer value for the string.
 
     void unquotedStringToInt(QString &str, int &value);
     // Pre: str is a character or string stripped of its single or double quotes.
@@ -75,15 +67,31 @@ namespace MacroTokenizerHelper
  * it will replace any macro substitutions in a source line before tokenizing it.
  * Choosing to handle macro substitutions here allows the assembler to be entirely unaware of
  * the macro framework.
+ *
+ * The tokenizer SHALL NOT be passed text containing newline characters.
  */
 class MacroTokenizer
 {
 public:
     MacroTokenizer();
     ~MacroTokenizer();
+    // Parse a source line that does not include a \r or \n.
     bool getToken(QString &sourceLine, int& offset, MacroTokenizerHelper::ELexicalToken &token, QStringRef &tokenString, QString& errorString);
     // Replace preprocessor tokens ($1 $2 $3 etc) before evaluating through tokenizer.
     void setMacroSubstitutions(QStringList macroSubstitution);
+    void performMacroSubstitutions(QString& sourceLine);
+    static const inline QString malformedMacroSubstitution = ";ERROR: Malformed macro substitution.";
+    static const inline QString malformedMacroInvocation = ";ERROR: Malformed macro invocation.";
+    static const inline QString malformedAddrMode = ";ERROR: Malformed addressing mode.";
+    static const inline QString malformedCharConst = ";ERROR: Malformed character constant.";
+    static const inline QString malformedComment = ";ERROR: Malformed comment";
+    static const inline QString malformedHexConst = ";ERROR: Malformed hex constant.";
+    static const inline QString malformedDecConst =";ERROR: Malformed decimal constant.";
+    static const inline QString malformedDot = ";ERROR: Malformed dot command.";
+    static const inline QString malformedIdentifier = ";ERROR: Malformed identifier.";
+    static const inline QString malformedStringConst = ";ERROR: Malformed string constant.";
+    static const inline QString syntaxError = ";ERROR: Syntax error.";
+
 private:
     QStringList macroSubstitutions;
 
@@ -92,8 +100,8 @@ private:
 class TokenizerBuffer
 {
     MacroTokenizer* tokenizer;
-    QList<QString> tokenizerInput;
-    QList<QString>::iterator inputIterator;
+    QVector<QString> tokenizerInput;
+    int inputIterator;
     QString errorMessage;
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> matches;
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> backedUpInput;
@@ -112,11 +120,13 @@ public:
     bool lookahead(MacroTokenizerHelper::ELexicalToken);
     QPair<MacroTokenizerHelper::ELexicalToken, QStringRef> takeLastMatch();
     QList<QPair<MacroTokenizerHelper::ELexicalToken, QStringRef>> getMatches();
+    bool skipNextLine();
     // Clear the match list.
     void clearMatchBuffer();
 private:
     // Grab the next token and place it in backed up input.
     void fetchNextLine();
+
 };
 
 #endif // MACROTOKENIZER_H

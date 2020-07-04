@@ -37,7 +37,7 @@
 #include "symbolvalue.h"
 MicroObjectCodePane::MicroObjectCodePane(QWidget *parent) :
     QWidget(parent), ui(new Ui::MicroObjectCodePane), cpu(nullptr),
-    rowCount(0), model(new QStandardItemModel()), inSimulation(false), showCtrlSectionSignals(false)
+    model(new QStandardItemModel())
 {
     ui->setupUi(this);
     QFont font(Pep::codeFont);
@@ -124,7 +124,7 @@ void MicroObjectCodePane::setObjectCode(QSharedPointer<MicrocodeProgram> prog, Q
             }
             for(auto col : clocks) {
                 auto x = (static_cast<MicroCode*>(row))->getClockSignal(col);
-                if( x != false) {
+                if(x) {
                     auto y = new QStandardItem(QString::number(x));
                     y->setTextAlignment(Qt::AlignCenter);
                     model->setItem(rowNum, colNum, y);
@@ -166,7 +166,7 @@ void MicroObjectCodePane::highlightCurrentInstruction()
     rowCount = cpu->getMicrocodeLineNumber();
     selectionModel->forceSelectRow(static_cast<int>(rowCount));
     // Row count interpeted as a signed 32 bit integer.
-    qint32 sRowCount = static_cast<int>(rowCount);
+    auto sRowCount = static_cast<int>(rowCount);
     ui->codeTable->setCurrentIndex(model->index(sRowCount,0));
 }
 

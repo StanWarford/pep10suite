@@ -21,10 +21,7 @@
 */
 #include "registerfile.h"
 
-RegisterFile::RegisterFile(): registersStart(),
-    registersCurrent(),
-    statusBitsStart(0),
-    statusBitsCurrent(0), irCache(0)
+RegisterFile::RegisterFile(): registersStart(), registersCurrent()
 {
     registersStart.fill(0);
     registersCurrent.fill(0);
@@ -93,7 +90,9 @@ void RegisterFile::clearStatusBits()
 
 quint16 RegisterFile::readRegisterWordCurrent(quint8 reg) const
 {
-    if(reg + 1 <= Enu::maxRegisterNumber) return static_cast<quint16>(registersCurrent[reg] << 8 | registersCurrent[reg + 1]);
+    if(reg + 1 <= Enu::maxRegisterNumber) {
+        return static_cast<quint16>(registersCurrent.at(reg) << 8 | registersCurrent.at(reg + 1));
+    }
     else return 0;
 }
 
@@ -104,7 +103,9 @@ quint16 RegisterFile::readRegisterWordCurrent(Enu::CPURegisters reg) const
 
 quint16 RegisterFile::readRegisterWordStart(quint8 reg) const
 {
-    if(reg + 1 <= Enu::maxRegisterNumber) return static_cast<quint16>(registersStart[reg] << 8 | registersStart[reg + 1]);
+    if(reg + 1 <= Enu::maxRegisterNumber) {
+        return static_cast<quint16>(registersStart.at(reg) << 8 | registersStart.at(reg + 1));
+    }
     else return 0;
 }
 
@@ -115,7 +116,7 @@ quint16 RegisterFile::readRegisterWordStart(Enu::CPURegisters reg) const
 
 quint8 RegisterFile::readRegisterByteCurrent(quint8 reg) const
 {
-    if(reg <= Enu::maxRegisterNumber) return registersCurrent[reg];
+    if(reg <= Enu::maxRegisterNumber) return registersCurrent.at(reg);
     else return 0;
 }
 
@@ -126,7 +127,7 @@ quint8 RegisterFile::readRegisterByteCurrent(Enu::CPURegisters reg) const
 
 quint8 RegisterFile::readRegisterByteStart(quint8 reg) const
 {
-    if(reg <= Enu::maxRegisterNumber) return registersStart[reg];
+    if(reg <= Enu::maxRegisterNumber) return registersStart.at(reg);
     else return 0;
 }
 
@@ -138,8 +139,8 @@ quint8 RegisterFile::readRegisterByteStart(Enu::CPURegisters reg) const
 void RegisterFile::writeRegisterWord(quint8 reg, quint16 val)
 {
     if(reg + 1 <= Enu::maxRegisterNumber) {
-        registersCurrent[reg] = static_cast<quint8>(val >> 8);
-        registersCurrent[reg + 1] = static_cast<quint8>(val & 0xff);
+        registersCurrent.at(reg) = static_cast<quint8>(val >> 8);
+        registersCurrent.at(reg + 1) = static_cast<quint8>(val & 0xff);
     }
 }
 
@@ -151,7 +152,7 @@ void RegisterFile::writeRegisterWord(Enu::CPURegisters reg, quint16 val)
 void RegisterFile::writeRegisterByte(quint8 reg, quint8 val)
 {
     if(reg <= Enu::maxRegisterNumber) {
-        registersCurrent[reg] = val;
+        registersCurrent.at(reg) = val;
     }
 }
 
@@ -170,8 +171,8 @@ void RegisterFile::writePCStart(quint16 val)
 {
     quint8 reg = convertRegister(Enu::CPURegisters::PC);
     if(reg + 1 < Enu::maxRegisterNumber) {
-        registersStart[reg] = static_cast<quint8>(val >> 8);
-        registersStart[reg + 1] = static_cast<quint8>(val & 0xff);
+        registersStart.at(reg) = static_cast<quint8>(val >> 8);
+        registersStart.at(reg + 1) = static_cast<quint8>(val & 0xff);
     }
 }
 

@@ -34,7 +34,7 @@
 #include "cpudata.h"
 MicrocodePane::MicrocodePane(QWidget *parent) :
         QWidget(parent), dataSection(nullptr),
-        ui(new Ui::MicrocodePane), inDarkMode(false), symbolTable(nullptr), program(nullptr), currentFile(), microASM(nullptr)
+        ui(new Ui::MicrocodePane), symbolTable(nullptr), program(nullptr), currentFile()
 {
     ui->setupUi(this);
 
@@ -44,7 +44,7 @@ MicrocodePane::MicrocodePane(QWidget *parent) :
     editor->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     editor->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
-    QGridLayout *layout = new QGridLayout;
+    auto layout = new QGridLayout;
     layout->addWidget(ui->label);
     layout->addWidget(editor);
     layout->setContentsMargins(0,0,0,0);
@@ -67,15 +67,17 @@ MicrocodePane::~MicrocodePane()
     delete ui;
 }
 
-void MicrocodePane::init(QSharedPointer<InterfaceMCCPU> cpu, QSharedPointer<CPUDataSection> newData, QSharedPointer<AMemoryDevice> memDevice, bool fullCtrlSection)
+void MicrocodePane::init(QSharedPointer<InterfaceMCCPU> cpu, QSharedPointer<CPUDataSection> dataSection,
+                         bool fullCtrlSection)
 {
     if(!dataSection.isNull()) {
         disconnect(dataSection.get(), &CPUDataSection::CPUTypeChanged, this, &MicrocodePane::onCPUTypeChanged);
     }
     if(microASM != nullptr) delete microASM;
-    microASM = new MicroAsm(memDevice, newData->getCPUType(), fullCtrlSection);
-    dataSection = newData;
-    connect(dataSection.get(), &CPUDataSection::CPUTypeChanged, this, &MicrocodePane::onCPUTypeChanged);
+    microASM = new MicroAsm(dataSection->getCPUType(), fullCtrlSection);
+    this->dataSection = dataSection;
+    connect(dataSection.get(), &CPUDataSection::CPUTypeChanged,
+            this, &MicrocodePane::onCPUTypeChanged);
     editor->init(cpu);
     // Calls initCPUModelState() to refresh the highlighters
     useFullCtrlSection(fullCtrlSection);
@@ -87,7 +89,8 @@ void MicrocodePane::initCPUModelState()
     if (highlighter != nullptr) {
         delete highlighter;
     }
-    highlighter = new PepMicroHighlighter(dataSection->getCPUType(), fullCtrlSection, PepColors::lightMode,editor->document());
+    highlighter = new PepMicroHighlighter(dataSection->getCPUType(), fullCtrlSection,
+                                          PepColors::lightMode,editor->document());
 
 }
 
@@ -100,7 +103,7 @@ bool MicrocodePane::microAssemble()
     AMicroCode *code;
     int lineNum = 0;
 
-    if(isModified() == false && program != nullptr) {
+    if(!isModified() && program != nullptr) {
         return true;
     }
 
@@ -122,7 +125,8 @@ bool MicrocodePane::microAssemble()
             QSharedPointer<MicrocodeProgram>::create(codeList, symbolTable);
             return false;
         }
-        if(code->isMicrocode() && static_cast<MicroCode*>(code)->hasControlSignal(Enu::EControlSignals::MemRead) &&
+        if(code->isMicrocode() &&
+                static_cast<MicroCode*>(code)->hasControlSignal(Enu::EControlSignals::MemRead) &&
                 static_cast<MicroCode*>(code)->hasControlSignal(Enu::EControlSignals::MemWrite)) {
             appendMessageInSourceCodePaneAt(lineNum, "\\ ERROR: Can't have memread and memwrite");
             // Create a dummy program that will delete all asm code entries
@@ -134,13 +138,13 @@ bool MicrocodePane::microAssemble()
     }
 
     program =  QSharedPointer<MicrocodeProgram>::create(codeList, symbolTable);
-    for(auto sym : symbolTable->getSymbolEntries()) {
+    for(const auto& sym : symbolTable->getSymbolEntries()) {
             if(sym->isUndefined()){
-                appendMessageInSourceCodePaneAt(-1,"// ERROR: Undefined symbol "+sym->getName());
+                appendMessageInSourceCodePaneAt(-1, "// ERROR: Undefined symbol "+ sym->getName());
                 return false;
             }
             else if(sym->isMultiplyDefined()) {
-                appendMessageInSourceCodePaneAt(-1,"// ERROR: Multiply defined symbol "+sym->getName());
+                appendMessageInSourceCodePaneAt(-1, "// ERROR: Multiply defined symbol "+ sym->getName());
                 return false;
             }
     }

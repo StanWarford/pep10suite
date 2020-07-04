@@ -11,39 +11,32 @@ bill:    .BLOCK  5           ;globals #first #last #age #gender
 ;
 ;******* main()
 main:    LDWX    first,i     ;scanf("%c%c%d %c", &bill.first,
-         LDBA    charIn,d    
-         STBA    bill,x      
+         @CHARI  bill,x    
          LDWX    last,i      ;&bill.last,
-         LDBA    charIn,d    
-         STBA    bill,x      
+         @CHARI  bill,x    
          LDWX    age,i       ;&bill.age,
-         DECI    bill,x      
+         @DECI   bill,x      
          LDWX    gender,i    ;&bill.gender)
-         LDBA    charIn,d    
-         STBA    bill,x      
-         STRO    msg0,d      ;printf("Initials: %c%c\n",
+         @CHARI  bill,x      
+         @STRO   msg0,d      ;printf("Initials: %c%c\n",
          LDWX    first,i     ;bill.first,
-         LDBA    bill,x      
-         STBA    charOut,d   
+         @CHARO  bill,x      
          LDWX    last,i      ;bill.last)
-         LDBA    bill,x      
-         STBA    charOut,d   
-         LDBA    '\n',i      
-         STBA    charOut,d   
-         STRO    msg1,d      ;printf("Age:  %d\n",
+         @CHARO  bill,x      
+         @CHARO  '\n',i      
+         @STRO   msg1,d      ;printf("Age:  %d\n",
          LDWX    age,i       ;bill.age)
-         DECO    bill,x      
-         LDBA    '\n',i      
-         STBA    charOut,d   
-         STRO    msg2,d      ;printf("Gender: ")
+         @DECO   bill,x      
+         @CHARO  '\n',i      
+         @STRO   msg2,d      ;printf("Gender: ")
          LDWX    gender,i    ;if (bill.gender == 'm')
          LDBA    bill,x      
          CPBA    'm',i       
          BRNE    else        
-         STRO    msg3,d      ;printf("male\n")
+         @STRO   msg3,d      ;printf("male\n")
          BR      endIf       
-else:    STRO    msg4,d      ;printf("female\n")
-endIf:   STOP                
+else:    @STRO   msg4,d      ;printf("female\n")
+endIf:   RET                
 msg0:    .ASCII  "Initials: \x00"
 msg1:    .ASCII  "Age: \x00" 
 msg2:    .ASCII  "Gender: \x00"

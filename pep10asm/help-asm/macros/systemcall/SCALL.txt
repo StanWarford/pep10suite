@@ -1,0 +1,4 @@
+@%1 2
+LDWT %1,i
+SCALL $1,$2
+.END

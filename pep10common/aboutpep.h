@@ -41,7 +41,7 @@ class AboutPep : public QDialog {
 public:
     // Icons will be scaled to 150x150 px.
     AboutPep(QString aboutText, QPixmap icon, QWidget *parent = nullptr);
-    ~AboutPep();
+    ~AboutPep() override;
 
 private:
     Ui::AboutPep *ui;

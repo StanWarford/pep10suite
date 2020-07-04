@@ -35,12 +35,16 @@ class IOWidget : public QWidget
 
 public:
     explicit IOWidget(QWidget *parent = nullptr);
-    ~IOWidget();
+    ~IOWidget() override;
 
     // Set the text in the batch input pane. Needed to pass
     void setBatchInput(QString text);
     // Select which tab (batch, terminal) is presented to the user.
     void setActivePane(Enu::EPane pane);
+    // Return if the widget is using batch IO.
+    bool inBatchMode() const;
+    // Return if the widget is using interactive IO.
+    bool inInteractiveMode() const;
     // If there is an outstanding input request, cancel it in a way that does
     // no generate errors.
     void cancelWaiting();
@@ -100,6 +104,9 @@ private:
     // Cache whether batch or terminal IO was selected when the simulation started,
     // to avoid bugs where the user switches tabs mid simulation.
     int activePane;
+    // Indicies in the tab widget for the batch, terminal panes.
+    static const int batch_index = 0;
+    static const int terminal_index=1;
 
 };
 

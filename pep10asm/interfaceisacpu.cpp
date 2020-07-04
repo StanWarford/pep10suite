@@ -7,7 +7,7 @@
 #include "typetags.h"
 #include "symbolentry.h"
 #include "asmcode.h"
-InterfaceISACPU::InterfaceISACPU(const AMemoryDevice* dev, const AsmProgramManager* manager) noexcept:
+InterfaceISACPU::InterfaceISACPU(const AMemoryDevice* /*dev*/, const AsmProgramManager* manager) noexcept:
     manager(manager), opValCache(0),
     breakpointsISA(), asmInstructionCounter(0), asmBreakpointHit(false), doDebug(false),
     firstLineAfterCall(false), isTrapped(false), memTrace(QSharedPointer<MemoryTrace>::create()),
@@ -78,7 +78,7 @@ void InterfaceISACPU::calculateStackChangeStart(quint8 instr)
         isTrapped = true;
         activeActions = &osActions;
     }
-    else if(Pep::decodeMnemonic[instr] == Enu::EMnemonic::RETTR) {
+    else if(Pep::decodeMnemonic[instr] == Enu::EMnemonic::SRET) {
         isTrapped = false;
         memTrace->activeStack = &memTrace->userStack;
         activeActions = &userActions;

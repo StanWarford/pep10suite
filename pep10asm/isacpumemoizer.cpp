@@ -50,23 +50,22 @@ QString IsaCpuMemoizer::memoize()
     }
     quint8 ir = 0;
     QString build, AX, NZVC;
-    AX = QString(" A=%1, X=%2, SP=%3")
+    AX = QString(" A=%1, X=%2, SP=%3, TR=%4")
 
             .arg(formatNum(file.readRegisterWordCurrent(Enu::CPURegisters::A)),
                  formatNum(file.readRegisterWordCurrent(Enu::CPURegisters::X)),
-                 formatNum(file.readRegisterWordCurrent(Enu::CPURegisters::SP)));
+                 formatNum(file.readRegisterWordCurrent(Enu::CPURegisters::SP)),
+                 formatNum(file.readRegisterWordCurrent(Enu::CPURegisters::TR)));
     NZVC = QString(" SNZVC=") % QString("%1").arg(QString::number(file.readStatusBitsCurrent(), 2), 5, '0');
     build = (attemptAddrReplace(symTable, file.readRegisterWordStart(Enu::CPURegisters::PC)) + QString(":")).leftJustified(10) %
             formatInstr(symTable, file.getIRCache(), file.readRegisterWordCurrent(Enu::CPURegisters::OS));
-    build += "  " + AX;
-    build += NZVC;
     build += "  " + AX;
     build += NZVC;
     ir = file.getIRCache();
     if(Pep::isTrapMap[Pep::decodeMnemonic[ir]]) {
         build += generateTrapFrame(state);
     }
-    else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::RETTR) {
+    else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::SRET) {
         build += generateTrapFrame(state,false);
     }
     else if(Pep::decodeMnemonic[ir] == Enu::EMnemonic::CALL) {
@@ -80,7 +79,7 @@ QString IsaCpuMemoizer::memoize()
 
 QString IsaCpuMemoizer::finalStatistics()
 {
-    Enu::EMnemonic mnemon = Enu::EMnemonic::STOP;
+    Enu::EMnemonic mnemon = Enu::EMnemonic::RET;
     QList<Enu::EMnemonic> mnemonList = QList<Enu::EMnemonic>();
     mnemonList.append(mnemon);
     QList<quint32> tally = QList<quint32>();

@@ -3,8 +3,8 @@
     The Pep/9 suite of applications (Pep9, Pep9CPU, Pep9Micro) are
     simulators for the Pep/9 virtual machine, and allow users to
     create, simulate, and debug across various levels of abstraction.
-    
-    Copyright (C) 2018  J. Stanley Warford, Pepperdine University
+
+    Copyright (C) 2018  J. Stanley Warford & Matthew McRaven, Pepperdine University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -44,6 +44,9 @@ public:
     // Needs to be called after construction but before this class can be used, otherwise the class is in an incomplete state.
     void init(QSharedPointer<MainMemory> memory, QSharedPointer<ACPUModel> cpu);
 
+    // Set the number of bytes displayed per line.
+    void setNumBytesPerLine(quint16 bytesPerLine);
+
     // Optionally disable the highlighting of the PC.
     // By default, the PC is highlighted
     void setHighlightPC(bool highlightPC);
@@ -57,7 +60,7 @@ public:
     // By default, this title is visible.
     void showTitleLabel(bool showLabel = true);
 
-    virtual ~MemoryDumpPane() override;
+    ~MemoryDumpPane() override;
 
     void refreshMemory();
     // Post: the entire memory pane is refreshed
@@ -109,6 +112,7 @@ private:
     Ui::MemoryDumpPane *ui;
     QStandardItemModel* data;
     quint32 lineSize;
+    quint16 bytesPerLine = {8};
     QSharedPointer<MainMemory> memDevice;
     QSharedPointer<ACPUModel> cpu;
     MemoryDumpDelegate *delegate;

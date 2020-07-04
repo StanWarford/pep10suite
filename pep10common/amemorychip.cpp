@@ -26,10 +26,7 @@ AMemoryChip::AMemoryChip(quint32 size, quint16 baseAddress, QObject *parent) noe
 
 }
 
-AMemoryChip::~AMemoryChip()
-{
-
-}
+AMemoryChip::~AMemoryChip() = default;
 
 void AMemoryChip::setBaseAddress(quint16 newAddress)
 {
@@ -119,12 +116,6 @@ bool AMemoryChip::setWord(quint16 offsetFromBase, quint16 value)
     throw std::out_of_range(message);
 }
 
-bad_chip_write::~bad_chip_write()
-{
+bad_chip_write::~bad_chip_write() = default;
 
-}
-
-io_aborted::~io_aborted()
-{
-
-}
+io_aborted::~io_aborted() = default;

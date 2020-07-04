@@ -22,9 +22,12 @@
 #include "pepmicrohighlighter.h"
 #include "pep.h"
 #include <QTextDocument>
-PepMicroHighlighter::PepMicroHighlighter(Enu::CPUType type, bool fullCtrlSection, const PepColors::Colors color, QTextDocument *parent)
+PepMicroHighlighter::PepMicroHighlighter(Enu::CPUType type, bool fullCtrlSection,
+                                         const PepColors::Colors color,
+                                         QTextDocument *parent)
     : QSyntaxHighlighter(parent), cpuType(type),
-      /*RestyleableItem(color, parent),*/ forcedFeatures(false), fullCtrlSection(fullCtrlSection)
+      /*RestyleableItem(color, parent),*/ forcedFeatures(false),
+      fullCtrlSection(fullCtrlSection)
 {
     // Trigger an update whenever a style is changed.
     // connect(this, &RestyleableItem::styleChanged, this, &PepMicroHighlighter::onStyleChange);
@@ -72,7 +75,7 @@ void PepMicroHighlighter::rebuildHighlightingRules(const PepColors::Colors color
         symLoc << ("else \\w+")
                << ("if \\w+ \\w+")
                << ("goto \\w+");
-        foreach (const QString &pattern, symLoc) {
+        for (auto &pattern : symLoc) {
             rule.pattern = QRegExp(pattern);
             rule.pattern.setCaseSensitivity(Qt::CaseInsensitive);
             rule.format = identFormat;
@@ -94,7 +97,7 @@ void PepMicroHighlighter::rebuildHighlightingRules(const PepColors::Colors color
 
         // Highlight the branch functions
         branchFunctionFormat.setForeground(color.branchFunctionHighlight);
-        for(QString function : Pep::branchFuncToMnemonMap.values())
+        for(auto& function : Pep::branchFuncToMnemonMap)
         {
             // A branch function is a string followed by a space or newline.
             rule.pattern = QRegExp(function.append("\\W+"), Qt::CaseInsensitive);

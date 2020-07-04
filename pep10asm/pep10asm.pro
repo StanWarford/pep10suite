@@ -23,7 +23,7 @@ QT += widgets webenginewidgets printsupport concurrent
 # Mac icon/plist
 ICON = images/icon.icns
 QMAKE_INFO_PLIST = app.plist
-QMAKE_MAC_SDK = macosx10.14
+#QMAKE_MAC_SDK = macosx10.14
 
 #Windows RC file for icon:
 RC_FILE = pep10resources.rc
@@ -44,7 +44,8 @@ SOURCES += \
 RESOURCES += \
     ../pep10asm/pep10asm-helpresources.qrc \
     ../pep10asm/pep10asm-resources.qrc \
-    ../pep10common/pep10common-resources.qrc
+    ../pep10common/pep10common-resources.qrc \
+    pep10asm-macros.qrc
 
 INCLUDEPATH += $$PWD/../pep10common
 

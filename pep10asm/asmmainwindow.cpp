@@ -57,11 +57,11 @@
 #include "asmhelpdialog.h"
 #include "isacpu.h"
 #include "isaasm.h"
+#include "macroassemblerdriver.h"
 #include "mainmemory.h"
 #include "memorychips.h"
 #include "memorydumppane.h"
 #include "updatechecker.h"
-#include "redefinemnemonicsdialog.h"
 #include "registerfile.h"
 #include "symboltable.h"
 
@@ -70,7 +70,7 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     ui(new Ui::AsmMainWindow), debugState(DebugState::DISABLED), codeFont(QFont(Pep::codeFont, Pep::codeFontSize)),
     updateChecker(new UpdateChecker()), isInDarkMode(false),
     memDevice(new MainMemory(nullptr)), controlSection(new IsaCpu(AsmProgramManager::getInstance(), memDevice)),
-    redefineMnemonicsDialog(new RedefineMnemonicsDialog(this)),programManager(AsmProgramManager::getInstance())
+    programManager(AsmProgramManager::getInstance()), macroRegistry(QSharedPointer<MacroRegistry>::create())
 
 {
     // Initialize the memory subsystem
@@ -91,7 +91,8 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     ui->assemblerPane->init(programManager);
     ui->asmProgramTracePane->init(controlSection, programManager);
     ui->asmCpuPane->init(controlSection, controlSection);
-    redefineMnemonicsDialog->init(true);
+
+    programManager->setMacroRegistry(macroRegistry);
 
     // Create & connect all dialogs.
     helpDialog = new AsmHelpDialog(this);
@@ -105,7 +106,6 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     QPixmap pixmap("://images/Pep9-icon.png");
     aboutPepDialog = new AboutPep(text, pixmap, this);
 
-    connect(redefineMnemonicsDialog, &RedefineMnemonicsDialog::closed, this, &AsmMainWindow::redefine_Mnemonics_closed);
     // Byte converter setup.
     byteConverterDec = new ByteConverterDec(this);
     ui->byteConverterToolBar->addWidget(byteConverterDec);
@@ -200,7 +200,6 @@ AsmMainWindow::AsmMainWindow(QWidget *parent) :
     connect(programManager, &AsmProgramManager::breakpointRemoved, ui->assemblerPane, &AssemblerPane::onBreakpointRemoved);
 
     // These aren't technically slots being bound to, but this is allowed because of the new signal / slot syntax
-#pragma message ("If breakpoints aren't being added / set correctly, this is probably why")
     connect(programManager, &AsmProgramManager::breakpointAdded,
             [&](quint16 address){controlSection->breakpointAdded(address);});
     connect(programManager, &AsmProgramManager::breakpointRemoved,
@@ -285,8 +284,24 @@ bool AsmMainWindow::eventFilter(QObject *, QEvent *event)
             ui->statusBar->showMessage("Open failed, simulator currently debugging", 4000);
             return false;
         }
-        //loadFile(static_cast<QFileOpenEvent *>(event)->file());
-        return true;
+        auto fileEvent = static_cast<QFileOpenEvent *>(event)->file();
+        if(fileEvent.endsWith("pepl", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::EListing);
+            return true;
+        }
+        else if(fileEvent.endsWith("pepo", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::EObject);
+            return true;
+        }
+        else if(fileEvent.endsWith("pepm", Qt::CaseInsensitive)) {
+            #pragma message("TODO: Load macro file from file open event.")
+            //loadFile(fileEvent, Enu::EPane::ESource);
+            return true;
+        }
+        else if(fileEvent.endsWith("pep", Qt::CaseInsensitive)) {
+            loadFile(fileEvent, Enu::EPane::ESource);
+            return true;
+        }
     }
     return false;
 }
@@ -717,24 +732,26 @@ void AsmMainWindow::print(Enu::EPane which)
 void AsmMainWindow::assembleDefaultOperatingSystem()
 {
     // Need to assemble operating system.
-    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep9os.pep", false);
+    QString defaultOSText = Pep::resToString(":/help-asm/figures/pep10os.pep", false);
     // If there is text, attempt to assemble it
     if(!defaultOSText.isEmpty()) {
         QSharedPointer<AsmProgram> prog;
         auto elist = QList<QPair<int, QString>>();
-        IsaAsm assembler(*programManager);
-        if(assembler.assembleOperatingSystem(defaultOSText, true, prog, elist)) {
-            programManager->setOperatingSystem(prog);
-        }
+        MacroAssemblerDriver assembler(macroRegistry);
+        auto output = assembler.assembleOperatingSystem(defaultOSText);
         // If the operating system failed to assembly, we can't progress any further.
         // All application functionality depends on the operating system being defined.
-        else {
+        if(!output.success) {
             qDebug() << "OS failed to assemble.";
             auto textList = defaultOSText.split("\n");
-            for(auto errorPair : elist) {
-                qDebug() << textList[errorPair.first] << errorPair.second << endl;
+            auto os_errors = output.errors.getModuleErrors(ModuleAssemblyGraph::defaultRootIndex);
+            for(const auto& error : os_errors.keys()) {
+                qDebug().noquote() << textList[error] << os_errors[error].first()->getErrorMessage() << endl;
             }
             throw std::logic_error("The default operating system failed to assemble.");
+        }
+        else {
+            programManager->setOperatingSystem(output.program);
         }
     }
     // If the operating system couldn't be found, we can't progress any further.
@@ -866,15 +883,6 @@ void AsmMainWindow::debugButtonEnableHelper(const int which)
     ui->actionSystem_Redefine_Mnemonics->setEnabled(which & DebugButtons::INSTALL_OS);
     ui->actionSystem_Reinstall_Default_OS->setEnabled(which & DebugButtons::INSTALL_OS);
     ui->actionSystem_Assemble_Install_New_OS->setEnabled(which & DebugButtons::INSTALL_OS);
-
-    // If the user starts simulating while the redefine mnemonics dialog is open,
-    // force it to close so that the user can't change any mnemonics at runtime.
-    // Also explictly call redefine_Mnemonics_closed(), since QDialog::closed is
-    // not emitted when QDialog::hide() is invoked.
-    if(!(which & DebugButtons::INSTALL_OS) && redefineMnemonicsDialog->isVisible()) {
-        redefineMnemonicsDialog->hide();
-        redefine_Mnemonics_closed();
-    }
 }
 
 void AsmMainWindow::highlightActiveLines()
@@ -1074,7 +1082,6 @@ bool AsmMainWindow::on_actionBuild_Assemble_triggered()
         return true;
     }
     else {
-#pragma message("May be redundant")
         ui->assemblerPane->clearPane(Enu::EPane::EObject);
         ui->assemblerPane->clearPane(Enu::EPane::EListing);
         ui->asmProgramTracePane->clearSourceCode();
@@ -1235,7 +1242,11 @@ bool AsmMainWindow::on_actionDebug_Start_Debugging_Object_triggered()
         controlSection->breakpointsSet(programManager->getBreakpoints());
         memDevice->clearBytesSet();
         memDevice->clearBytesWritten();
-        ui->memoryWidget->updateMemory();
+        // Erase and re-render memory rather then update in place via updateMemory.
+        // For small changes, updateMemory is faster, but for large changes it is much slower.
+        // When beggining debugging, all addresses in the computer are 0'ed out and then
+        // the object code program / OS is loaded. This generate 64k update entries, hence very slow.
+        ui->memoryWidget->refreshMemory();
         // Force re-highlighting on memory to prevent last run's data
         // from remaining highlighted. Otherwise, if the last program
         // was "run", then every byte that it modified will be highlighted
@@ -1444,18 +1455,6 @@ void AsmMainWindow::on_actionSystem_Reinstall_Default_OS_triggered()
     assembleDefaultOperatingSystem();
     loadOperatingSystem();
     ui->memoryWidget->refreshMemory();
-}
-
-void AsmMainWindow::on_actionSystem_Redefine_Mnemonics_triggered()
-{
-    redefineMnemonicsDialog->show();
-}
-
-void AsmMainWindow::redefine_Mnemonics_closed()
-{
-    // Propogate ASM-level instruction definition changes across the application.
-    ui->assemblerPane->rebuildHighlightingRules();
-    ui->asmProgramTracePane->rebuildHighlightingRules();
 }
 
 void AsmMainWindow::onSimulationFinished()
@@ -1818,7 +1817,14 @@ void AsmMainWindow::onInputRequested(quint16 address)
 {
     handleDebugButtons();
     connectViewUpdate();
-    ui->tabWidget->setCurrentWidget(ui->debuggerTab);
+    // If we are debugging the application, switch to the debugger
+    // if it is not already active to show which line is requesting the
+    // input.
+    if(ui->ioWidget->inInteractiveMode() ||
+            this->debugState == DebugState::DEBUG_ISA ||
+            this->debugState == DebugState::DEBUG_RESUMED) {
+        ui->tabWidget->setCurrentWidget(ui->debuggerTab);
+    }
     // Must highlight lines with both the assembler and microcode debugger visible.
     // This is because of a bug in centerCursor() which doesn't center the cursor
     // iff the widget has never been visible.

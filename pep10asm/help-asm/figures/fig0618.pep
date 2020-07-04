@@ -5,9 +5,9 @@
          BR      main        
 ;
 ;******* void printTri()
-printTri:STRO    msg1,d      ;printf("*\n")
-         STRO    msg2,d      ;printf("**\n")
-         STRO    msg3,d      ;printf("***\n")
+printTri:@STRO   msg1,d      ;printf("*\n")
+         @STRO   msg2,d      ;printf("**\n")
+         @STRO   msg3,d      ;printf("***\n")
          RET                 
 msg1:    .ASCII  "*\n\x00"   
 msg2:    .ASCII  "**\n\x00"  
@@ -17,5 +17,5 @@ msg3:    .ASCII  "***\n\x00"
 main:    CALL    printTri    ;printTri()
          CALL    printTri    ;printTri()
          CALL    printTri    ;printTri()
-         STOP                
+         RET                
          .END                  

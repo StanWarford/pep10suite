@@ -1,0 +1,16 @@
+pep10micro:
+        script:
+                - echo "helloworld, making pep10micro"
+pep10term:
+        script:
+                - echo "helloworld, making pep10term"
+pep10asm:
+        script:
+                - echo "helloworld, making pep10asm"
+pep10cpu:
+        script:
+                - echo "helloworld, making pep10cpu"
+pep10unit:
+        script:
+                - echo "helloworld, making pep10unit"
+

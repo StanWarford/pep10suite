@@ -34,7 +34,7 @@ class OutputPane : public QWidget {
     Q_DISABLE_COPY(OutputPane)
 public:
     explicit OutputPane(QWidget *parent = nullptr);
-    virtual ~OutputPane();
+    ~OutputPane() override;
 
     void appendOutput(QString str);
     // Post: str is appended to the text edit
@@ -58,7 +58,7 @@ public slots:
 private:
     Ui::OutputPane *ui;
 
-    void mouseReleaseEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *) override;
 };
 
 #endif // OUTPUTPANE_H

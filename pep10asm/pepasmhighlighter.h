@@ -49,6 +49,7 @@ private:
     QVector<HighlightingRule> highlightingRules;
 
     QTextCharFormat oprndFormat;
+    QTextCharFormat macroFormat;
     QTextCharFormat dotFormat;
     QTextCharFormat symbolFormat;
     QTextCharFormat singleLineCommentFormat;

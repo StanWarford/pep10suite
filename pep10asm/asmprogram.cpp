@@ -60,6 +60,11 @@ AsmProgram::AsmProgram(QList<QSharedPointer<AsmCode> > programList, QSharedPoint
 
     // We are given program bounds by the burn address and burn val, so no need
     // to calculate like above constructor.
+    for(int it = 0; it < programList.length(); it++) {
+        int start = static_cast<quint16>(programList[it]->getMemoryAddress());
+        indexToMemAddress.insert(it, static_cast<quint16>(programList[it]->getMemoryAddress()));
+        memAddressToIndex.insert(static_cast<quint16>(programList[it]->getMemoryAddress()), it);
+    }
     programBounds = {static_cast<quint16>(burnAddress), static_cast<quint16>(burnValue)};
 }
 

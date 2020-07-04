@@ -35,14 +35,14 @@ class CpuGraphicsItems : public QGraphicsItem
 public:
     CpuGraphicsItems(Enu::CPUType type, CPUDataSection* dataSection, QWidget *widgetParent, QGraphicsItem *itemParent = nullptr,
                              QGraphicsScene *scene = nullptr);
-    ~CpuGraphicsItems();
+    ~CpuGraphicsItems() override;
 
-    QRectF boundingRect() const;
+    QRectF boundingRect() const override;
 
     bool aluHasCorrectOutput();
 
-    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-               QWidget *widget);
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+               QWidget *widget) override;
     void darkModeChanged(bool darkMode, QString styleSheet);
     void CPUTypeChanged(Enu::CPUType newType);
 
@@ -207,11 +207,11 @@ public:
     QLineEdit *pcRegLineEdit;
     QLineEdit *irRegLineEdit;
     QLineEdit *t1RegLineEdit;
+    QLineEdit *trRegLineEdit;
     QLineEdit *t2RegLineEdit;
     QLineEdit *t3RegLineEdit;
     QLineEdit *t4RegLineEdit;
     QLineEdit *t5RegLineEdit;
-    QLineEdit *t6RegLineEdit;
 
     // One byte data bus model features;
     QCheckBox  *MDRCk;
