@@ -3,11 +3,13 @@
 #include "macroregistry.h"
 #include "macrotokenizer.h"
 #include "macroassembler.h"
+#include "macroinstancer.h"
 #include "macrolinker.h"
 #include "macrostackannotater.h"
 
 MacroAssemblerDriver::MacroAssemblerDriver(QSharedPointer<MacroRegistry> registry) :  registry(registry),
     processor(new MacroPreprocessor(registry.get())), assembler(new MacroAssembler(registry.get())),
+    instancer(new MacroInstancer()),
     linker(new MacroLinker), annotater(new MacroStackAnnotater)
 {
 
@@ -17,6 +19,7 @@ MacroAssemblerDriver::~MacroAssemblerDriver()
 {
     delete processor;
     delete assembler;
+    delete instancer;
     delete linker;
     delete annotater;
     // We do not own the registry, so do not delete it.
@@ -39,6 +42,11 @@ ProgramOutput MacroAssemblerDriver::assembleUserProgram(QString input,
     }
     // Handle any preprocessor errors.
     if(!assembleProgram()) {
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
+    }
+    if(!instance()) {
         output.success = false;
         output.errors = graph.errors;
         return output;
@@ -86,6 +94,12 @@ ProgramOutput MacroAssemblerDriver::assembleOperatingSystem(QString input)
         output.errors = graph.errors;
         return output;
     }
+    if(!instance()) {
+        output.success = false;
+        output.errors = graph.errors;
+        return output;
+    }
+
     this->linker->clearOSSymbolTable();
     if(!link()) {
         output.success = false;
@@ -141,6 +155,21 @@ bool MacroAssemblerDriver::assembleProgram()
     }
     else {
         qDebug() << "Assembly was successful.";
+        retVal = true;
+    }
+    return retVal;
+}
+
+bool MacroAssemblerDriver::instance()
+{
+    auto instanceResult = instancer->instance(graph);
+    bool retVal = false;
+    if(!instanceResult.success) {
+        qDebug() << "Instancing failed.";
+
+    }
+    else {
+        qDebug() << "Instancing was successful.";
         retVal = true;
     }
     return retVal;

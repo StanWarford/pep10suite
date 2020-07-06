@@ -29,6 +29,7 @@ struct ProgramOutput
 class MacroTokenizer;
 class MacroRegistry;
 class MacroAssembler;
+class MacroInstancer;
 class MacroLinker;
 class MacroStackAnnotater;
 /*
@@ -44,12 +45,7 @@ class MacroStackAnnotater;
  *  Just as in Pep9, we use a tokenizer to assemble our programs.
  *  The assembler adapts which methods are available based on the type of the module being parsed.
  *
- * Link:
- *  External symbols (e.g. symbols in the operating system that had a .EXPORT) are pulled into
- *  all modules symbol tables.
- *  Checks for multiply defined / undefined symbols in module table.
- *  The address of each code line is calculated.
- *
+ * Instancing:
  *  (Copying module instances)
  *  Each Macro code line contains a pointer to a module instance, and each instance contains
  *  lines of code.  After the build step, multiple macro lines may point to the same module
@@ -69,6 +65,11 @@ class MacroStackAnnotater;
  *
  *  Other possible solutions included making AsmCode lines contain an offset and
  *  a base address, but this failed to correct for the strange behavior of ALIGN.
+ * Link:
+ *  External symbols (e.g. symbols in the operating system that had a .EXPORT) are pulled into
+ *  all modules symbol tables.
+ *  Checks for multiply defined / undefined symbols in module table.
+ *  The address of each code line is calculated.
  *
  * Annotate:
  *  In Pep9, the detection of trace tags was "baked in" to the build step.
@@ -112,6 +113,8 @@ private:
     // Replace macro symbols $1 $2 $3 before they reach the normal assembly function
     // Generate the code line objects, detect symbols, but do not assign addresses or sizes.
     bool assembleProgram();
+    // Duplicate macros so each macro object corresponds to one invocation.
+    bool instance();
     // Calculate real address of each code line,
     bool link();
     // Annotate functions that modify the stack.
@@ -123,6 +126,7 @@ private:
     QSharedPointer<MacroRegistry> registry;
     MacroPreprocessor *processor;
     MacroAssembler *assembler;
+    MacroInstancer *instancer;
     MacroLinker *linker;
     MacroStackAnnotater *annotater;
     ModuleAssemblyGraph graph;
